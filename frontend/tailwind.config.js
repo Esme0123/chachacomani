@@ -10,7 +10,7 @@ export default {
       colors: {
         // Sistema visual Warm Cream (Modo Claro editorial)
         cream: {
-          50: '#fcfaf4',
+          50: '#ffffff',
           100: '#f6f3ea',
           200: '#f0ebdd',
           300: '#e7e0ce',
@@ -19,14 +19,14 @@ export default {
         },
         ivory: '#ffffff',
         sand: {
-          300: '#e5decf',
+          300: '#e2e8f0',
           400: '#d9d0bc',
           500: '#cabfa6',
         },
         ink: {
-          DEFAULT: '#2a2723',
-          soft: '#4a453d',
-          muted: '#8a837a',
+          DEFAULT: '#0f172a',
+          soft: '#1e293b',
+          muted: '#64748b',
         },
         // --- Acentos Dorados Industriales
         gold: {
@@ -56,12 +56,12 @@ export default {
           900: '#0f172a',
           950: '#020617',
         },
-        // --- Alias navy (usado en todo el frontend) alineado a la escala Slate
+        // --- Alias navy (usado en todo el frontend) — Modo Oscuro profundo
         navy: {
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
+          700: '#26334d',
+          800: '#161e2e',
+          900: '#0b0f19',
+          950: '#070b14',
         },
       },
       fontFamily: {

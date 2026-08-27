@@ -88,21 +88,40 @@ export default function App() {
           `artículo ${art.numero}`.includes(query) ||
           `art ${art.numero}`.includes(query)
         ) {
-          matched.push({ ...art, capituloRomano: cap.numero_romano });
+          matched.push({ ...art, capituloRomano: cap.numero_romano, capituloId: cap.id });
         }
       });
     });
     return matched;
   }, [searchTerm, currentCapitulo]);
 
-  // Leer el Capítulo completo con El Casquito Minero
   const speakChapter = () => {
-    const text = `${currentCapitulo.titulo}. ${currentCapitulo.descripcion || ''} ` +
-      currentCapitulo.articulos
-        .map((a) => `Artículo ${a.numero}. ${a.denominacion}. ${a.contenido}`)
-        .join(' ');
-    tts.speak(text);
+    const segments = [
+      {
+        text: `Capítulo ${currentCapitulo.numero_romano}. ${currentCapitulo.titulo}. ${currentCapitulo.descripcion || ''}`,
+        id: `cap-${currentCapitulo.id}`
+      },
+      ...currentCapitulo.articulos.map((a) => ({
+        text: `Artículo ${a.numero}. ${a.denominacion}. ${a.contenido}`,
+        id: `art-${currentCapitulo.id}-${a.numero}`
+      }))
+    ];
+    tts.speakSegments(segments);
   };
+
+  // Escuchar un Artículo individual (detiene cualquier lectura previa)
+  const listenArticle = (art, chapterId) => {
+    const readId = `art-${chapterId}-${art.numero}`;
+    const text = `Artículo ${art.numero}. ${art.denominacion}. ${art.contenido}`;
+    tts.speak(text, readId);
+  };
+
+  // Seguidor de lectura: desplaza automáticamente hacia el elemento en lectura
+  useEffect(() => {
+    if (!tts.currentlyReadingId) return;
+    const el = document.querySelector(`[data-read-id="${tts.currentlyReadingId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [tts.currentlyReadingId]);
 
   return (
     <>
@@ -111,7 +130,7 @@ export default function App() {
         {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       </AnimatePresence>
 
-      <div className="min-h-screen flex flex-col bg-cream-50 dark:bg-navy-900 text-ink dark:text-slate-100 transition-colors duration-500 bg-gold-fume dark:bg-none">
+      <div className="min-h-screen flex flex-col bg-[#f8f9fa] dark:bg-navy-900 text-ink dark:text-slate-100 transition-colors duration-500">
         {/* Barra de Progreso de Lectura */}
         <ProgressBar />
 
@@ -161,6 +180,7 @@ export default function App() {
                     key={currentCapitulo.id}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
+                    data-read-id={`cap-${currentCapitulo.id}`}
                     className={`relative overflow-hidden rounded-3xl border p-6 md:p-8 ${
                       isDark
                         ? 'bg-gradient-to-br from-navy-800 via-navy-800 to-navy-700 border-gold-500/30 text-slate-100 shadow-gold-glow'
@@ -212,17 +232,25 @@ export default function App() {
                 <div className="space-y-6">
                   <AnimatePresence mode="popLayout">
                     {filteredArticulos.length > 0 ? (
-                      filteredArticulos.map((art, idx) => (
-                        <ArticleCard
-                          key={art.id || art.numero}
-                          article={art}
-                          chapterRoman={art.capituloRomano || currentCapitulo.numero_romano}
-                          chapterTitle={art.capituloTitulo || currentCapitulo.titulo}
-                          searchTerm={searchTerm}
-                          fontSize={fontSize}
-                          index={idx}
-                        />
-                      ))
+                      filteredArticulos.map((art, idx) => {
+                        const chapterId = art.capituloId || currentCapitulo.id;
+                        const readId = `art-${chapterId}-${art.numero}`;
+                        return (
+                          <ArticleCard
+                            key={`${chapterId}-${art.numero}`}
+                            article={art}
+                            chapterRoman={art.capituloRomano || currentCapitulo.numero_romano}
+                            chapterTitle={art.capituloTitulo || currentCapitulo.titulo}
+                            searchTerm={searchTerm}
+                            fontSize={fontSize}
+                            index={idx}
+                            chapterId={chapterId}
+                            readId={readId}
+                            isReading={tts.currentlyReadingId === readId}
+                            onListenArticle={listenArticle}
+                          />
+                        );
+                      })
                     ) : (
                       <motion.div
                         initial={{ opacity: 0 }}
@@ -280,7 +308,7 @@ export default function App() {
                           scrollToTop();
                         }
                       }}
-                      className="px-4 py-2 text-xs font-bold rounded-xl bg-gold-500 text-navy-950 hover:bg-gold-400 shadow-sm transition-all flex items-center gap-1"
+                      className="px-4 py-2 text-xs font-bold rounded-xl bg-gold-600 text-navy-950 hover:bg-gold-500 shadow-sm transition-all flex items-center gap-1"
                     >
                       {selectedCapituloId < CAPITULOS_DATA.length ? 'Siguiente Capítulo →' : 'Ver Anexos I y II →'}
                     </button>

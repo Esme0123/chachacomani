@@ -14,12 +14,11 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
     isPaused,
     progress,
     rate,
-    currentText,
     setRate,
-    speak,
     pause,
     resume,
-    stop
+    stop,
+    rerun
   } = safeTts;
 
   const handleToggle = () => {
@@ -107,7 +106,7 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
                 {SPEEDS.map((s) => (
                   <button
                     key={s}
-                    onClick={() => { setRate(s); if (isSpeaking) speak(currentText ?? ''); }}
+                    onClick={() => { setRate(s); if (isSpeaking && rerun) rerun(); }}
                     className={`flex-1 py-1.5 text-[11px] rounded-lg transition-all ${
                       rate === s
                         ? 'bg-gold-500 text-navy-950 font-bold'

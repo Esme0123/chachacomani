@@ -31,11 +31,11 @@
   body {
     overflow-x: hidden;
     scroll-behavior: smooth;
-    background-color: #fcfaf4;
+    background-color: #f8f9fa;
   }
 
   .dark body {
-    background-color: #0f172a;
+    background-color: #0b0f19;
   }
 }
 
@@ -52,12 +52,12 @@
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, #d97706, #f59e0b);
   border-radius: 4px;
-  border: 2px solid #f6f3ea;
+  border: 2px solid #f8f9fa;
 }
 
 .dark ::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, #d97706, #f59e0b);
-  border-color: #0f172a;
+  border-color: #0b0f19;
 }
 
 ::-webkit-scrollbar-thumb:hover {

@@ -5,11 +5,13 @@ import { Highlighter, Headphones } from 'lucide-react';
 /**
  * SelectionTooltip — Pop-up contextual flotante sobre la selección de texto.
  * Solo actúa si la selección vive dentro de un elemento .sel-paragraph.
- * Ofrece dos acciones: "Resaltar" (marcatextos) y "Escuchar Selección" (TTS).
+ * Ofrece dos acciones: "Resaltar/Quitar resaltado" (alterna el marcador sin
+ * anidar etiquetas HTML) y "Escuchar Selección" (TTS).
  */
 export default function SelectionTooltip({ onListen, showToast }) {
   const [range, setRange] = useState(null);
   const [rect, setRect] = useState(null);
+  const [isHighlighted, setIsHighlighted] = useState(false);
   const tooltipRef = useRef(null);
   const lastText = useRef('');
 
@@ -21,6 +23,35 @@ export default function SelectionTooltip({ onListen, showToast }) {
       return !!el?.closest?.('.sel-paragraph');
     }
     return !!sel.anchorNode?.closest?.('.sel-paragraph');
+  }, []);
+
+  // Detecta si la selección cae dentro o sobre un marcador .hl-user ya aplicado
+  const hasHighlight = useCallback((r) => {
+    const candidates = [r.startContainer, r.endContainer, r.commonAncestorContainer];
+    for (const c of candidates) {
+      if (!c) continue;
+      const el = c.nodeType === Node.TEXT_NODE ? c.parentElement : c;
+      if (el?.closest?.('.hl-user')) return true;
+    }
+    return false;
+  }, []);
+
+  // Recolecta todos los <mark class="hl-user"> que intersecan el rango
+  const collectMarks = useCallback((r) => {
+    const marks = new Set();
+    if (!r.commonAncestorContainer) return [...marks];
+    const root = r.commonAncestorContainer.nodeType === Node.TEXT_NODE
+      ? r.commonAncestorContainer.parentElement
+      : r.commonAncestorContainer;
+    if (!root?.querySelectorAll) return [...marks];
+    root.querySelectorAll('.hl-user').forEach((m) => {
+      try {
+        if (r.intersectsNode(m)) marks.add(m);
+      } catch {
+        /* ignore */
+      }
+    });
+    return [...marks];
   }, []);
 
   useEffect(() => {
@@ -39,6 +70,7 @@ export default function SelectionTooltip({ onListen, showToast }) {
       lastText.current = text;
       const r = sel.getRangeAt(0).cloneRange();
       const rect = r.getBoundingClientRect();
+      setIsHighlighted(hasHighlight(r));
       setRange({ text, rect });
       setRect(rect);
     };
@@ -58,7 +90,7 @@ export default function SelectionTooltip({ onListen, showToast }) {
       document.removeEventListener('selectionchange', handleSelection);
       document.removeEventListener('mouseup', handleMouseDown);
     };
-  }, [isSelectionValid]);
+  }, [isSelectionValid, hasHighlight]);
 
   const clearSelection = () => {
     window.getSelection()?.removeAllRanges();
@@ -70,6 +102,17 @@ export default function SelectionTooltip({ onListen, showToast }) {
     if (!sel || sel.isCollapsed || !isSelectionValid(sel)) return;
     try {
       const range = sel.getRangeAt(0).cloneRange();
+      const existing = collectMarks(range);
+      if (existing.length) {
+        // Quitar marca existente sin dejar etiquetas anidadas
+        existing.forEach((m) => {
+          m.parentNode?.replaceChild(document.createTextNode(m.textContent), m);
+        });
+        showToast?.('Resaltado eliminado.');
+        clearSelection();
+        return;
+      }
+      // Aplicar marca nueva (previene anidación: solo si la selección no estaba resaltada)
       const mark = document.createElement('mark');
       mark.className =
         'hl-user px-0.5 rounded-sm bg-gold-400/45 dark:bg-gold-500/60 text-inherit';
@@ -108,11 +151,15 @@ export default function SelectionTooltip({ onListen, showToast }) {
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.92 }}
           onClick={handleHighlight}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gold-500/10 text-gold-300 hover:bg-gold-500 hover:text-navy-950 text-[11px] font-semibold transition-colors"
-          title="Resaltar fragmento seleccionado"
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
+            isHighlighted
+              ? 'bg-rose-500/15 text-rose-300 hover:bg-rose-500/25'
+              : 'bg-gold-500/10 text-gold-300 hover:bg-gold-500 hover:text-navy-950'
+          }`}
+          title={isHighlighted ? 'Quitar resaltado del fragmento' : 'Resaltar fragmento seleccionado'}
         >
           <Highlighter className="w-3.5 h-3.5" />
-          Resaltar
+          {isHighlighted ? 'Quitar resaltado' : 'Resaltar'}
         </motion.button>
         <div className="w-px h-4 bg-slate-700/60 mx-0.5" />
         <motion.button
