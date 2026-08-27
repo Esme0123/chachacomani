@@ -31,6 +31,11 @@
   body {
     overflow-x: hidden;
     scroll-behavior: smooth;
+    background-color: #fcfaf4;
+  }
+
+  .dark body {
+    background-color: #0f172a;
   }
 }
 

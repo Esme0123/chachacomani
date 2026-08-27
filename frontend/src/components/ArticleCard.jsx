@@ -38,7 +38,7 @@ const ArticleCard = forwardRef(function ArticleCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.05, 0.4) }}
       id={`art-${article.numero}`}
-      className="group relative p-6 md:p-8 rounded-3xl bg-ivory dark:bg-navy-900/80 border border-sand-300 dark:border-slate-800 shadow-cream-soft dark:shadow-none transition-all duration-300"
+      className="group relative p-6 md:p-8 rounded-3xl bg-ivory dark:bg-navy-800 border border-sand-300 dark:border-slate-700 shadow-cream-soft dark:shadow-md dark:shadow-amber-500/5 transition-all duration-300"
     >
       {/* Filete dorado ornamental que se revela al pasar el cursor */}
       <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

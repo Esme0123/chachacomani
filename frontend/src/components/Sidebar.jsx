@@ -32,7 +32,7 @@ export default function Sidebar({
   };
 
   const sidebarContent = (
-    <div className="h-full flex flex-col bg-cream-50 dark:bg-navy-900 border-r border-sand-300 dark:border-slate-800/80 w-80 select-none">
+    <div className="h-full flex flex-col bg-cream-50 dark:bg-navy-800 border-r border-sand-300 dark:border-slate-700/60 w-80 select-none">
 
       {/* Header del Sidebar */}
       <div className="p-4 border-b border-sand-300 dark:border-slate-800/80 flex items-center justify-between">
@@ -102,8 +102,8 @@ export default function Sidebar({
                   }}
                   className={`w-full text-left p-2.5 rounded-xl transition-all flex items-start gap-2.5 ${
                     isSelected
-                      ? 'bg-gold-500/15 dark:bg-gold-500/20 border border-gold-500/50 text-gold-900 dark:text-gold-300 font-semibold shadow-sm'
-                      : 'hover:bg-cream-100 dark:hover:bg-navy-800/60 text-ink dark:text-slate-300 border border-transparent'
+                      ? 'bg-gold-500/15 dark:bg-gold-500/20 border border-gold-500/50 text-amber-600 dark:text-gold-300 font-semibold shadow-sm'
+                      : 'hover:bg-cream-100 dark:hover:bg-navy-800/60 text-slate-600 dark:text-slate-300 border border-transparent'
                   }`}
                 >
                   <div className="mt-0.5 shrink-0 p-1 bg-cream-100 dark:bg-navy-800 rounded-lg border border-sand-300/70 dark:border-navy-700">
@@ -116,7 +116,7 @@ export default function Sidebar({
                         {cap.articulos ? cap.articulos.length : 0} arts.
                       </span>
                     </div>
-                    <p className="text-xs line-clamp-2 mt-0.5 text-ink dark:text-slate-200">
+                    <p className={`text-xs line-clamp-2 mt-0.5 ${isSelected ? 'text-amber-600 dark:text-gold-300' : 'text-slate-600 dark:text-slate-200'}`}>
                       {cap.titulo}
                     </p>
                   </div>

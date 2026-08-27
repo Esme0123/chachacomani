@@ -24,7 +24,7 @@ export default function Navbar({
   setSelectedTab
 }) {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-sand-300/70 dark:border-slate-800/80 bg-cream-50/85 dark:bg-navy-900/85 backdrop-blur-md transition-colors duration-500">
+    <header className="sticky top-0 z-40 w-full border-b border-sand-300/70 dark:border-slate-700/60 bg-cream-50/85 dark:bg-navy-800/85 backdrop-blur-md transition-colors duration-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
 

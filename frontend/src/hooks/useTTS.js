@@ -76,7 +76,9 @@ export function useTTS() {
     const voice = pickVoice();
     if (voice) {
       utterance.voice = voice;
-      utterance.lang = voice.lang;
+      if (voice.lang && String(voice.lang).toLowerCase().startsWith('es')) {
+        utterance.lang = voice.lang;
+      }
     }
 
     setCurrentText(clean);

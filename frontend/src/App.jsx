@@ -99,7 +99,6 @@ export default function App() {
   const speakChapter = () => {
     const text = `${currentCapitulo.titulo}. ${currentCapitulo.descripcion || ''} ` +
       currentCapitulo.articulos
-        .slice(0, 6)
         .map((a) => `Artículo ${a.numero}. ${a.denominacion}. ${a.contenido}`)
         .join(' ');
     tts.speak(text);
@@ -164,7 +163,7 @@ export default function App() {
                     animate={{ opacity: 1, y: 0 }}
                     className={`relative overflow-hidden rounded-3xl border p-6 md:p-8 ${
                       isDark
-                        ? 'bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 border-gold-500/30 text-white shadow-gold-glow'
+                        ? 'bg-gradient-to-br from-navy-800 via-navy-800 to-navy-700 border-gold-500/30 text-slate-100 shadow-gold-glow'
                         : 'bg-gradient-to-br from-gold-100 via-cream-100 to-gold-200/70 border-gold-400/40 text-ink shadow-cream-panel'
                     }`}
                   >
@@ -295,7 +294,7 @@ export default function App() {
         </div>
 
         {/* Widget TTS: Casquito Minero flotante */}
-        <CasquitoWidget tts={tts} />
+        <CasquitoWidget tts={tts} onSpeakChapter={speakChapter} />
 
         {/* Tooltip de Selección Contextual */}
         <SelectionTooltip onListen={tts.speak} showToast={triggerDRMAlert} />

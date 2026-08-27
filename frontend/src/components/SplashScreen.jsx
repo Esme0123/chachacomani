@@ -75,8 +75,8 @@ export default function SplashScreen({ onComplete }) {
               <MinerHelmet className="w-24 h-24" glow />
             </motion.div>
 
-            <p className="mt-6 font-display font-extrabold text-2xl md:text-3xl text-ink dark:text-gold-300 tracking-tight">
-              El Casquito Minero
+            <p className="mt-6 font-display font-extrabold text-xl md:text-3xl text-ink dark:text-gold-300 tracking-tight">
+              NORMAS CHACHACOMANÍ
             </p>
             <p className="mt-1 text-xs uppercase tracking-[0.3em] font-semibold text-ink-muted dark:text-slate-400">
               Reglamento Interno

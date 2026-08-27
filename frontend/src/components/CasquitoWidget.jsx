@@ -5,7 +5,7 @@ import { MinerHelmet } from './SplashScreen';
 
 const SPEEDS = [1, 1.25, 1.5];
 
-export default function CasquitoWidget({ tts }) {
+export default function CasquitoWidget({ tts, onSpeakChapter }) {
   const [open, setOpen] = useState(false);
   const safeTts = tts || {};
   const {
@@ -27,6 +27,9 @@ export default function CasquitoWidget({ tts }) {
       pause();
     } else if (isSpeaking && isPaused) {
       resume();
+    } else if (onSpeakChapter) {
+      onSpeakChapter();
+      setOpen(true);
     } else {
       setOpen(true);
     }

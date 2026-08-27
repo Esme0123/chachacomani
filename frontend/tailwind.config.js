@@ -56,6 +56,13 @@ export default {
           900: '#0f172a',
           950: '#020617',
         },
+        // --- Alias navy (usado en todo el frontend) alineado a la escala Slate
+        navy: {
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'Outfit', 'system-ui', 'sans-serif'],
