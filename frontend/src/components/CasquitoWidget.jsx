@@ -7,7 +7,20 @@ const SPEEDS = [1, 1.25, 1.5];
 
 export default function CasquitoWidget({ tts }) {
   const [open, setOpen] = useState(false);
-  const { isSpeaking, isPaused, progress, rate, currentText, setRate, speak, pause, resume, stop } = tts;
+  const safeTts = tts || {};
+  const {
+    supported = typeof window !== 'undefined' && 'speechSynthesis' in window,
+    isSpeaking,
+    isPaused,
+    progress,
+    rate,
+    currentText,
+    setRate,
+    speak,
+    pause,
+    resume,
+    stop
+  } = safeTts;
 
   const handleToggle = () => {
     if (isSpeaking && !isPaused) {

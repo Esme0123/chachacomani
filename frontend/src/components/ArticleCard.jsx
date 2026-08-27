@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Scale, BookMarked } from 'lucide-react';
 
-export default function ArticleCard({
+const ArticleCard = forwardRef(function ArticleCard({
   article,
   chapterRoman,
   chapterTitle,
   searchTerm,
   fontSize,
   index
-}) {
+}, ref) {
   // Función para resaltar coincidencias de búsqueda
   const highlightSearch = (text, query) => {
     if (!query || !text) return text;
@@ -33,6 +33,7 @@ export default function ArticleCard({
 
   return (
     <motion.article
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.05, 0.4) }}
@@ -104,4 +105,7 @@ export default function ArticleCard({
       </div>
     </motion.article>
   );
-}
+});
+
+export default ArticleCard;
+ArticleCard.displayName = 'ArticleCard';
