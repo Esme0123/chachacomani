@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Hook personalizado useDRM
- * Intercepta eventos de copia, menú contextual (clic derecho) y atajos de teclado clave
- * (Ctrl+C, Ctrl+U, Ctrl+S, Ctrl+P, F12, Ctrl+Shift+I/J/C)
- * Dispara una alerta toast animada indicando "Contenido protegido solo para lectura".
+ * Intercepta eventos de copia, corte, menú contextual (clic derecho) y atajos de
+ * teclado clave (Ctrl+C, Ctrl+X, Ctrl+U, Ctrl+S, Ctrl+P, F12, Ctrl+Shift+I/J/C).
+ * Dispara una alerta toast animada "Contenido protegido: Solo lectura y resaltado autorizado".
+ * Permite la selección de texto y el resaltado, pero bloquea toda extracción del contenido.
  */
 export function useDRM() {
   const [toastMessage, setToastMessage] = useState(null);
   const [toastVisible, setToastVisible] = useState(false);
 
-  const triggerDRMAlert = useCallback((message = 'Contenido protegido solo para lectura') => {
+  const triggerDRMAlert = useCallback((message = 'Contenido protegido: Solo lectura y resaltado autorizado') => {
     setToastMessage(message);
     setToastVisible(true);
   }, []);
@@ -37,7 +38,17 @@ export function useDRM() {
       return false;
     };
 
-    // 3. Interceptar Atajos de Teclado
+    // 3. Interceptar Evento Cortar (Cut)
+    const handleCut = (e) => {
+      e.preventDefault();
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', '');
+      }
+      triggerDRMAlert('Cortado de texto no permitido. Contenido de solo lectura.');
+      return false;
+    };
+
+    // 4. Interceptar Atajos de Teclado
     const handleKeyDown = (e) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
 
@@ -56,7 +67,15 @@ export function useDRM() {
         if (key === 'c' && !e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();
-          triggerDRMAlert('Contenido protegido solo para lectura.');
+          triggerDRMAlert('Contenido protegido: Solo lectura y resaltado autorizado.');
+          return false;
+        }
+
+        // Ctrl + X (Cortar)
+        if (key === 'x' && !e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          triggerDRMAlert('Extracción de texto bloqueada. Solo lectura autorizada.');
           return false;
         }
 
@@ -97,11 +116,13 @@ export function useDRM() {
     // Agregar Listeners
     window.addEventListener('contextmenu', handleContextMenu, { capture: true });
     window.addEventListener('copy', handleCopy, { capture: true });
+    window.addEventListener('cut', handleCut, { capture: true });
     window.addEventListener('keydown', handleKeyDown, { capture: true });
 
     return () => {
       window.removeEventListener('contextmenu', handleContextMenu, { capture: true });
       window.removeEventListener('copy', handleCopy, { capture: true });
+      window.removeEventListener('cut', handleCut, { capture: true });
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, [triggerDRMAlert]);

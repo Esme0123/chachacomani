@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* DRM: el resto de la interfaz no es seleccionable por defecto */
   * {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
@@ -11,25 +12,47 @@
     -webkit-touch-callout: none !important;
   }
 
+  /* EXCEPCIÓN EDITORIAL: solo los párrafos normativos son seleccionables */
+  .sel-text,
+  .sel-text *, 
+  .sel-paragraph {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+
+  /* Resaltado de selección del usuario con acento dorado cálido */
+  ::selection {
+    background: rgba(245, 158, 11, 0.28) !important;
+    color: inherit !important;
+  }
+
   body {
     overflow-x: hidden;
     scroll-behavior: smooth;
   }
 }
 
-/* Scrollbar personalizada con acento dorado */
+/* Scrollbar personalizada con acento dorado en ambos temas */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, #d97706, #f59e0b);
   border-radius: 4px;
+  border: 2px solid #f6f3ea;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #d97706, #f59e0b);
+  border-color: #0f172a;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -44,4 +67,30 @@
 
 .animate-subtle-pulse {
   animation: subtle-pulse 3s infinite ease-in-out;
+}
+
+/* Destello de la lámpara del casco minero */
+@keyframes lamp-flash {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.35); }
+}
+
+.animate-lamp-flash {
+  animation: lamp-flash 0.9s infinite ease-in-out;
+}
+
+/* Bobbing suave del casco flotante */
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float-bob {
+  animation: float-bob 3.2s infinite ease-in-out;
+}
+
+/* Papel grueso (grano sutil) para tarjetas de lectura */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
