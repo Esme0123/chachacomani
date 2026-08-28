@@ -399,7 +399,7 @@ export default function App() {
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
           onClick={() => setIsFormModalOpen(true)}
-          className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-gradient-to-t from-gold-600 to-gold-400 text-navy-950 text-sm font-bold shadow-gold-glow-lg"
+          className="fixed bottom-24 right-6 z-50 inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-gradient-to-t from-gold-600 to-gold-400 text-navy-950 text-sm font-bold shadow-gold-glow-lg"
           title="Llenar formulario de observaciones"
         >
           <ClipboardList className="w-5 h-5" />
