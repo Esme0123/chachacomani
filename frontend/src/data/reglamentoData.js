@@ -579,7 +579,7 @@ export const CAPITULOS_DATA = [
         id: 78,
         numero: 78,
         denominacion: "PROCEDIMIENTO DEL SUMARIO INFORMATIVO",
-        contenido: "a) Inicio mediante auto motivado.\nb) Notificación legal de cargos al procesado.\nc) Término probatorio de 20 días calendario para descargos.\nd) Emisión de informe y dictamen en 10 días calendario.\ne) Notificaciones obligatorias en cada etapa procesal."
+        contenido: "El Tribunal de Honor, una vez conocida la denuncia, dispondrá la apertura de un proceso sumario interno sin interrupciones hasta su conclusión, para presentar el informe final a la Asamblea General Extraordinaria convocada para el efecto.\na) Etapa de Inicio. Conocida la denuncia o el informe que dé lugar al proceso disciplinario, el Tribunal de Honor, mediante resolución fundamentada, dispondrá la apertura del sumario informativo interno y notificará a la asociada o asociado presuntamente infractor, dando inicio al procedimiento disciplinario.\nb) Notificación de cargos. La apertura del sumario se formalizará mediante la notificación a la asociada o asociado investigado, haciéndole conocer de manera clara los hechos que se le atribuyen, las normas presuntamente vulneradas y las posibles medidas disciplinarias aplicables, advirtiéndole que podrá presentar sus descargos y ofrecer pruebas dentro del plazo establecido en el presente artículo.\nc) Etapa de Tramitación. La asociada o asociado investigado dispondrá del plazo de veinte (20) días calendario, computables a partir de su legal notificación, para presentar por escrito sus descargos, pruebas, documentos, testigos y demás elementos que considere pertinentes para el ejercicio de su derecho a la defensa.\nd) Etapa de Valoración y Dictamen. Concluido el término probatorio, el Tribunal de Honor evaluará integralmente las pruebas aportadas y, dentro del plazo de diez (10) días calendario, emitirá un informe y dictamen debidamente fundamentado, recomendando la aplicación o no de la medida disciplinaria correspondiente, el cual será elevado al Consejo de Administración y, cuando corresponda, a la Asamblea General Extraordinaria para su consideración y resolución.\ne) Notificaciones. En resguardo del debido proceso y del derecho a la defensa, la asociada o asociado investigado deberá ser notificado con:\n1. La apertura del sumario informativo.\n2. Los cargos formulados en su contra.\n3. La apertura del término probatorio.\n4. El informe y dictamen emitido por el Tribunal de Honor.\n5. La convocatoria a la Asamblea General Extraordinaria cuando corresponda."
       }
     ]
   },
@@ -594,13 +594,13 @@ export const CAPITULOS_DATA = [
         id: 79,
         numero: 79,
         denominacion: "CREACIÓN DE LA JUNTA DE CONCILIACIÓN",
-        contenido: "Instancia encargada de promover acuerdos voluntarios y pacíficos entre asociados y directivos."
+        contenido: "En cumplimiento del Estatuto Orgánico, la Cooperativa contará con una Junta de Conciliación como instancia interna destinada a promover la solución pacífica de las controversias que se susciten entre las asociadas y asociados, entre éstos y los órganos de gobierno de la Cooperativa, o respecto de asuntos de naturaleza cooperativa susceptibles de conciliación."
       },
       {
         id: 80,
         numero: 80,
         denominacion: "REGLAMENTO DE CONCILIACIÓN Y ARBITRAJE COOPERATIVO",
-        contenido: "Vía preferente previa a procesos disciplinarios para preservar la unidad institucional."
+        contenido: "I. La organización, integración, atribuciones y funcionamiento de la Junta de Conciliación, así como el procedimiento de conciliación y, cuando corresponda, el arbitraje cooperativo, se regirán por el Reglamento de Conciliación y Arbitraje Cooperativo, aprobado por la Asamblea General, en concordancia con la Ley General de Cooperativas, su Decreto Supremo Reglamentario, el Estatuto Orgánico y las demás disposiciones aplicables. La conciliación constituirá un mecanismo previo y preferente para la solución de controversias cooperativas susceptibles de conciliación.\n\nII. La conciliación constituye el mecanismo preferente para resolver conflictos internos antes del inicio del procedimiento disciplinario, cuando la naturaleza del conflicto lo permita.\n\nIII. Mientras no se apruebe dicho Reglamento, las controversias conciliables serán resueltas conforme al Estatuto Orgánico, al presente Reglamento Interno y a la normativa cooperativa vigente."
       }
     ]
   },
@@ -615,25 +615,25 @@ export const CAPITULOS_DATA = [
         id: 81,
         numero: 81,
         denominacion: "DEL CUIDADO Y CONSERVACIÓN DE LOS BIENES DE LA COOPERATIVA",
-        contenido: "Obligación de preservar herramientas, maquinaria e inmuebles; deber de resarcimiento ante pérdidas culposas o dolosas."
+        contenido: "Las asociadas y asociados tienen la obligación de cuidar, conservar y utilizar adecuadamente las construcciones, campamentos, maquinarias, equipos, herramientas, combustibles, explosivos, vehículos y demás bienes de propiedad de la Cooperativa.\n\nToda asociada o asociado, representante o trabajador eventual que, por acción dolosa, culpa, descuido o negligencia debidamente comprobada, ocasione daño, pérdida o deterioro a los bienes de la Cooperativa, estará obligado a reparar el daño o restituir el bien afectado, previo informe técnico o administrativo que determine su responsabilidad y el valor correspondiente, sin perjuicio de las medidas disciplinarias previstas en el presente Reglamento Interno."
       },
       {
         id: 82,
         numero: 82,
         denominacion: "USO Y CUSTODIA DE LOS BIENES DE LA COOPERATIVA",
-        contenido: "Retiro de bienes solo con vale y registro; uso no autorizado constituye falta muy grave."
+        contenido: "Toda maquinaria, equipo, herramienta, combustible, explosivo, vehículo, accesorio y demás bienes de propiedad de la Cooperativa únicamente podrán ser utilizados o retirados de su lugar de resguardo mediante autorización de la autoridad competente y con el correspondiente registro o comprobante de entrega.\n\nLa tenencia, utilización o retiro no autorizado de bienes de la Cooperativa constituirá falta muy grave y dará lugar al inicio del procedimiento disciplinario correspondiente, sin perjuicio de la adopción de medidas preventivas para proteger el patrimonio institucional.\n\nCuando existan indicios de la comisión de un hecho que pudiera constituir delito, el Consejo de Administración pondrá los antecedentes en conocimiento del Tribunal de Honor y, de corresponder, los remitirá a las autoridades competentes para el ejercicio de las acciones legales pertinentes.\n\nLa restitución del bien o el resarcimiento económico no extingue la responsabilidad disciplinaria cuando se hubiera acreditado la infracción al presente Reglamento Interno."
       },
       {
         id: 83,
         numero: 83,
         denominacion: "INVENTARIO GENERAL",
-        contenido: "Inventario físico anual obligatorio levantado conjuntamente por Administración y Vigilancia."
+        contenido: "El Consejo de Administración, con participación del Consejo de Vigilancia, realizará por lo menos una vez al año un inventario físico general de todos los bienes muebles e inmuebles de la Cooperativa, levantando el acta correspondiente."
       },
       {
         id: 84,
         numero: 84,
         denominacion: "RESPONSABILIDAD POR ENTREGA DE BIENES",
-        contenido: "Firma obligatoria de formularios de entrega y devolución de herramientas y explosivos."
+        contenido: "Toda entrega de maquinaria, herramientas, explosivos, combustibles, equipos o cualquier otro bien deberá registrarse mediante el formulario correspondiente, siendo responsable de su devolución la persona que suscriba dicho documento."
       }
     ]
   },
@@ -648,7 +648,7 @@ export const CAPITULOS_DATA = [
         id: 85,
         numero: 85,
         denominacion: "ENTREGA Y RECEPCIÓN DE CARGO Y DOCUMENTACIÓN DE LA COOPERATIVA",
-        contenido: "I. Entrega formal al cesar funciones de todos los bienes, libros y cuentas.\nII. Suscripción de Acta de Entrega y Recepción con presencia del Consejo de Vigilancia.\nIII. Contenido: Libros de actas, balances, contraseñas, archivos digitales, llaves y valores.\nIV. Plazo máximo: 5 días hábiles desde la posesión de nuevas autoridades.\nV. Retención o alteración constituye falta gravísima con responsabilidades civiles y penales."
+        contenido: "I. Al concluir su mandato o cesar en sus funciones por cualquier causa, las consejeras y los consejeros de los Consejos de Administración y Vigilancia, así como toda autoridad o responsable que tenga bajo su custodia documentación, bienes, recursos o información institucional, deberán efectuar la entrega formal de todo aquello que se encuentre bajo su responsabilidad.\n\nII. La entrega se realizará a las autoridades entrantes o a la persona expresamente designada por el órgano competente, mediante Acta de Entrega y Recepción, acompañada del inventario correspondiente y de la documentación de respaldo.\n\nIII. La entrega comprenderá, según corresponda:\na) Libros de actas, resoluciones, registros y demás documentación institucional.\nb) Archivos físicos y digitales.\nc) Informes de gestión, documentación administrativa, contable y financiera.\nd) Inventarios, bienes, equipos, herramientas, sellos, llaves y otros elementos bajo su responsabilidad.\ne) Recursos económicos, valores y documentación de respaldo pendiente de rendición de cuentas.\nf) Usuarios, contraseñas institucionales, cuentas de correo electrónico, bases de datos, respaldos, dispositivos de autenticación, códigos de recuperación y demás activos digitales.\ng) Procesos, trámites, obligaciones y asuntos pendientes, con indicación de su estado.\nh) Cualquier otro bien, documento, información o recurso perteneciente a la Cooperativa que se encuentre bajo su administración, custodia o responsabilidad.\n\nIV. La entrega deberá realizarse de manera completa, ordenada y verificable, dentro del plazo de 5 días hábiles siguientes a la posesión de las nuevas autoridades o al cese efectivo de funciones. Las observaciones, faltantes y asuntos pendientes deberán consignarse expresamente en el Acta de Entrega y Recepción.\n\nV. La suscripción del Acta de Entrega y Recepción no libera automáticamente de responsabilidad a la autoridad saliente por actos, omisiones, faltantes, irregularidades o hechos que pudieran ser identificados con posterioridad.\n\nVI. La negativa injustificada, ocultamiento, retención, destrucción, alteración o entrega incompleta de documentación, bienes, recursos o información institucional constituirá falta grave o muy grave, según la naturaleza y consecuencias del hecho, y dará lugar al procedimiento disciplinario correspondiente, conforme al presente Reglamento Interno y al Anexo I – Escala de Multas y Medidas Disciplinarias, sin perjuicio de las responsabilidades civiles, administrativas o penales que pudieran corresponder.\n\nVII. La responsabilidad por el incumplimiento será determinada de manera individual, de acuerdo con las funciones, obligaciones y grado de participación de cada persona, previo cumplimiento del procedimiento correspondiente. No podrá atribuirse responsabilidad colectiva a las consejeras y los consejeros por el solo hecho de integrar un Consejo.\n\nVIII. El formato oficial del Acta de Entrega y Recepción de Cargo y Documentación Institucional formará parte del sistema documental de la Cooperativa y será de uso obligatorio en los casos previstos en el presente artículo."
       }
     ]
   },
