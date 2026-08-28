@@ -8,7 +8,9 @@ import {
   Scale,
   AlertTriangle,
   ArrowUp,
-  Sparkles
+  Sparkles,
+  FilePenLine,
+  ClipboardList
 } from 'lucide-react';
 
 import { useDRM } from './hooks/useDRM';
@@ -24,6 +26,7 @@ import ProgressBar from './components/ProgressBar';
 import SplashScreen from './components/SplashScreen';
 import CasquitoWidget from './components/CasquitoWidget';
 import SelectionTooltip from './components/SelectionTooltip';
+import ModalFormulario from './components/ModalFormulario';
 
 export default function App() {
   // 1. DRM Hook
@@ -44,6 +47,7 @@ export default function App() {
   const [selectedTab, setSelectedTab] = useState('capitulos'); // 'capitulos' | 'anexos'
   const [searchTerm, setSearchTerm] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // 4. Dark Mode / Warm Cream en <html>
@@ -318,6 +322,48 @@ export default function App() {
             ) : (
               <AnexosView anexos={ANEXOS_DATA} searchTerm={searchTerm} fontSize={fontSize} />
             )}
+
+            {/* CTA Formulario de Observaciones (tras Disposiciones Finales) */}
+            <section className="mt-12 pt-12 border-t border-sand-300 dark:border-slate-800 scroll-mt-24">
+              <div
+                className={`relative overflow-hidden rounded-3xl border p-8 md:p-10 text-center ${
+                  isDark
+                    ? 'bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 border-gold-500/30 shadow-gold-glow'
+                    : 'bg-gradient-to-br from-gold-100 via-cream-100 to-gold-200/70 border-gold-400/40 shadow-cream-panel'
+                }`}
+              >
+                <div className={`absolute top-0 right-0 p-8 opacity-15 pointer-events-none ${isDark ? 'text-gold-400' : 'text-gold-600'}`}>
+                  <FilePenLine className="w-40 h-40" />
+                </div>
+
+                <div className="relative z-10 space-y-4 mx-auto max-w-2xl">
+                  <div className="flex items-center justify-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-gold-600 dark:text-gold-400">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Participación Cooperativa</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-gold-400' : 'bg-gold-600'}`} />
+                    <span>Revisión Normativa</span>
+                  </div>
+
+                  <h2 className="font-serif text-xl md:text-2xl font-semibold leading-tight text-ink dark:text-slate-100">
+                    ¿Desea dejar una observación al Reglamento Interno?
+                  </h2>
+
+                  <p className={`text-xs md:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-ink-soft'}`}>
+                    Completó la lectura del Reglamento y detectó un punto a mejorar. Sus aportes
+                    serán valorados por el Consejo de Administración y el Consejo de Vigilancia,
+                    en conformidad con la Ley N.º 356 y el Estatuto Orgánico.
+                  </p>
+
+                  <button
+                    onClick={() => setIsFormModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-t from-gold-600 to-gold-400 text-navy-950 text-sm font-bold shadow-gold-glow-lg hover:from-gold-500 hover:to-gold-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    Llenar Formulario
+                  </button>
+                </div>
+              </div>
+            </section>
           </main>
         </div>
 
@@ -344,6 +390,28 @@ export default function App() {
             </motion.button>
           )}
         </AnimatePresence>
+
+        {/* Botón Flotante: Llenar Formulario */}
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setIsFormModalOpen(true)}
+          className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-gradient-to-t from-gold-600 to-gold-400 text-navy-950 text-sm font-bold shadow-gold-glow-lg"
+          title="Llenar formulario de observaciones"
+        >
+          <ClipboardList className="w-5 h-5" />
+          <span className="hidden sm:inline">Llenar Formulario</span>
+        </motion.button>
+
+        {/* Modal: Formulario de Observaciones (Google Forms) */}
+        <ModalFormulario
+          isOpen={isFormModalOpen}
+          onClose={() => setIsFormModalOpen(false)}
+          isDark={isDark}
+        />
 
         {/* Footer Institucional */}
         <footer className={`border-t py-8 text-xs transition-colors ${isDark ? 'border-slate-800/80 bg-navy-950 text-slate-500' : 'border-sand-300 bg-white text-ink-muted'}`}>

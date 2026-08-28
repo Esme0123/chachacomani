@@ -7,7 +7,6 @@ frontend/.vite/
 # Environment variables
 .env
 .env.*
-backend/.env
 
 # OS Files
 .DS_Store
