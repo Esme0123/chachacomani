@@ -32,7 +32,22 @@ export default function App() {
   // 1. DRM Hook
   const { toastMessage, toastVisible, hideToast, triggerDRMAlert } = useDRM();
 
-  // 2. TTS Hook (El Casquito Minero)
+  // 2. Estados de Interfaz
+  const [showSplash, setShowSplash] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
+
+  const [fontSize, setFontSize] = useState(16);
+  const [selectedCapituloId, setSelectedCapituloId] = useState(1);
+  const [selectedTab, setSelectedTab] = useState('capitulos'); // 'capitulos' | 'anexos'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // 3. TTS Hook (El Casquito Minero)
   const tts = useTTS();
 
   // Ref para recordar si había reproducción activa antes de cambiar de vista.
@@ -52,21 +67,6 @@ export default function App() {
     if (wasActive && selectedTab === 'capitulos') speakChapter();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCapituloId, selectedTab]);
-
-  // 3. Estados de Interfaz
-  const [showSplash, setShowSplash] = useState(true);
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true;
-  });
-
-  const [fontSize, setFontSize] = useState(16);
-  const [selectedCapituloId, setSelectedCapituloId] = useState(1);
-  const [selectedTab, setSelectedTab] = useState('capitulos'); // 'capitulos' | 'anexos'
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // 4. Dark Mode / Warm Cream en <html>
   useEffect(() => {
