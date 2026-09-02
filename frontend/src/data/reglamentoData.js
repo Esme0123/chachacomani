@@ -663,25 +663,25 @@ export const CAPITULOS_DATA = [
         id: 86,
         numero: 86,
         denominacion: "DE LA CONTABILIDAD",
-        contenido: "Llevada conforme a principios contables bajo supervisión del Tesorero mediante Contador Público Autorizado."
+        contenido: "La Cooperativa llevará su contabilidad conforme a la Ley General de Cooperativas Nº 356, el Decreto Supremo Reglamentario Nº 1995, las normas contables vigentes y el presente Reglamento Interno.\n\nPara tal efecto, el Consejo de Administración contratará los servicios profesionales de un Contador Público Autorizado o Auditor Financiero, quien será responsable del registro, procesamiento y elaboración de la información financiera y contable de la Cooperativa, bajo la supervisión del Tesorero.\n\nLa Cooperativa deberá mantener actualizados los libros contables, registros auxiliares y demás documentación de respaldo que permita conocer de manera veraz y oportuna su situación económica, financiera y patrimonial, tanto en formato físico como digital.\n\nLos Estados Financieros de cada gestión serán elaborados por el profesional responsable, puestos en conocimiento del Consejo de Administración y del Consejo de Vigilancia y posteriormente sometidos a consideración de la Asamblea General Ordinaria para su aprobación y presentación ante la AFCOOP u otras autoridades competentes, cuando corresponda."
       },
       {
         id: 87,
         numero: 87,
         denominacion: "DE LA INFORMACIÓN DIGITAL Y SU RESGUARDO",
-        contenido: "Respaldos periódicos de sistemas contables, actas digitales y nóminas bajo custodia de Secretaría y Tesorería."
+        contenido: "La Cooperativa implementará mecanismos para el registro, organización, conservación y respaldo de la información digital relacionada con la administración, contabilidad, producción, inventarios, registros de asociadas y asociados, correspondencia, actas, resoluciones, fotografías, videos y demás documentos electrónicos de interés institucional.\n\nEl secretario general, en coordinación con el Tesorero y el Consejo de Administración, será responsable de organizar y custodiar la información digital institucional, debiendo adoptar medidas de seguridad que garanticen su integridad, disponibilidad, confidencialidad y recuperación, evitando su pérdida, alteración, destrucción o acceso no autorizado.\n\nToda la información institucional almacenada en computadoras, dispositivos electrónicos, medios de almacenamiento, correos electrónicos institucionales, aplicaciones de mensajería, plataformas digitales o servicios de almacenamiento en la nube constituye patrimonio documental de la Cooperativa y únicamente podrá ser utilizada para fines institucionales.\n\nAl concluir la gestión de las consejeras y consejeros de los Consejos de Administración y Vigilancia, toda la documentación física y digital bajo su responsabilidad, incluyendo usuarios, contraseñas institucionales, respaldos, bases de datos, archivos electrónicos y demás información relacionada con la gestión de la Cooperativa, deberá ser entregada formalmente mediante Acta de Entrega y Recepción, debiendo incorporarse al inventario institucional correspondiente.\n\nLa Cooperativa promoverá progresivamente la digitalización de sus archivos, registros administrativos, contables y documentales, procurando el uso de herramientas tecnológicas que mejoren la transparencia, seguridad, conservación y acceso a la información institucional, sin perjuicio de la documentación física exigida por la normativa vigente."
       },
       {
         id: 88,
         numero: 88,
         denominacion: "LIBROS Y REGISTROS CONTABLES",
-        contenido: "Libro Diario, Mayor, Inventarios y Balances, Ingresos/Egresos, Producción y Comercialización de Oro, Activos Fijos y Bancos."
+        contenido: "La Cooperativa llevará, como mínimo, los siguientes libros y registros:\na) Libro Diario.\nb) Libro Mayor.\nc) Libro de Inventarios y Balances.\nd) Registro de Ingresos y Egresos.\ne) Registro de Producción y Comercialización de Oro.\nf) Registro de Activos Fijos.\ng) Registro de Caja y Bancos.\nh) Los demás libros auxiliares que sean necesarios para la correcta administración de la Cooperativa."
       },
       {
         id: 89,
         numero: 89,
         denominacion: "AUDITORÍA Y FISCALIZACIÓN",
-        contenido: "Auditorías internas o externas dispuestas por la Asamblea o el Consejo de Vigilancia."
+        contenido: "La Cooperativa podrá disponer la realización de auditorías internas o externas cuando así lo determine la Asamblea General, el Consejo de Vigilancia o cuando sea exigido por la normativa vigente. Todas las autoridades y asociadas o asociados estarán obligados a facilitar la documentación e información requerida para dichos procesos."
       }
     ]
   },
@@ -696,13 +696,13 @@ export const CAPITULOS_DATA = [
         id: 90,
         numero: 90,
         denominacion: "NOMBRAMIENTO Y FUNCIONES DEL COMITÉ ELECTORAL",
-        contenido: "Conformado por 3 asociados para organizar, fiscalizar el sufragio y suscribir el acta de posesión."
+        contenido: "El Comité Electoral será elegido en Asamblea General Ordinaria y estará conformado por 3 asociadas o asociados, que no se encuentren impedidos por Ley y sus funciones serán:\na) Organizar, dirigir y supervisar el proceso electoral conforme al Estatuto Orgánico, el presente Reglamento Interno y el Reglamento Electoral de la Cooperativa.\nb) Procederá a llevar adelante los actos eleccionarios en base a los candidatos propuestos para miembros de los Consejos de Administración, Vigilancia, Tribunal de Honor y otros Comités a fin de habilitarlos o inhabilitarlos sobre cuya selección se procederá a la votación por parte de los asociados.\nc) El Comité Electoral ejercerá sus funciones desde el momento de su designación hasta la posesión de las nuevas autoridades.\nd) Las decisiones se tornan por simple mayoría y sus acuerdos deberán constar en un Libro de Actas.\ne) Resolver las observaciones e impugnaciones presentadas durante el proceso electoral, conforme al Reglamento Electoral.\nf) Elaborar y suscribir el Acta Final de Elección y Posesión de Autoridades.\ng) Custodiar temporalmente las papeletas, actas y demás documentación electoral hasta su entrega al secretario general."
       },
       {
         id: 91,
         numero: 91,
         denominacion: "DE LA ELECCIÓN DE LOS CONSEJOS DE ADMINISTRACIÓN Y VIGILANCIA",
-        contenido: "Modalidades: a) Nominal a viva voz; b) Secreto en ánfora con papeleta; c) Aclamación por candidatura única."
+        contenido: "La elección de las consejeras y consejeros que integrarán los Consejos de Administración y Vigilancia se realizará de forma democrática, conforme al Estatuto Orgánico y al presente Reglamento Interno, de acuerdo con las siguientes disposiciones:\na) Nominal, de forma individual y a viva voz.\nb) Secreto, en ánforas y papeleta.\nc) Elección por aclamación únicamente cuando exista candidatura única y la Asamblea así lo apruebe por unanimidad.\n\nLas candidaturas serán presentadas conforme al Reglamento Electoral y la elección se efectuará cargo por cargo. Resultará electa la candidata o el candidato que obtenga la mayoría simple de los votos válidamente emitidos, salvo disposición distinta del Estatuto Orgánico.\n\nEl acto de posesión de los nuevos consejeros de Administración y de Vigilancia se realizará una vez concluida la elección."
       }
     ]
   },
@@ -717,13 +717,13 @@ export const CAPITULOS_DATA = [
         id: 92,
         numero: 92,
         denominacion: "DURACIÓN DEL MANDATO DE LOS CONSEJOS DE ADMINISTRACIÓN Y VIGILANCIA",
-        contenido: "Mandato de 2 años calendario. Reelección consecutiva permitida si cuentan con memorias y balances aprobados."
+        contenido: "I. El mandato de los miembros del Consejo de Administración y del Consejo de Vigilancia tendrá una duración de 2 años calendario, computables desde su posesión, conforme al Estatuto Orgánico.\n\nII. Los miembros de ambos Consejos podrán postularse para una reelección consecutiva, siempre que cumplan los requisitos establecidos en la Ley General de Cooperativas Nº 356, el Decreto Supremo Reglamentario Nº 1995, el Estatuto Orgánico y el presente Reglamento Interno.\n\nIII. La reelección procederá únicamente mediante elección democrática en Asamblea General Ordinaria, debiendo la autoridad postulante contar con la aprobación del Balance General y de la Memoria Anual de la gestión correspondiente, cuando así lo exija el Estatuto Orgánico.\n\nIV. En caso de renuncia, fallecimiento, incapacidad permanente, remoción o pérdida de la calidad de asociada o asociado de alguna consejera o consejero durante el ejercicio de su mandato, la sustitución se efectuará conforme al procedimiento previsto en el Estatuto Orgánico y las resoluciones de la Asamblea General."
       },
       {
         id: 93,
         numero: 93,
         denominacion: "OBLIGATORIEDAD EN EL CUMPLIMIENTO DE LAS FUNCIONES ENCOMENDADAS A LAS CONSEJERAS Y CONSEJEROS",
-        contenido: "Prohibición de renunciar sin causa grave justificada (sanción según Anexo I); responsabilidad por omisión o daño."
+        contenido: "I. Los miembros electos del Consejo de Administración y del Consejo de Vigilancia no podrán renunciar al cargo antes de la conclusión de su mandato sin causa debidamente justificada. La renuncia deberá presentarse por escrito y será considerada por la Asamblea General Extraordinaria, la cual determinará su aceptación o rechazo. En caso de establecerse que la renuncia es injustificada, se aplicará la sanción prevista en el Anexo I - Escala de Multas y Medidas Disciplinarias, sin perjuicio de las demás responsabilidades que correspondan.\n\nII. Las consejeras y los consejeros están obligados a cumplir y respetar la Ley Nº 356, su D.S. Nº 1995, el Estatuto Orgánico y Reglamento Interno de la Cooperativa; así como las resoluciones que emanen de las autoridades que dirigen el sistema Cooperativo en el país, bajo sanción que determinen las disposiciones legales que norman el Cooperativismo.\n\nIII. Las consejeras y los consejeros que incumplan sus funciones actúen con negligencia, ocasionen perjuicio a la Cooperativa o existan indicios de la comisión de hechos que pudieran constituir infracción disciplinaria o delito, serán sometidos al procedimiento disciplinario previsto en el presente Reglamento Interno y, cuando corresponda, al sumario informativo ante el Tribunal de Honor. La remoción o destitución del cargo será determinada por la Asamblea General, sin perjuicio de las acciones civiles, administrativas o penales que correspondan.\n\nIV. La autoridad que cese en sus funciones, por conclusión de mandato, renuncia, remoción o cualquier otra causa, deberá efectuar la entrega formal del cargo, documentación, bienes, archivos, sellos e inventarios mediante Acta de Entrega y Recepción, conforme al presente Reglamento Interno."
       }
     ]
   },
@@ -738,7 +738,7 @@ export const CAPITULOS_DATA = [
         id: 94,
         numero: 94,
         denominacion: "CONFORMACIÓN Y FUNCIONES DEL COMITÉ LABORAL",
-        contenido: "Instancia técnica integrada por Coordinador, mandos operativos y delegados de Consejos para proponer mejoras en socavones, cuadros y seguridad minera."
+        contenido: "I. Naturaleza.\nEl Comité Laboral es una instancia técnica de apoyo al Consejo de Administración, encargada de coordinar, planificar, evaluar y formular recomendaciones sobre las actividades operativas relacionadas con la producción minera de la Cooperativa. Sus informes y recomendaciones no tendrán carácter vinculante y servirán de base para la adopción de decisiones por parte del Consejo de Administración.\n\nII. Conformación.\nEl Comité Laboral estará conformado por los cargos de apoyo operativo previstos en el artículo 50, parágrafo II, del presente Reglamento, cuya participación será determinada por el Consejo de Administración de acuerdo con la naturaleza de los asuntos a tratar. El Coordinador ejercerá la coordinación del Comité. Asimismo, participarán un representante del Consejo de Administración y un representante del Consejo de Vigilancia, este último con funciones de supervisión.\n\nIII. Funciones.\nSon funciones del Comité Laboral:\na) Proponer al Consejo de Administración el inicio, ampliación, suspensión o modificación de los trabajos mineros en socavones, cuadros, plataformas, labores a cielo abierto u otras áreas de explotación.\nb) Analizar y proponer alternativas para mejorar la productividad, la seguridad y la eficiencia de las operaciones mineras.\nc) Solicitar, cuando sea necesario y previa autorización del Consejo de Administración, asesoramiento técnico especializado en materia minera, geológica, ambiental, mecánica o de seguridad industrial.\nd) Coordinar la planificación de los trabajos mineros, procurando el aprovechamiento racional de los recursos y el cumplimiento de las normas de seguridad.\ne) Evaluar periódicamente el avance de los trabajos y presentar informes y recomendaciones al Consejo de Administración.\nf) Proponer medidas para la conservación de las labores mineras, maquinaria, equipos e infraestructura de la Cooperativa.\ng) Cumplir las demás funciones que le encomiende el Consejo de Administración dentro del ámbito de sus competencias."
       }
     ]
   },
@@ -753,19 +753,19 @@ export const CAPITULOS_DATA = [
         id: 95,
         numero: 95,
         denominacion: "DE LA PARTICIPACIÓN",
-        contenido: "Intervención de la cooperativa en actividades de confraternización deportiva y cultural del rubro."
+        contenido: "La Cooperativa podrá participar de los eventos culturales y deportivos a los cuales haya sido debidamente invitado, debiendo solicitar con la anticipación necesaria mediante el secretario de Deportes la asignación de recursos económicos para participar en dichos eventos."
       },
       {
         id: 96,
         numero: 96,
         denominacion: "DE LA ORGANIZACIÓN",
-        contenido: "Programación coordinada por la Secretaría de Deportes con presupuestos y rendición documentada en 15 días."
+        contenido: "La Cooperativa podrá organizar actividades culturales, deportivas, recreativas y de integración entre las asociadas y asociados, así como eventos con otras cooperativas o instituciones afines, con el propósito de fortalecer la unidad, la convivencia, la identidad cooperativa y el bienestar de sus integrantes.\n\nPara la organización de dichas actividades, el secretario de Deportes presentará al Consejo de Administración el correspondiente plan de actividades y presupuesto, los cuales deberán ser aprobados previamente por dicho consejo o por la Asamblea General cuando la magnitud del evento así lo requiera.\n\nLos recursos económicos asignados para estas actividades deberán destinarse exclusivamente a los fines aprobados, debiendo el secretario de Deportes presentar la correspondiente rendición de cuentas documentada ante el Consejo de Administración y el Consejo de Vigilancia dentro de los quince (15) días siguientes a la conclusión del evento."
       },
       {
         id: 97,
         numero: 97,
         denominacion: "DEL USO DE LOS RECURSOS DESTINADOS",
-        contenido: "Administración con transparencia y fiscalización estricta por el Consejo de Vigilancia."
+        contenido: "Los recursos económicos destinados a actividades culturales y deportivas deberán ser administrados con criterios de transparencia, economía y responsabilidad. Toda erogación deberá contar con documentación de respaldo y será objeto de fiscalización por el Consejo de Vigilancia."
       }
     ]
   },
@@ -780,13 +780,13 @@ export const CAPITULOS_DATA = [
         id: 98,
         numero: 98,
         denominacion: "RÉGIMEN DISCIPLINARIO",
-        contenido: "Sujeto a contratos individuales y Ley General del Trabajo: amonestaciones, suspensión temporal o despido justificado."
+        contenido: "I. El personal de apoyo contratado por la Cooperativa deberá cumplir las obligaciones establecidas en su contrato de trabajo, la legislación laboral vigente y las disposiciones del presente Reglamento Interno que le sean aplicables.\n\nII. Sin perjuicio de las medidas previstas por la legislación laboral, las infracciones disciplinarias podrán dar lugar a las siguientes medidas:\na) Amonestación verbal.\nb) Amonestación escrita.\nc) Suspensión temporal del trabajo, conforme a la normativa laboral vigente.\nd) Terminación de la relación laboral, únicamente en los casos y mediante el procedimiento previsto por la legislación laboral aplicable.\n\nIII. Las medidas disciplinarias deberán constar en el expediente laboral del trabajador y, cuando la legislación vigente así lo exija, serán comunicadas a la autoridad competente."
       },
       {
         id: 99,
         numero: 99,
         denominacion: "RETIRO DE LA RELACIÓN LABORAL",
-        contenido: "Conclusión de relación obrero-patronal sin perjuicio de acciones civiles o penales por daños."
+        contenido: "I. La terminación de la relación laboral del personal de apoyo se regirá por la Ley General del Trabajo, sus disposiciones reglamentarias y demás normativa laboral vigente, respetando el debido proceso cuando corresponda.\n\nII. Cuando la conducta del trabajador pudiera constituir infracción administrativa, civil o penal, la Cooperativa pondrá los antecedentes en conocimiento de las autoridades competentes para el ejercicio de las acciones que correspondan.\n\nIII. La terminación de la relación laboral no libera al trabajador de la responsabilidad civil o penal que pudiera derivarse de los hechos cometidos en perjuicio de la Cooperativa."
       }
     ]
   },
@@ -801,37 +801,37 @@ export const CAPITULOS_DATA = [
         id: 100,
         numero: 100,
         denominacion: "DISPOSICIÓN TRANSITORIA SOBRE LA APLICACIÓN DE LAS SANCIONES PECUNIARIAS",
-        contenido: "Mientras no se alcance producción regular, multas pagaderas en bolivianos (Bs.); una vez en producción, la Asamblea podrá actualizar o convertir sanciones a su equivalente en gramos de oro físico."
+        contenido: "Mientras la Cooperativa Minera “Aurífera Nevado Chachacomani” R.L. no inicie actividades de producción y comercialización de mineral aurífero, todas las sanciones pecuniarias previstas en el presente Reglamento Interno y en el Anexo I – Escala de Multas y Medidas Disciplinarias serán exigibles y pagaderas en moneda nacional (bolivianos), conforme a los montos establecidos.\n\nUna vez iniciadas las actividades de producción de la Cooperativa, la Asamblea General, a propuesta del Consejo de Administración, podrá aprobar la conversión de las sanciones pecuniarias a gramos de oro físico o establecer un mecanismo de actualización equivalente, mediante Resolución expresa que modificará el Anexo I del presente Reglamento Interno, sin necesidad de reformar su texto principal."
       },
       {
         id: 101,
         numero: 101,
         denominacion: "DISPOSICIÓN TRANSITORIA SOBRE EL FINANCIAMIENTO DEL FONDO DE ACCIDENTES",
-        contenido: "Financiado provisionalmente mediante aportes del Anexo II hasta la regularización de excedentes mineros."
+        contenido: "Mientras la Cooperativa Minera “Aurífera Nevado Chachacomani” R.L. no genere excedentes de percepción provenientes de sus actividades de producción minera, el financiamiento del Fondo de Accidentes se realizará mediante los aportes obligatorios establecidos en el Anexo II – Escala de Aportes del presente Reglamento Interno.\n\nUna vez que la Cooperativa inicie actividades de producción y cuente con Estados Financieros que generen excedentes de percepción, la Asamblea General determinará, mediante Resolución expresa, la forma de integración, sustitución o complementación del Fondo de Accidentes con el Fondo de Previsión Social y Apoyo a la Colectividad, previsto en el artículo 34 del Estatuto Orgánico, sin afectar los derechos adquiridos ni la continuidad de la cobertura otorgada a las asociadas y asociados."
       },
       {
         id: 102,
         numero: 102,
         denominacion: "DISPOSICIONES LEGALES APLICABLES",
-        contenido: "Normas de prelación: Constitución Política del Estado, Ley N° 356, D.S. N° 1995, Estatuto Orgánico y este Reglamento Interno."
+        contenido: "Hacen el conjunto de normas comunes aplicables las siguientes: la Constitución Política del Estado Plurinacional; la Ley General de Cooperativas Nº 356, el Decreto Supremo Reglamentario Nº 1995; el Estatuto Orgánico y Reglamento Interno de la Cooperativa, las mismas que norman todas las actividades de la cooperativa y la de sus asociados."
       },
       {
         id: 103,
         numero: 103,
         denominacion: "APROBACIÓN, CUMPLIMIENTO Y VIGENCIA DEL REGLAMENTO INTERNO",
-        contenido: "Aprobado en Asamblea General Extraordinaria de 4 de octubre de 2026 por 2/3 de votos. Compuesto por 105 artículos, 21 capítulos y sus anexos de observancia irrestricta sin poder alegar desconocimiento."
+        contenido: "I. El presente Reglamento Interno será sometido a consideración de la Asamblea General Extraordinaria de la Cooperativa Minera Aurífera “NEVADO CHACHACOMANI” R.L. para su análisis, consideración y aprobación, de conformidad con la Ley General de Cooperativas Nº 356, el Decreto Supremo Reglamentario N.º 1995 y el Estatuto Orgánico.\n\nII. El presente Reglamento Interno entrará en vigencia a partir de su aprobación por la Asamblea General Extraordinaria y será de cumplimiento obligatorio para todas las asociadas y asociados, órganos de dirección, comités, personal de apoyo y demás personas que, por razón de sus funciones o relación con la Cooperativa, se encuentren sujetas a sus disposiciones, sin que pueda alegarse su desconocimiento para incumplirlas.\n\nEj. El presente Reglamento Interno fue aprobado en Asamblea General Extraordinaria de la Cooperativa Minera “AURÍFERA NEVADO CHACHACOMANI” R.L., celebrada el 4 de octubre de 2026, con el voto favorable de dos tercios de las asociadas y asociados presentes, de conformidad con la Ley General de Cooperativas Nº 356, el Decreto Supremo Reglamentario Nº 1995 y el Estatuto Orgánico de la Cooperativa. El Reglamento Interno está compuesto por ciento cinco (105) artículos, veinte (XXI) capítulos y sus respectivos anexos."
       },
       {
         id: 104,
         numero: 104,
         denominacion: "REFORMA DEL REGLAMENTO INTERNO",
-        contenido: "Modificable únicamente por determinación de Asamblea Extraordinaria convocada para el efecto con el voto favorable de dos tercios (2/3) de asociadas y asociados presentes."
+        contenido: "El presente Reglamento Interno, tiene carácter indefinido sin embargo podrá ser reformada, por determinación de una Asamblea Extraordinaria, convocado para el efecto, con la aprobación de dos tercios de voto de las asociadas y asociados presentes, conforme a la Ley General de Cooperativas Nº 356, el Decreto Supremo Reglamentario Nº 1995 y el Estatuto Orgánico de la Cooperativa."
       },
       {
         id: 105,
         numero: 105,
         denominacion: "ANEXOS Y DOCUMENTOS OFICIALES",
-        contenido: "Los Anexos I y II tienen carácter normativo y vinculante formal. Los formularios y registros constituyen instrumentos administrativos."
+        contenido: "Los anexos, escalas, formularios, formatos, registros, actas, inventarios y demás documentos aprobados por la Asamblea General o por el Consejo de Administración, dentro del ámbito de sus competencias, forman parte integrante del presente Reglamento Interno y son de cumplimiento obligatorio.\n\nLos Anexos I y II tienen carácter normativo. Los formularios, formatos, registros y demás documentos oficiales constituyen instrumentos administrativos para la ejecución y aplicación del presente Reglamento Interno.\n\nLa actualización de formatos, formularios y registros administrativos no requerirá reforma del presente Reglamento Interno cuando no modifique derechos, obligaciones o procedimientos sustanciales establecidos en él."
       }
     ]
   }
