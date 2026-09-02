@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Gauge, ChevronDown, Square } from 'lucide-react';
+import { Play, Pause, Gauge, ChevronDown, Square, RotateCcw } from 'lucide-react';
 import { MinerHelmet } from './SplashScreen';
 
 const SPEEDS = [1, 1.25, 1.5];
@@ -18,7 +18,8 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
     pause,
     resume,
     stop,
-    rerun
+    rerun,
+    restart
   } = safeTts;
 
   const handleToggle = () => {
@@ -30,6 +31,17 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
       onSpeakChapter();
       setOpen(true);
     } else {
+      setOpen(true);
+    }
+  };
+
+  // Volver a escuchar desde el inicio: si hay lectura activa se reinicia desde
+  // el primer fragmento; si está inactivo, se inicia la lectura del capítulo.
+  const handleRestart = () => {
+    if (isSpeaking && restart) {
+      restart();
+    } else if (onSpeakChapter) {
+      onSpeakChapter();
       setOpen(true);
     }
   };
@@ -90,6 +102,13 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
                   ) : (
                     <><Play className="w-4 h-4" /> Leer capítulo</>
                   )}
+                </button>
+                <button
+                  onClick={handleRestart}
+                  className="p-2.5 rounded-xl border border-gold-500/40 text-gold-700 dark:text-gold-400 hover:bg-gold-500/15 transition-colors"
+                  title="Volver a escuchar desde el inicio"
+                >
+                  <RotateCcw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={stop}

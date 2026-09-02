@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -34,6 +34,24 @@ export default function App() {
 
   // 2. TTS Hook (El Casquito Minero)
   const tts = useTTS();
+
+  // Ref para recordar si había reproducción activa antes de cambiar de vista.
+  const ttsActiveRef = useRef(false);
+
+  // Actualiza la ref con el estado de reproducción vigente.
+  useEffect(() => {
+    ttsActiveRef.current = tts.isSpeaking && !tts.isPaused;
+  }, [tts.isSpeaking, tts.isPaused]);
+
+  // Al cambiar de capítulo (o de tab): cancela el audio anterior de forma
+  // limpia (colas, intervalos e índice de lectura) y, si había reproducción
+  // activa, inicia la lectura del capítulo recién seleccionado.
+  useEffect(() => {
+    const wasActive = ttsActiveRef.current;
+    tts.stop();
+    if (wasActive && selectedTab === 'capitulos') speakChapter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCapituloId, selectedTab]);
 
   // 3. Estados de Interfaz
   const [showSplash, setShowSplash] = useState(true);
