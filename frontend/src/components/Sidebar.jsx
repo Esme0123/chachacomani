@@ -114,9 +114,9 @@ export default function Sidebar({
                       <span>CAPÍTULO {cap.numero_romano}</span>
                       <span className="text-[10px] bg-cream-200 dark:bg-navy-800 px-1.5 py-0.5 rounded text-ink-muted dark:text-slate-500">
                         {cap.articulos && cap.articulos.length > 1
-                          ? `Arts. ${cap.articulos[0].numero} - ${cap.articulos[cap.articulos.length - 1].numero}`
+                          ? `Arts. ${cap.articulos[0].numero} - ${cap.articulos[cap.articulos.length - 1].numero} (${cap.articulos.length})`
                           : cap.articulos && cap.articulos.length === 1
-                            ? `Art. ${cap.articulos[0].numero}`
+                            ? `Art. ${cap.articulos[0].numero} (1)`
                             : null}
                       </span>
                     </div>
