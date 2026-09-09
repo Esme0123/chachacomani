@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, BookMarked, Volume2 } from 'lucide-react';
+import { Scale, BookMarked, Volume2, ThumbsUp, ThumbsDown, LockKeyhole } from 'lucide-react';
 
 const ArticleCard = forwardRef(function ArticleCard({
   article,
@@ -12,7 +12,9 @@ const ArticleCard = forwardRef(function ArticleCard({
   chapterId,
   readId,
   isReading,
-  onListenArticle
+  onListenArticle,
+  voto,
+  onVotar
 }, ref) {
   // Función para resaltar coincidencias de búsqueda
   const highlightSearch = (text, query) => {
@@ -136,6 +138,58 @@ const ArticleCard = forwardRef(function ArticleCard({
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold-500 animate-subtle-pulse" />
           Coop. Min. Nevado Chachacomani
         </span>
+      </div>
+
+      {/* Barra de Evaluación del Artículo */}
+      <div className="mt-4 pt-4 border-t border-sand-300/60 dark:border-navy-800/80 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold text-ink-muted dark:text-slate-400">
+          ¿Qué te parece este artículo?
+        </p>
+
+        {/* Insignia de artículo ya evaluado (anti-spam) */}
+        {voto?.userVote && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold-500/10 border border-gold-500/40 text-[10px] font-bold text-gold-700 dark:text-gold-300">
+            <LockKeyhole className="w-3 h-3" />
+            Ya evaluaste este artículo ({voto.userVote === 'positivo' ? '👍' : '👎'})
+          </span>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => !voto?.userVote && onVotar?.(article.id, 'positivo')}
+            disabled={!!voto?.userVote}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all ${
+              voto?.userVote === 'positivo'
+                ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-700 dark:text-emerald-400'
+                : voto?.userVote
+                  ? 'opacity-40 cursor-not-allowed pointer-events-none bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400/70'
+                  : 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-400/90 hover:bg-emerald-500/15'
+            }`}
+            title={voto?.userVote ? 'Ya evaluaste este artículo' : 'Me parece bien'}
+            aria-disabled={!!voto?.userVote}
+          >
+            <ThumbsUp className="w-3.5 h-3.5" />
+            Me parece bien
+            {voto?.likes > 0 && <span className="font-mono opacity-80">{voto.likes}</span>}
+          </button>
+          <button
+            onClick={() => !voto?.userVote && onVotar?.(article.id, 'negativo')}
+            disabled={!!voto?.userVote}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all ${
+              voto?.userVote === 'negativo'
+                ? 'bg-rose-500/15 border-rose-500/60 text-rose-700 dark:text-rose-400'
+                : voto?.userVote
+                  ? 'opacity-40 cursor-not-allowed pointer-events-none bg-rose-500/5 border-rose-500/30 text-rose-700 dark:text-rose-400/70'
+                  : 'bg-rose-500/5 border-rose-500/30 text-rose-700 dark:text-rose-400/90 hover:bg-rose-500/15'
+            }`}
+            title={voto?.userVote ? 'Ya evaluaste este artículo' : 'No me parece bien'}
+            aria-disabled={!!voto?.userVote}
+          >
+            <ThumbsDown className="w-3.5 h-3.5" />
+            No me parece bien
+            {voto?.dislikes > 0 && <span className="font-mono opacity-80">{voto.dislikes}</span>}
+          </button>
+        </div>
       </div>
     </motion.article>
   );

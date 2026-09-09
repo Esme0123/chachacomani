@@ -10,7 +10,8 @@ import {
   ArrowUp,
   Sparkles,
   FilePenLine,
-  ClipboardList
+  ClipboardList,
+  BarChart3
 } from 'lucide-react';
 
 import { useDRM } from './hooks/useDRM';
@@ -27,6 +28,9 @@ import SplashScreen from './components/SplashScreen';
 import CasquitoWidget from './components/CasquitoWidget';
 import SelectionTooltip from './components/SelectionTooltip';
 import ModalFormulario from './components/ModalFormulario';
+import AdminDashboard from './components/AdminDashboard';
+
+import { votarArticulo, obtenerEstadisticas, obtenerMisVotos } from './services/votosService';
 
 export default function App() {
   // 1. DRM Hook
@@ -45,7 +49,10 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [votosPorArticulo, setVotosPorArticulo] = useState({});
+  const [articulosPorId, setArticulosPorId] = useState({});
 
   // 3. TTS Hook (El Casquito Minero)
   const tts = useTTS();
@@ -137,6 +144,74 @@ export default function App() {
     const text = `Artículo ${art.numero}. ${art.denominacion}. ${art.contenido}`;
     tts.speak(text, readId);
   };
+
+  // Evaluación de artículos: registra el voto y refresca estadísticas
+  const votarArticuloById = async (articuloId, tipoVoto) => {
+    try {
+      const capituloId = articulosPorId[articuloId]?.capituloId;
+      await votarArticulo(articuloId, tipoVoto, capituloId);
+      const stats = await obtenerEstadisticas();
+
+      const nuevoMapa = {};
+      stats.capitulos.forEach((c) => {
+        c.articulos.forEach((a) => {
+          nuevoMapa[a.id] = {
+            likes: a.likes,
+            dislikes: a.dislikes,
+            total: a.total,
+            aprobacion: a.aprobacion,
+            userVote: a.userVote || null,
+          };
+        });
+      });
+      setVotosPorArticulo(nuevoMapa);
+    } catch {
+      // 409 (ya evaluó) o error de red: se refrescan los votos del usuario
+      await obtenerMisVotos();
+    }
+  };
+
+  // Mapa de consulta rápida: article.id -> capitulo (para votar desde búsquedas)
+  useEffect(() => {
+    const mapa = {};
+    CAPITULOS_DATA.forEach((cap) => {
+      cap.articulos.forEach((art) => {
+        mapa[art.id] = { capituloId: cap.id, numero: art.numero, titulo: art.denominacion };
+      });
+    });
+    setArticulosPorId(mapa);
+  }, []);
+
+  // Carga inicial: estadísticas + votos del usuario (anti-spam: botones bloqueados)
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      try {
+        const misVotos = await obtenerMisVotos();
+        const stats = await obtenerEstadisticas();
+
+        const nuevoMapa = {};
+        stats.capitulos.forEach((c) => {
+          c.articulos.forEach((a) => {
+            const userVote = a.userVote || (misVotos[a.id] ? misVotos[a.id] : null);
+            nuevoMapa[a.id] = {
+              likes: a.likes,
+              dislikes: a.dislikes,
+              total: a.total,
+              aprobacion: a.aprobacion,
+              userVote,
+            };
+          });
+        });
+        if (activo) setVotosPorArticulo(nuevoMapa);
+      } catch {
+        // Sin API ni simulación: se continúa sin estadísticas
+      }
+    })();
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   // Seguidor de lectura: desplaza automáticamente hacia el elemento en lectura
   useEffect(() => {
@@ -270,6 +345,8 @@ export default function App() {
                             readId={readId}
                             isReading={tts.currentlyReadingId === readId}
                             onListenArticle={listenArticle}
+                            voto={votosPorArticulo[art.id]}
+                            onVotar={votarArticuloById}
                           />
                         );
                       })
@@ -431,6 +508,13 @@ export default function App() {
           isDark={isDark}
         />
 
+        {/* Modal: Dashboard de Administrador (evaluación de artículos) */}
+        <AdminDashboard
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+          isDark={isDark}
+        />
+
         {/* Footer Institucional */}
         <footer className={`border-t py-8 text-xs transition-colors ${isDark ? 'border-slate-800/80 bg-navy-950 text-slate-500' : 'border-sand-300 bg-white text-ink-muted'}`}>
           <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
@@ -445,6 +529,18 @@ export default function App() {
               <span>● 105 Artículos</span>
               <span>● Anexos I y II</span>
               <span>● Sistema de Lectura Protegida DRM</span>
+              <button
+                onClick={() => setIsAdminOpen(true)}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border transition-colors ${
+                  isDark
+                    ? 'border-slate-700 text-slate-500 hover:text-gold-400 hover:border-gold-500/50'
+                    : 'border-sand-300 text-ink-muted hover:text-gold-600 hover:border-gold-500/50'
+                }`}
+                title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+              >
+                <BarChart3 className="w-3 h-3" />
+                Admin
+              </button>
             </div>
           </div>
         </footer>

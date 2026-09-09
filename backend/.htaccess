@@ -1,0 +1,27 @@
+# Optimización del API para hosting GoDaddy (Apache / cPanel)
+# Coloque este archivo en la carpeta donde estén los endpoints PHP (backend/).
+
+# Evita listar directorios si no hay index
+Options -Indexes
+
+# MIME de respuestas JSON (complementa el header de cada endpoint)
+AddType application/json .json
+
+# Cache de las respuestas estáticas de la API (opcional en producción)
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/json "access plus 1 minute"
+</IfModule>
+
+# Denegación de acceso a archivos sensibles dentro de backend/
+<FilesMatch "^(db\.php|helpers\.php|composer\.(json|lock))$">
+    Require all denied
+</FilesMatch>
+
+# PHP correcto: si el host soporta php8, usar el handler moderno
+<IfModule mod_php8.c>
+    php_flag display_errors Off
+</IfModule>
+
+# Evita que se vean backups/temporales de código en navegación web
+RedirectMatch 404 ^/backend/.*\.(sql|log|bak|old|sh)$
