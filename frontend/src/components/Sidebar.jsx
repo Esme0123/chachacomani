@@ -113,7 +113,11 @@ export default function Sidebar({
                     <div className="flex items-center justify-between text-[11px] text-ink-muted dark:text-slate-400 font-mono">
                       <span>CAPÍTULO {cap.numero_romano}</span>
                       <span className="text-[10px] bg-cream-200 dark:bg-navy-800 px-1.5 py-0.5 rounded text-ink-muted dark:text-slate-500">
-                        {cap.articulos ? cap.articulos.length : 0} arts.
+                        {cap.articulos && cap.articulos.length > 1
+                          ? `Arts. ${cap.articulos[0].numero} - ${cap.articulos[cap.articulos.length - 1].numero}`
+                          : cap.articulos && cap.articulos.length === 1
+                            ? `Art. ${cap.articulos[0].numero}`
+                            : null}
                       </span>
                     </div>
                     <p className={`text-xs line-clamp-2 mt-0.5 ${isSelected ? 'text-amber-600 dark:text-gold-300' : 'text-slate-600 dark:text-slate-200'}`}>
