@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   Pickaxe,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  BarChart3
 } from 'lucide-react';
 
 export default function Navbar({
@@ -21,7 +22,8 @@ export default function Navbar({
   setSearchTerm,
   onOpenMobileMenu,
   selectedTab,
-  setSelectedTab
+  setSelectedTab,
+  onOpenAdmin
 }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-sand-300/70 dark:border-slate-700/60 bg-cream-50/85 dark:bg-navy-800/85 backdrop-blur-md transition-colors duration-500">
@@ -149,6 +151,18 @@ export default function Navbar({
               title={isDark ? "Cambiar a Modo Claro (Warm Cream)" : "Cambiar a Modo Oscuro (Slate & Gold)"}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </motion.button>
+
+            {/* Acceso al Dashboard de Estadísticas (Administrador) */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onOpenAdmin}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-2 text-ink-muted dark:text-gold-400 bg-cream-100 dark:bg-navy-800/80 hover:bg-cream-200 dark:hover:bg-navy-700/80 rounded-xl border border-sand-300 dark:border-slate-700/60 transition-colors"
+              title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="text-[11px] font-semibold">Estadísticas</span>
             </motion.button>
 
             {/* Badge de Seguridad */}

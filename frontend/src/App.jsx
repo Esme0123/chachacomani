@@ -251,6 +251,7 @@ export default function App() {
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           selectedTab={selectedTab}
           setSelectedTab={setSelectedTab}
+          onOpenAdmin={() => setIsAdminOpen(true)}
         />
 
         {/* Layout Principal */}
