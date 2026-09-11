@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -16,6 +16,7 @@ import {
 
 import { useDRM } from './hooks/useDRM';
 import { useTTS } from './hooks/useTTS';
+import { useRefrescoEstadisticas } from './hooks/useRefrescoEstadisticas';
 import { CAPITULOS_DATA, ANEXOS_DATA, REGLAMENTO_METADATA } from './data/reglamentoData';
 
 import Navbar from './components/Navbar';
@@ -124,6 +125,38 @@ export default function App() {
   };
   const ocultarErrorBackend = () => setBackendErrorVisible(false);
 
+  // Convierte la respuesta de /api/estadisticas.php en el mapa que consume
+  // ArticleCard (articulo_id -> { likes, dislikes, total, aprobacion, userVote }).
+  const construirMapaVotos = (stats) => {
+    const nuevoMapa = {};
+    stats.capitulos.forEach((c) => {
+      c.articulos.forEach((a) => {
+        nuevoMapa[a.id] = {
+          likes: a.likes,
+          dislikes: a.dislikes,
+          total: a.total,
+          aprobacion: a.aprobacion,
+          userVote: a.userVote || null,
+        };
+      });
+    });
+    return nuevoMapa;
+  };
+
+  // Refresco en segundo plano de los contadores (polling + foco) SIN toasts
+  // para no interrumpir la lectura: solo se registran los errores en consola.
+  const refrescarContadores = useCallback(async () => {
+    try {
+      const stats = await obtenerEstadisticas();
+      setVotosPorArticulo(construirMapaVotos(stats));
+    } catch (error) {
+      console.error('Error backend:', error);
+    }
+  }, []);
+
+  // 1. Polling (cada 7s) + 2. revalidación al volver a la app (focus/visibility)
+  useRefrescoEstadisticas(refrescarContadores, { intervaloMs: 7000 });
+
   const currentCapitulo = useMemo(
     () => CAPITULOS_DATA.find((c) => c.id === selectedCapituloId) || CAPITULOS_DATA[0],
     [selectedCapituloId]
@@ -186,23 +219,10 @@ export default function App() {
       return;
     }
 
-    // Voto registrado en MySQL: refresca los contadores reales.
+    // Voto registrado en MySQL: refresco INMEDIATO de los contadores globales.
     try {
       const stats = await obtenerEstadisticas();
-
-      const nuevoMapa = {};
-      stats.capitulos.forEach((c) => {
-        c.articulos.forEach((a) => {
-          nuevoMapa[a.id] = {
-            likes: a.likes,
-            dislikes: a.dislikes,
-            total: a.total,
-            aprobacion: a.aprobacion,
-            userVote: a.userVote || null,
-          };
-        });
-      });
-      setVotosPorArticulo(nuevoMapa);
+      setVotosPorArticulo(construirMapaVotos(stats));
     } catch (error) {
       console.error('Error backend:', error);
       mostrarErrorBackend('El voto se registró, pero no se pudieron actualizar las estadísticas.');

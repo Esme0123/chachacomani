@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, BarChart3, ThumbsUp, ThumbsDown, Users, CheckCircle2, ShieldCheck, ShieldOff } from 'lucide-react';
 import { CAPITULOS_DATA } from '../data/reglamentoData';
 import { obtenerEstadisticas } from '../services/votosService';
+import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas';
 
 export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, toggleDRM }) {
   const [stats, setStats] = useState(null);
@@ -31,6 +32,20 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
       activo = false;
     };
   }, [isOpen]);
+
+  // Refresco automático en segundo plano mientras el Dashboard está abierto:
+  // polling cada 7s + revalidación al volver a la pestaña (focus/visibility).
+  const refrescarStats = useCallback(() => {
+    obtenerEstadisticas()
+      .then((datos) => setStats(datos))
+      .catch((e) => {
+        // El error solo se muestra si aún no hay datos (no se borra el dashboard).
+        console.error('Error backend:', e);
+        setError(e?.message || 'No se pudieron cargar las estadísticas.');
+      });
+  }, []);
+
+  useRefrescoEstadisticas(refrescarStats, { intervaloMs: 7000, activo: isOpen });
 
   useEffect(() => {
     if (!isOpen) return;
