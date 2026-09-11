@@ -12,9 +12,9 @@ declare(strict_types=1);
 
 const DB_HOST = 'localhost';
 const DB_PORT = 3306;
-const DB_NAME = 'chachacomani_app';
-const DB_USER = 'root';
-const DB_PASS = '';
+const DB_NAME = 'chochocomani_bd';
+const DB_USER = 'esme';
+const DB_PASS = 'chochocomani123.';
 
 /**
  * Orígenes permitidos por CORS.
@@ -26,7 +26,8 @@ const DB_PASS = '';
 const ALLOWED_ORIGINS = [
     'http://localhost:5173', // dev server de Vite
     'http://127.0.0.1:5173',
-    // 'https://www.su-dominio.com', // <- GoDaddy (producción)
+    'https://normas.chachacomani.com/', // <- GoDaddy (producción)
+    '*'
 ];
 
 function db(): PDO
