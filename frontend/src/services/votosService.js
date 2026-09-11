@@ -1,66 +1,40 @@
 /**
  * ============================================================================
- *  SERVICIO DE EVALUACIÓN DE ARTÍCULOS — Capa de datos
+ *  SERVICIO DE EVALUACIÓN DE ARTÍCULOS — Capa de datos (SOLO API REAL)
  * ============================================================================
- *  Symfony entre la UI React y el backend PHP + MySQL (backend/).
+ *  Capa única de datos entre la UI React y el backend PHP + MySQL (backend/).
  *
- *  ▶ Modo PRODUCCIÓN (backend real):
- *      Cuando el build se sirve desde el dominio de GoDaddy, el servicio
- *      detecta automáticamente el API en `/backend/api/` y:
- *        · POST  api/votar.php          -> registra el voto (tabla votos_articulos)
- *        · GET   api/estadisticas.php   -> métricas globales / por capítulo / artículo
- *        · GET   api/mis_votos.php      -> artículos ya votados por este voter_token
- *      La base de datos (schema.sql) impone la restricción UNIQUE
- *      (articulo_id, voter_token), de modo que un mismo navegador NO puede
- *      votar el mismo artículo dos veces: el servidor responde HTTP 409.
+ *  ⚠️  NO existe fallback a localStorage: los votos y estadísticas provienen
+ *      EXCLUSIVAMENTE de los endpoints PHP de la API MySQL, para que los votos
+ *      sean globales entre dispositivos:
+ *        · POST  /api/votar.php          -> registra el voto (tabla votos_articulos)
+ *        · GET   /api/estadisticas.php   -> métricas globales / por capítulo / artículo
+ *        · GET   /api/mis_votos.php      -> artículos ya votados por este voter_token
  *
- *  ▶ Modo SIMULACIÓN (local, sin PHP):
- *      Si el API no responde (p.ej. ejecutando `npm run dev` sin backend),
- *      se activa el modo simulado persistido en localStorage. La firma
- *      pública de las funciones es idéntica, por lo que la UI no cambia.
+ *      Si el API falla (red caída, HTTP 500/404, credenciales DB erróneas) se
+ *      lanza el error y la UI lo muestra en un toast; NADA se guarda en
+ *      localStorage como "modo simulado".
  *
- *  ▶ cambiar_modo: forzar un modo concreto escribiendo en el puntero de
- *      localStorage en la consola:
- *        localStorage.setItem('chachacomani_modo_api', 'real')
- *        localStorage.setItem('chachacomani_modo_api', 'simulacion')
+ *  ▶ Ruta base: por defecto apunta a `/api` del dominio activo
+ *    (`https://dominio/api/votar.php`). Para apuntar a otro lugar, defina
+ *    VITE_API_BASE_URL en el build (p. ej. 'https://api.ejemplo.com/backend/api').
  * ============================================================================
  */
 import { CAPITULOS_DATA } from '../data/reglamentoData';
 
-const TOKEN_KEY = 'chachacomani_voter_token';
+const TOKEN_KEY = 'chachacomani_voter_token'; // identidad del navegador (anti-spam)
 
-// Dominio de producción activo en GoDaddy. Si el build se sirve desde otro
-// dominio, sobreescriba la raíz con la variable VITE_API_BASE_URL (o edite
-// esta constante).
-const DOMINIO_PRODUCCION = 'https://normas.chachacomani.com';
-const API_BASE_URL_PRODUCCION = `${DOMINIO_PRODUCCION}/backend/api`;
+/* -------------------------------------------------------------------------- */
+/* Ruta base del API                                                           */
+/* -------------------------------------------------------------------------- */
 
-const esEntornoLocal = () => {
-  const host = window.location.hostname;
-  return host === 'localhost' || host === '127.0.0.1';
-};
+const RAIZ_API = (() => {
+  const configurada = import.meta.env.VITE_API_BASE_URL;
+  const base = configurada || `${window.location.origin}/api`;
+  return base.replace(/\/+$/, ''); // sin barra final, para concatenar /votar.php
+})();
 
-const OPCIONES_API = {
-  // Base del API. En desarrollo local (Vite) apunta al mismo origen
-  // /backend/api; en producción usa la ruta ABSOLUTA del dominio activo.
-  baseUrl:
-    import.meta.env.VITE_API_BASE_URL ||
-    (esEntornoLocal() ? `${window.location.origin}/backend/api` : API_BASE_URL_PRODUCCION),
-  // Forzar un modo concreto (útil en QA). Valores: 'auto' | 'real' | 'simulacion'
-  modo: import.meta.env.VITE_API_MODE || 'auto',
-};
-
-const NUM_MODOS = {
-  REAL: 'real',
-  SIMULACION: 'simulacion',
-};
-const MODO_CACHE_KEY = 'chachacomani_modo_api';
-
-const SIMULACION_STORAGE_KEY = 'chachacomani_votos_articulo_v2';
-const SIMULACION_USUARIO_KEY = 'chachacomani_voto_usuario_v2';
-
-let modoResuelto = null; // cache en memoria del modo detectado
-let userVotesCache = {}; // articulo_id -> 'positivo' | 'negativo'
+const endpoint = (nombre) => `${RAIZ_API}/${nombre}`;
 
 /* -------------------------------------------------------------------------- */
 /* voter_token (anti spam: identifica el navegador)                            */
@@ -68,8 +42,8 @@ let userVotesCache = {}; // articulo_id -> 'positivo' | 'negativo'
 
 /**
  * Devuelve (creándolo si hace falta) un UUID único por navegador, guardado en
- * localStorage. Este token es el que persiste la votación y el que la base de
- * datos usa en la restricción UNIQUE (articulo_id, voter_token).
+ * localStorage. Este token es el que persiste la votación en MySQL y el que la
+ * base de datos usa en la restricción UNIQUE (articulo_id, voter_token).
  */
 export function getVoterToken() {
   try {
@@ -97,376 +71,130 @@ function generarUuid() {
   });
 }
 
-/* -------------------------------------------------------------------------- */
-/* Detección de modo: backend real (PHP) o simulación local                   */
-/* -------------------------------------------------------------------------- */
-
-function getModoForzado() {
-  if (OPCIONES_API.modo === 'real' || OPCIONES_API.modo === 'simulacion') {
-    return OPCIONES_API.modo;
-  }
-  try {
-    const guardado = localStorage.getItem(MODO_CACHE_KEY);
-    if (guardado === NUM_MODOS.REAL || guardado === NUM_MODOS.SIMULACION) {
-      return guardado;
-    }
-  } catch {
-    /* ignorar */
-  }
-  return null;
-}
-
-function guardarModo(modo) {
-  try {
-    localStorage.setItem(MODO_CACHE_KEY, modo);
-  } catch {
-    /* ignorar */
-  }
-}
-
 /**
- * Probar si el API PHP responde. Una sola detección por sesión.
+ * Limpieza única: elimina las claves heredadas del antiguo "modo simulación"
+ * (localStorage). Así los contadores y votos de la fase previa dejan de tener
+ * influencia y todo se lee desde MySQL.
  */
-async function detectarModo() {
-  if (modoResuelto) return modoResuelto;
-
-  const forzado = getModoForzado();
-  if (forzado) {
-    modoResuelto = forzado;
-    return forzado;
-  }
-
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 4000);
-    const res = await fetch(`${OPCIONES_API.baseUrl}/estadisticas.php`, {
-      signal: ctrl.signal,
-      headers: { Accept: 'application/json' },
-    });
-    clearTimeout(timer);
-
-    if (res.ok) {
-      const json = await res.json();
-      if (json && typeof json === 'object' && 'totalVotos' in json) {
-        modoResuelto = NUM_MODOS.REAL;
-        guardarModo(NUM_MODOS.REAL);
-        return modoResuelto;
-      }
-    } else {
-      console.error(
-        'Error conectando a MySQL API:',
-        `HTTP ${res.status} en ${OPCIONES_API.baseUrl}/estadisticas.php`
-      );
-    }
-  } catch (error) {
-    // Sin backend PHP disponible (desarrollo local) o error de red.
-    console.error('Error conectando a MySQL API:', error);
-  }
-
-  modoResuelto = NUM_MODOS.SIMULACION;
-  guardarModo(NUM_MODOS.SIMULACION);
-  return modoResuelto;
+try {
+  localStorage.removeItem('chachacomani_modo_api');
+  localStorage.removeItem('chachacomani_votos_articulo_v2');
+  localStorage.removeItem('chachacomani_voto_usuario_v2');
+} catch {
+  /* localStorage no disponible */
 }
 
-/** Reintenta la detección (por si el backend se despliega a mitad de sesión). */
-export async function reDetectarModo() {
-  modoResuelto = null;
-  try {
-    localStorage.removeItem(MODO_CACHE_KEY);
-  } catch {
-    /* ignorar */
-  }
-  await detectarModo();
-  return modoResuelto;
-}
+/* Cache en memoria (no persistida) de articulo_id -> 'positivo' | 'negativo',
+   útil para la UI mientras el API anti-spam responde. */
+let userVotesCache = {};
 
 /* -------------------------------------------------------------------------- */
-/* Simulación local (sin backend): mismo de la fase previa                    */
+/* Votos del usuario (anti-spam: botones bloqueados)                          */
 /* -------------------------------------------------------------------------- */
-
-const getEstadoSimulacion = () => {
-  try {
-    const raw = localStorage.getItem(SIMULACION_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-};
-
-const guardarEstadoSimulacion = (estado) => {
-  try {
-    localStorage.setItem(SIMULACION_STORAGE_KEY, JSON.stringify(estado));
-  } catch {
-    /* localStorage no disponible */
-  }
-};
 
 /**
- * En simulación (sin backend) no existe "base de datos"; por lo tanto NO se
- * inventan votos de otros votantes. La semilla inicia todo en 0 y solo
- * refleja los votos reales emitidos por este navegador (persistidos en
- * localStorage).
- */
-const garantirSemilla = (estado) => {
-  const sembrado = { ...estado };
-  CAPITULOS_DATA.forEach((cap) => {
-    cap.articulos.forEach((art) => {
-      if (!sembrado[art.id]) {
-        sembrado[art.id] = {
-          likes: 0,
-          dislikes: 0,
-        };
-      }
-    });
-  });
-  return sembrado;
-};
-
-/**
- * En simulación se persiste la decisión del usuario en una clave propia:
- * articulo_id -> 'positivo' | 'negativo'. Así la UI recuerda qué votó.
- */
-const getSimulacionUsuario = () => {
-  try {
-    const raw = localStorage.getItem(SIMULACION_USUARIO_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-};
-
-const guardarSimulacionUsuario = (st) => {
-  try {
-    localStorage.setItem(SIMULACION_USUARIO_KEY, JSON.stringify(st));
-  } catch {
-    /* localStorage no disponible */
-  }
-};
-
-/* -------------------------------------------------------------------------- */
-/* Votos del usuario (usadas por la UI pese al anti-spam)                     */
-/* -------------------------------------------------------------------------- */
-
-/** Cache local de articulo_id -> 'positivo' | 'negativo' (lo que votó el navegador). */
-export function getMisVotos() {
-  return { ...userVotesCache };
-}
-
-/**
- * Consulta al backend (o a la simulación) qué artículos ya votó este token.
- * Se ejecuta al cargar la app para deshabilitar los botones ya evaluados.
+ * Consulta al backend qué artículos ya votó este token. Se ejecuta al cargar
+ * la app para deshabilitar los botones ya evaluados.
  */
 export async function obtenerMisVotos() {
-  const modo = await detectarModo();
   const token = getVoterToken();
 
-  if (modo === NUM_MODOS.REAL) {
-    try {
-      const res = await fetch(
-        `${OPCIONES_API.baseUrl}/mis_votos.php?voter_token=${encodeURIComponent(token)}`,
-        { headers: { Accept: 'application/json' } }
-      );
-      if (res.ok) {
-        const json = await res.json();
-        const mapa = {};
-        (json.votos || []).forEach((v) => {
-          mapa[v.articulo_id] = v.tipo_voto;
-        });
-        userVotesCache = mapa;
-        return mapa;
-      }
-    } catch (error) {
-      // Sin conexión: se usa lo cacheado localmente
-      console.error('Error conectando a MySQL API (mis_votos.php):', error);
-    }
+  let res;
+  try {
+    res = await fetch(endpoint(`mis_votos.php?voter_token=${encodeURIComponent(token)}`), {
+      headers: { Accept: 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error backend:', error);
+    throw Object.assign(new Error('No se pudo consultar tus votos en la base de datos.'), { status: 0 });
   }
 
-  // Modo simulación: los votos del usuario viven en localStorage
-  const mio = getSimulacionUsuario();
-  userVotesCache = { ...mio };
-  return { ...mio };
+  if (!res.ok) {
+    console.error('Error backend:', `HTTP ${res.status} en ${endpoint('mis_votos.php')}`);
+    throw Object.assign(new Error(`No se pudieron obtener tus votos (HTTP ${res.status}).`), { status: res.status });
+  }
+
+  const json = await res.json();
+  const mapa = {};
+  (json.votos || []).forEach((v) => {
+    mapa[v.articulo_id] = v.tipo_voto;
+  });
+  userVotesCache = mapa;
+  return mapa;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Registro de un voto                                                        */
 /* -------------------------------------------------------------------------- */
 
-function estadoVotoReal(articuloId) {
-  const tipo = userVotesCache[articuloId];
-  return { userVote: tipo || null };
-}
-
-function aplicarVotoSimulacion(articuloId, tipoVoto) {
-  // Anti-spam simulado: un mismo votante no evalua dos veces el mismo artículo
-  const mio = getSimulacionUsuario();
-  if (mio[articuloId]) {
-    throw Object.assign(new Error('Ya has evaluado este artículo'), { status: 409 });
-  }
-
-  // Gestiona el estado simulado (todo inicia en 0; solo cuenta lo real).
-  garantirSemilla(getEstadoSimulacion());
-
-  const nuevas = { ...mio, [articuloId]: tipoVoto };
-  guardarSimulacionUsuario(nuevas);
-  userVotesCache = nuevas;
-
-  const resumen = resumenDeVoto(articuloId);
-  return {
-    likes: resumen.likes,
-    dislikes: resumen.dislikes,
-    total: resumen.total,
-    aprobacion: resumen.aprobacion,
-    userVote: tipoVoto,
-  };
-}
-
 /**
- * En modo simulación: totales = contadores reales de este navegador (todo
- * inicia en 0), emulando el resultado agregado de `estadisticas.php`.
- */
-function resumenDeVoto(articuloId) {
-  const estado = garantirSemilla(getEstadoSimulacion());
-  const miVoto = getSimulacionUsuario()[articuloId];
-
-  const base = estado[articuloId] || { likes: 0, dislikes: 0 };
-  const likes = (base.likes || 0) + (miVoto === 'positivo' ? 1 : 0);
-  const dislikes = (base.dislikes || 0) + (miVoto === 'negativo' ? 1 : 0);
-  const total = likes + dislikes;
-
-  return {
-    likes,
-    dislikes,
-    total,
-    aprobacion: total > 0 ? Math.round((likes / total) * 100) : null,
-  };
-}
-
-/**
- * Registra la evaluación ("positivo" | "negativo") del artículo por parte de
- * este navegador. Lanza Error { status: 409 } si ya había votado ese artículo.
+ * Registra la evaluación ("positivo" | "negativo") del artículo en MySQL.
+ * Lanza Error { status: 409 } si el token ya había votado ese artículo.
  *
  * @param {number} articuloId - article.id del Reglamento
  * @param {'positivo'|'negativo'} tipoVoto
  * @param {number} [capituloId] - capítulo al que pertenece (para el backend)
  */
 export async function votarArticulo(articuloId, tipoVoto, capituloId) {
-  const modo = await detectarModo();
   const token = getVoterToken();
 
   if (tipoVoto !== 'positivo' && tipoVoto !== 'negativo') {
     throw new Error('tipo_voto debe ser "positivo" o "negativo"');
   }
 
-  if (modo === NUM_MODOS.REAL) {
-    // -- Backend PHP + MySQL ---------------------------------------------
-    let res;
-    try {
-      res = await fetch(`${OPCIONES_API.baseUrl}/votar.php`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          articulo_id: articuloId,
-          capitulo_id: capituloId,
-          tipo_voto: tipoVoto,
-          voter_token: token,
-        }),
-      });
-    } catch (error) {
-      console.error('Error conectando a MySQL API (votar.php):', error);
-      throw Object.assign(new Error('Sin conexión con el servidor de votos.'), { status: 0 });
-    }
-
-    if (!res.ok) {
-      let mensaje = 'No se pudo registrar el voto.';
-      try {
-        const err = await res.json();
-        if (err && err.error) mensaje = err.error;
-      } catch {
-        /* cuerpo no JSON */
-      }
-      // 409 = el token ya evaluó este artículo (regla de negocio esperada, no se loguea).
-      if (res.status !== 409) {
-        console.error('Error conectando a MySQL API:', `HTTP ${res.status} en votar.php - ${mensaje}`);
-      }
-      throw Object.assign(new Error(mensaje), { status: res.status });
-    }
-
-    // Cachear la decisión del usuario para la UI
-    userVotesCache = { ...userVotesCache, [articuloId]: tipoVoto };
-    return {
-      ...estadoVotoReal(articuloId),
-      likes: 0,
-      dislikes: 0,
-      total: 0,
-      aprobacion: null,
-    };
+  let res;
+  try {
+    res = await fetch(endpoint('votar.php'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        articulo_id: articuloId,
+        capitulo_id: capituloId,
+        tipo_voto: tipoVoto,
+        voter_token: token,
+      }),
+    });
+  } catch (error) {
+    // Fallo de red / DNS / CORS: se expone el error, no se cae a localStorage.
+    console.error('Error backend:', error);
+    throw Object.assign(new Error('Error al registrar voto en la base de datos.'), { status: 0 });
   }
 
-  // -- Modo simulación (local) ------------------------------------------
-  return aplicarVotoSimulacion(articuloId, tipoVoto);
+  if (!res.ok) {
+    let mensaje = 'Error al registrar voto en la base de datos.';
+    try {
+      const err = await res.json();
+      if (err && err.error) mensaje = err.error;
+    } catch {
+      /* cuerpo no JSON */
+    }
+    console.error('Error backend:', `HTTP ${res.status} en votar.php - ${mensaje}`);
+    throw Object.assign(new Error(mensaje), { status: res.status });
+  }
+
+  // Solo se cachea la decisión del usuario EN MEMORIA (nada se persiste local).
+  userVotesCache = { ...userVotesCache, [articuloId]: tipoVoto };
+  return {
+    userVote: tipoVoto,
+    likes: 0,
+    dislikes: 0,
+    total: 0,
+    aprobacion: null,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
 /* Estadísticas (Dashboard de Administración)                                 */
 /* -------------------------------------------------------------------------- */
 
-function obtenerEstadisticasSimulacion() {
-  const mio = getSimulacionUsuario();
-
-  const capitulos = CAPITULOS_DATA.map((cap) => {
-    const articulos = cap.articulos.map((art) => {
-      const resumen = resumenDeVoto(art.id);
-      return {
-        id: art.id,
-        numero: art.numero,
-        denominacion: art.denominacion,
-        likes: resumen.likes,
-        dislikes: resumen.dislikes,
-        total: resumen.total,
-        aprobacion: resumen.aprobacion,
-        userVote: mio[art.id] || null,
-      };
-    });
-
-    const likes = articulos.reduce((acc, a) => acc + a.likes, 0);
-    const dislikes = articulos.reduce((acc, a) => acc + a.dislikes, 0);
-    const totalVotos = likes + dislikes;
-
-    return {
-      capituloId: cap.id,
-      capituloRomano: cap.numero_romano,
-      titulo: cap.titulo,
-      likes,
-      dislikes,
-      totalVotos,
-      aprobacion: totalVotos > 0 ? Math.round((likes / totalVotos) * 100) : null,
-      articulos,
-    };
-  });
-
-  const totalVotos = capitulos.reduce((acc, c) => acc + c.totalVotos, 0);
-  const totalLikes = capitulos.reduce((acc, c) => acc + c.likes, 0);
-
-  return {
-    totalVotos,
-    aprobacionGeneral: totalVotos > 0 ? Math.round((totalLikes / totalVotos) * 100) : null,
-    capitulos,
-  };
-}
-
 /**
  * Completa la respuesta del API `estadisticas.php` con el catálogo oficial
  * del Reglamento (CAPITULOS_DATA). El backend solo devuelve los artículos que
  * YA tienen votos; aquí se rellenan los que no tienen registro con contadores
- * en 0 (nada de números mock inventados).
- *
- * De este modo el renderizado refleja únicamente la información real guardada
- * en MySQL:
- *   · Artículo sin votos -> likes 0 / dislikes 0 / aprobación null
- *   · Capítulo sin votos -> sigue apareciendo con 0 votos en el Dashboard
+ * en 0 (no se inventan números).
  */
 function completarConCatalogo(json) {
   const porArticulo = {};
@@ -523,43 +251,30 @@ function completarConCatalogo(json) {
 }
 
 /**
- * Devuelve las estadísticas (modo real = api/estadisticas.php).
- * La estructura es idéntica en ambos modos para que el Dashboard no cambie.
+ * Devuelve las estadísticas desde `api/estadisticas.php` (MySQL).
+ * No existe modo simulación: si el API falla, lanza un error visible.
  */
 export async function obtenerEstadisticas() {
-  const modo = await detectarModo();
   const token = getVoterToken();
 
-  if (modo === NUM_MODOS.REAL) {
-    let res;
-    try {
-      res = await fetch(`${OPCIONES_API.baseUrl}/estadisticas.php`, {
-        headers: {
-          Accept: 'application/json',
-          'X-Voter-Token': token,
-        },
-      });
-    } catch (error) {
-      console.error('Error conectando a MySQL API (estadisticas.php):', error);
-      throw new Error('No se pudieron obtener las estadísticas.');
-    }
-    if (!res.ok) {
-      console.error(
-        'Error conectando a MySQL API:',
-        `HTTP ${res.status} en ${OPCIONES_API.baseUrl}/estadisticas.php`
-      );
-      throw new Error('No se pudieron obtener las estadísticas.');
-    }
-    const json = await res.json();
-
-    // Se combina el catálogo oficial con los conteos reales de MySQL.
-    return completarConCatalogo(json);
+  let res;
+  try {
+    res = await fetch(endpoint('estadisticas.php'), {
+      headers: {
+        Accept: 'application/json',
+        'X-Voter-Token': token,
+      },
+    });
+  } catch (error) {
+    console.error('Error backend:', error);
+    throw new Error('No se pudieron obtener las estadísticas desde la base de datos.');
   }
 
-  return obtenerEstadisticasSimulacion();
-}
+  if (!res.ok) {
+    console.error('Error backend:', `HTTP ${res.status} en ${endpoint('estadisticas.php')}`);
+    throw new Error(`No se pudieron obtener las estadísticas (HTTP ${res.status}).`);
+  }
 
-/** Nombre legible del modo activo (utilidad para depuración). */
-export async function getModoActivo() {
-  return detectarModo();
+  const json = await res.json();
+  return completarConCatalogo(json);
 }

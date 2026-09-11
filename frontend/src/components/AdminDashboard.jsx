@@ -355,9 +355,9 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
               }`}
             >
               <p className="text-[11px] leading-relaxed text-ink-muted dark:text-slate-500">
-                Estadísticas en tiempo real desde el backend PHP + MySQL (backend/). Si el API no
-                responde, la app cae a un modo de simulación local (localStorage) con la misma
-                interfaz para desarrollo.
+                Estadísticas en tiempo real desde el backend PHP + MySQL (backend/). No existe
+                modo simulación: si el API falla, el error se muestra y nada se guarda en
+                localStorage.
               </p>
             </div>
           </motion.div>

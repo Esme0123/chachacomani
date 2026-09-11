@@ -1,8 +1,15 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, X } from 'lucide-react';
+import { ShieldAlert, X, AlertTriangle } from 'lucide-react';
 
-export default function DRMToast({ message, isVisible, onClose, variant = 'cream' }) {
+export default function DRMToast({
+  message,
+  isVisible,
+  onClose,
+  variant = 'cream',
+  title = 'Seguridad DRM Activa',
+  tone = 'gold'
+}) {
   useEffect(() => {
     if (isVisible) {
       const timer = setTimeout(() => {
@@ -14,6 +21,8 @@ export default function DRMToast({ message, isVisible, onClose, variant = 'cream
 
   // Estilo adaptativo al tema (Warm Cream / Slate & Gold)
   const isDark = variant === 'dark';
+  const esError = tone === 'error';
+  const Icono = esError ? AlertTriangle : ShieldAlert;
 
   return (
     <AnimatePresence>
@@ -25,16 +34,40 @@ export default function DRMToast({ message, isVisible, onClose, variant = 'cream
           transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-3 px-5 py-3.5 max-w-md w-[90%] rounded-2xl shadow-2xl backdrop-blur-md border ${
             isDark
-              ? 'bg-navy-900/95 border-gold-500/60 text-gold-300'
-              : 'bg-ivory border-gold-500/50 text-gold-800 shadow-cream-panel'
+              ? esError
+                ? 'bg-navy-900/95 border-rose-500/60 text-rose-300'
+                : 'bg-navy-900/95 border-gold-500/60 text-gold-300'
+              : esError
+                ? 'bg-ivory border-rose-500/50 text-rose-800 shadow-cream-panel'
+                : 'bg-ivory border-gold-500/50 text-gold-800 shadow-cream-panel'
           }`}
         >
-          <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-gold-500/10 text-gold-400' : 'bg-gold-500/15 text-gold-600'}`}>
-            <ShieldAlert className="w-5 h-5 animate-pulse" />
+          <div
+            className={`p-2 rounded-xl shrink-0 ${
+              isDark
+                ? esError
+                  ? 'bg-rose-500/10 text-rose-400'
+                  : 'bg-gold-500/10 text-gold-400'
+                : esError
+                  ? 'bg-rose-500/15 text-rose-600'
+                  : 'bg-gold-500/15 text-gold-600'
+            }`}
+          >
+            <Icono className="w-5 h-5 animate-pulse" />
           </div>
           <div className={`flex-1 text-sm font-medium ${isDark ? 'text-slate-100' : 'text-ink'}`}>
-            <p className={`font-semibold text-xs tracking-wider uppercase ${isDark ? 'text-gold-400' : 'text-gold-600'}`}>
-              Seguridad DRM Activa
+            <p
+              className={`font-semibold text-xs tracking-wider uppercase ${
+                isDark
+                  ? esError
+                    ? 'text-rose-400'
+                    : 'text-gold-400'
+                  : esError
+                    ? 'text-rose-600'
+                    : 'text-gold-600'
+              }`}
+            >
+              {title}
             </p>
             <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-200' : 'text-ink-soft'}`}>{message}</p>
           </div>

@@ -59,6 +59,8 @@ export default function App() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [backendError, setBackendError] = useState(null);
+  const [backendErrorVisible, setBackendErrorVisible] = useState(false);
   const [votosPorArticulo, setVotosPorArticulo] = useState({});
   const [articulosPorId, setArticulosPorId] = useState({});
 
@@ -115,6 +117,13 @@ export default function App() {
     setIsAdminOpen(true);
   };
 
+  // Toast visible de errores del backend PHP/MySQL.
+  const mostrarErrorBackend = (mensaje) => {
+    setBackendError(mensaje);
+    setBackendErrorVisible(true);
+  };
+  const ocultarErrorBackend = () => setBackendErrorVisible(false);
+
   const currentCapitulo = useMemo(
     () => CAPITULOS_DATA.find((c) => c.id === selectedCapituloId) || CAPITULOS_DATA[0],
     [selectedCapituloId]
@@ -165,6 +174,20 @@ export default function App() {
     try {
       const capituloId = articulosPorId[articuloId]?.capituloId;
       await votarArticulo(articuloId, tipoVoto, capituloId);
+    } catch (error) {
+      // Error visible: NO se guarda nada en localStorage como respaldo.
+      console.error('Error backend:', error);
+      if (error?.status === 409) {
+        await obtenerMisVotos().catch(() => {});
+        mostrarErrorBackend('Ya has evaluado este artículo.');
+      } else {
+        mostrarErrorBackend(error?.message || 'Error al registrar voto en la base de datos.');
+      }
+      return;
+    }
+
+    // Voto registrado en MySQL: refresca los contadores reales.
+    try {
       const stats = await obtenerEstadisticas();
 
       const nuevoMapa = {};
@@ -180,9 +203,9 @@ export default function App() {
         });
       });
       setVotosPorArticulo(nuevoMapa);
-    } catch {
-      // 409 (ya evaluó) o error de red: se refrescan los votos del usuario
-      await obtenerMisVotos();
+    } catch (error) {
+      console.error('Error backend:', error);
+      mostrarErrorBackend('El voto se registró, pero no se pudieron actualizar las estadísticas.');
     }
   };
 
@@ -219,8 +242,12 @@ export default function App() {
           });
         });
         if (activo) setVotosPorArticulo(nuevoMapa);
-      } catch {
-        // Sin API ni simulación: se continúa sin estadísticas
+      } catch (error) {
+        // Sin respaldo a localStorage: se informa del fallo de conexión.
+        console.error('Error backend:', error);
+        if (activo) {
+          mostrarErrorBackend('No se pudieron cargar los votos desde la base de datos.');
+        }
       }
     })();
     return () => {
@@ -252,6 +279,17 @@ export default function App() {
           isVisible={toastVisible}
           onClose={hideToast}
           variant={isDark ? 'dark' : 'cream'}
+        />
+
+        {/* Alerta Toast de Errores del Backend (MySQL/API) */}
+        <DRMToast
+          key={backendError || 'backend-error'}
+          message={backendError}
+          isVisible={backendErrorVisible}
+          onClose={ocultarErrorBackend}
+          variant={isDark ? 'dark' : 'cream'}
+          title="Error de Conexión"
+          tone="error"
         />
 
         {/* Barra de Navegación Superior */}
