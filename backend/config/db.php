@@ -10,6 +10,11 @@
  */
 declare(strict_types=1);
 
+// Cabeceras CORS universales (se envía antes que cualquier otra cosa).
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Voter-Token');
+header('Content-Type: application/json; charset=UTF-8');
+
 const DB_HOST = 'localhost';
 const DB_PORT = 3306;
 const DB_NAME = 'chochocomani_bd';
@@ -19,15 +24,15 @@ const DB_PASS = 'chochocomani123.';
 /**
  * Orígenes permitidos por CORS.
  * - Para desarrollo local (Vite) se autoriza http://localhost:5173
- * - En producción reemplace por el dominio de GoDaddy, por ejemplo:
- *   'https://www.su-dominio.com'
+ * - En producción se incluye el dominio de GoDaddy.
  * Dejar como '*' permite cualquier origen (útil durante la migración).
  */
 const ALLOWED_ORIGINS = [
-    'http://localhost:5173', // dev server de Vite
+    'http://localhost:5173',      // dev server de Vite
     'http://127.0.0.1:5173',
-    'https://normas.chachacomani.com/', // <- GoDaddy (producción)
-    '*'
+    'https://normas.chachacomani.com', // <- GoDaddy (producción)
+    'https://chachacomani.com',   // dominio alternativo
+    '*',                          // wildcard (permite cualquier origen durante la migración)
 ];
 
 function db(): PDO
@@ -69,5 +74,10 @@ function db(): PDO
     return $pdo;
 }
 
-// Marque como true SOLO temporalmente si necesita depurar la conexión.
-// @define('DB_DEBUG', true);
+// PDO: ERRMODE_EXCEPTION activado para reportar errores de credenciales como
+// excepciones (no se enmascaran). Para ver el mensaje real del DSN, defina
+// DB_DEBUG antes de incluir este archivo, por ejemplo en la consola:
+//   php -r "define('DB_DEBUG', true); require 'backend/config/db.php'; db();"
+if (!defined('DB_DEBUG')) {
+    define('DB_DEBUG', false);
+}

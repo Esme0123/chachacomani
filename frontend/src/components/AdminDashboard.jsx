@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, BarChart3, ThumbsUp, ThumbsDown, Users, CheckCircle2 } from 'lucide-react';
+import { X, BarChart3, ThumbsUp, ThumbsDown, Users, CheckCircle2, ShieldCheck, ShieldOff } from 'lucide-react';
 import { CAPITULOS_DATA } from '../data/reglamentoData';
 import { obtenerEstadisticas } from '../services/votosService';
 
-export default function AdminDashboard({ isOpen, onClose, isDark }) {
+export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, toggleDRM }) {
   const [stats, setStats] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -92,7 +92,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark }) {
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
             onClick={(e) => e.stopPropagation()}
-            className={`relative w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden rounded-3xl border shadow-2xl ${
+            className={`relative w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border shadow-2xl ${
               isDark ? 'bg-navy-900 border-slate-800' : 'bg-ivory border-sand-300'
             }`}
           >
@@ -132,8 +132,43 @@ export default function AdminDashboard({ isOpen, onClose, isDark }) {
               </div>
             </div>
 
+            {/* Fila de Seguridad DRM (toggle On/Off) */}
+            <div
+              className={`flex shrink-0 items-center justify-between gap-3 px-4 py-3 sm:px-6 border-b ${
+                isDark ? 'border-slate-800 bg-navy-950/40' : 'border-sand-200 bg-cream-100/60'
+              }`}
+            >
+              <div className="flex items-center gap-2 text-xs font-semibold text-ink-muted dark:text-slate-300">
+                {drmEnabled ? (
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <ShieldOff className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                )}
+                <span>Seguridad DRM</span>
+                <span className={`font-mono ${drmEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {drmEnabled ? 'ON' : 'OFF'}
+                </span>
+              </div>
+
+              <button
+                onClick={toggleDRM}
+                role="switch"
+                aria-checked={drmEnabled}
+                title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                  drmEnabled ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    drmEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* Cuerpo */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-6">
               {cargando && !stats ? (
                 <div className="flex flex-col items-center justify-center py-14 gap-3 text-ink-muted dark:text-slate-400">
                   <div className="w-8 h-8 rounded-full border-2 border-gold-500/30 border-t-gold-500 animate-spin" />
@@ -149,7 +184,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark }) {
               ) : (
                 <>
                   {/* Métricas Globales */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {statCard(
                       <Users className="w-4 h-4" />,
                       'Total de votos registrados',
@@ -244,7 +279,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark }) {
                       Detalle por Artículo
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
+                      <table className="w-full min-w-[640px] text-left text-xs">
                         <thead>
                           <tr
                             className={`text-[10px] uppercase tracking-wider ${

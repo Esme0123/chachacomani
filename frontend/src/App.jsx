@@ -34,7 +34,15 @@ import { votarArticulo, obtenerEstadisticas, obtenerMisVotos } from './services/
 
 export default function App() {
   // 1. DRM Hook
-  const { toastMessage, toastVisible, hideToast, triggerDRMAlert } = useDRM();
+  const {
+    drmEnabled,
+    toggleDRM,
+    marcarAdmin,
+    toastMessage,
+    toastVisible,
+    hideToast,
+    triggerDRMAlert
+  } = useDRM();
 
   // 2. Estados de Interfaz
   const [showSplash, setShowSplash] = useState(true);
@@ -99,6 +107,13 @@ export default function App() {
   const decreaseFontSize = () => setFontSize((prev) => Math.max(prev - 1, 13));
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Abre el Panel de Administrador y marca al usuario como admin (el DRM del
+  // próximo arranque inicia desactivado por defecto).
+  const abrirAdmin = () => {
+    marcarAdmin();
+    setIsAdminOpen(true);
+  };
 
   const currentCapitulo = useMemo(
     () => CAPITULOS_DATA.find((c) => c.id === selectedCapituloId) || CAPITULOS_DATA[0],
@@ -251,7 +266,9 @@ export default function App() {
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           selectedTab={selectedTab}
           setSelectedTab={setSelectedTab}
-          onOpenAdmin={() => setIsAdminOpen(true)}
+          onOpenAdmin={abrirAdmin}
+          drmEnabled={drmEnabled}
+          onToggleDRM={toggleDRM}
         />
 
         {/* Layout Principal */}
@@ -268,6 +285,12 @@ export default function App() {
             setSelectedTab={setSelectedTab}
             isMobileOpen={isMobileMenuOpen}
             onCloseMobile={() => setIsMobileMenuOpen(false)}
+            onOpenAdmin={() => {
+              setIsMobileMenuOpen(false);
+              abrirAdmin();
+            }}
+            drmEnabled={drmEnabled}
+            onToggleDRM={toggleDRM}
           />
 
           <main className="flex-1 min-w-0 py-8">
@@ -514,6 +537,8 @@ export default function App() {
           isOpen={isAdminOpen}
           onClose={() => setIsAdminOpen(false)}
           isDark={isDark}
+          drmEnabled={drmEnabled}
+          toggleDRM={toggleDRM}
         />
 
         {/* Footer Institucional */}
@@ -531,7 +556,7 @@ export default function App() {
               <span>● Anexos I y II</span>
               <span>● Sistema de Lectura Protegida DRM</span>
               <button
-                onClick={() => setIsAdminOpen(true)}
+                onClick={abrirAdmin}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border transition-colors ${
                   isDark
                     ? 'border-slate-700 text-slate-500 hover:text-gold-400 hover:border-gold-500/50'

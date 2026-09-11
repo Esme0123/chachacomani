@@ -6,6 +6,7 @@ import {
   Search,
   Menu,
   ShieldCheck,
+  ShieldOff,
   Pickaxe,
   ZoomIn,
   ZoomOut,
@@ -23,7 +24,9 @@ export default function Navbar({
   onOpenMobileMenu,
   selectedTab,
   setSelectedTab,
-  onOpenAdmin
+  onOpenAdmin,
+  drmEnabled,
+  onToggleDRM
 }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-sand-300/70 dark:border-slate-700/60 bg-cream-50/85 dark:bg-navy-800/85 backdrop-blur-md transition-colors duration-500">
@@ -158,18 +161,32 @@ export default function Navbar({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onOpenAdmin}
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-2 text-ink-muted dark:text-gold-400 bg-cream-100 dark:bg-navy-800/80 hover:bg-cream-200 dark:hover:bg-navy-700/80 rounded-xl border border-sand-300 dark:border-slate-700/60 transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-2 text-ink-muted dark:text-gold-400 bg-cream-100 dark:bg-navy-800/80 hover:bg-cream-200 dark:hover:bg-navy-700/80 rounded-xl border border-sand-300 dark:border-slate-700/60 transition-colors"
               title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+              aria-label="Abrir estadísticas"
             >
               <BarChart3 className="w-4 h-4" />
-              <span className="text-[11px] font-semibold">Estadísticas</span>
+              <span className="hidden sm:inline text-[11px] font-semibold">Estadísticas</span>
             </motion.button>
 
-            {/* Badge de Seguridad */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>DRM Activo</span>
-            </div>
+            {/* Toggle de Seguridad DRM */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onToggleDRM}
+              role="switch"
+              aria-checked={drmEnabled}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+                drmEnabled
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15'
+              }`}
+              title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
+              aria-label={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
+            >
+              {drmEnabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{drmEnabled ? 'DRM Activo' : 'DRM Inactivo'}</span>
+            </motion.button>
 
           </div>
         </div>

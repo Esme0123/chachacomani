@@ -28,9 +28,24 @@
 import { CAPITULOS_DATA } from '../data/reglamentoData';
 
 const TOKEN_KEY = 'chachacomani_voter_token';
+
+// Dominio de producción activo en GoDaddy. Si el build se sirve desde otro
+// dominio, sobreescriba la raíz con la variable VITE_API_BASE_URL (o edite
+// esta constante).
+const DOMINIO_PRODUCCION = 'https://normas.chachacomani.com';
+const API_BASE_URL_PRODUCCION = `${DOMINIO_PRODUCCION}/backend/api`;
+
+const esEntornoLocal = () => {
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+};
+
 const OPCIONES_API = {
-  // Base del API. En producción se usa el mismo origen (GoDaddy).
-  baseUrl: import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/backend/api`,
+  // Base del API. En desarrollo local (Vite) apunta al mismo origen
+  // /backend/api; en producción usa la ruta ABSOLUTA del dominio activo.
+  baseUrl:
+    import.meta.env.VITE_API_BASE_URL ||
+    (esEntornoLocal() ? `${window.location.origin}/backend/api` : API_BASE_URL_PRODUCCION),
   // Forzar un modo concreto (útil en QA). Valores: 'auto' | 'real' | 'simulacion'
   modo: import.meta.env.VITE_API_MODE || 'auto',
 };
@@ -137,9 +152,15 @@ async function detectarModo() {
         guardarModo(NUM_MODOS.REAL);
         return modoResuelto;
       }
+    } else {
+      console.error(
+        'Error conectando a MySQL API:',
+        `HTTP ${res.status} en ${OPCIONES_API.baseUrl}/estadisticas.php`
+      );
     }
-  } catch {
-    // No hay backend PHP disponible (desarrollo local)
+  } catch (error) {
+    // Sin backend PHP disponible (desarrollo local) o error de red.
+    console.error('Error conectando a MySQL API:', error);
   }
 
   modoResuelto = NUM_MODOS.SIMULACION;
@@ -254,8 +275,9 @@ export async function obtenerMisVotos() {
         userVotesCache = mapa;
         return mapa;
       }
-    } catch {
+    } catch (error) {
       // Sin conexión: se usa lo cacheado localmente
+      console.error('Error conectando a MySQL API (mis_votos.php):', error);
     }
   }
 
@@ -337,19 +359,25 @@ export async function votarArticulo(articuloId, tipoVoto, capituloId) {
 
   if (modo === NUM_MODOS.REAL) {
     // -- Backend PHP + MySQL ---------------------------------------------
-    const res = await fetch(`${OPCIONES_API.baseUrl}/votar.php`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        articulo_id: articuloId,
-        capitulo_id: capituloId,
-        tipo_voto: tipoVoto,
-        voter_token: token,
-      }),
-    });
+    let res;
+    try {
+      res = await fetch(`${OPCIONES_API.baseUrl}/votar.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          articulo_id: articuloId,
+          capitulo_id: capituloId,
+          tipo_voto: tipoVoto,
+          voter_token: token,
+        }),
+      });
+    } catch (error) {
+      console.error('Error conectando a MySQL API (votar.php):', error);
+      throw Object.assign(new Error('Sin conexión con el servidor de votos.'), { status: 0 });
+    }
 
     if (!res.ok) {
       let mensaje = 'No se pudo registrar el voto.';
@@ -358,6 +386,10 @@ export async function votarArticulo(articuloId, tipoVoto, capituloId) {
         if (err && err.error) mensaje = err.error;
       } catch {
         /* cuerpo no JSON */
+      }
+      // 409 = el token ya evaluó este artículo (regla de negocio esperada, no se loguea).
+      if (res.status !== 409) {
+        console.error('Error conectando a MySQL API:', `HTTP ${res.status} en votar.php - ${mensaje}`);
       }
       throw Object.assign(new Error(mensaje), { status: res.status });
     }
@@ -499,13 +531,23 @@ export async function obtenerEstadisticas() {
   const token = getVoterToken();
 
   if (modo === NUM_MODOS.REAL) {
-    const res = await fetch(`${OPCIONES_API.baseUrl}/estadisticas.php`, {
-      headers: {
-        Accept: 'application/json',
-        'X-Voter-Token': token,
-      },
-    });
+    let res;
+    try {
+      res = await fetch(`${OPCIONES_API.baseUrl}/estadisticas.php`, {
+        headers: {
+          Accept: 'application/json',
+          'X-Voter-Token': token,
+        },
+      });
+    } catch (error) {
+      console.error('Error conectando a MySQL API (estadisticas.php):', error);
+      throw new Error('No se pudieron obtener las estadísticas.');
+    }
     if (!res.ok) {
+      console.error(
+        'Error conectando a MySQL API:',
+        `HTTP ${res.status} en ${OPCIONES_API.baseUrl}/estadisticas.php`
+      );
       throw new Error('No se pudieron obtener las estadísticas.');
     }
     const json = await res.json();

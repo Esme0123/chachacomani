@@ -11,6 +11,11 @@
  */
 declare(strict_types=1);
 
+// Cabeceras CORS universales (se envía antes que cualquier otra cosa).
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Voter-Token');
+header('Content-Type: application/json; charset=UTF-8');
+
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../config/db.php';
 

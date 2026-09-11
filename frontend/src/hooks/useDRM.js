@@ -2,25 +2,97 @@ import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Hook personalizado useDRM
+ *
  * Intercepta eventos de copia, corte, menú contextual (clic derecho) y atajos de
- * teclado clave (Ctrl+C, Ctrl+X, Ctrl+U, Ctrl+S, Ctrl+P, F12, Ctrl+Shift+I/J/C).
- * Dispara una alerta toast animada "Contenido protegido: Solo lectura y resaltado autorizado".
- * Permite la selección de texto y el resaltado, pero bloquea toda extracción del contenido.
+ * teclado clave (Ctrl+C, Ctrl+X, Ctrl+U, Ctrl+S, Ctrl+P, F12, Ctrl+Shift+I/J/C)
+ * MUNICAMENTE cuando la protección está ENCENDIDA (drmEnabled === true).
+ *
+ * La seguridad se puede alternar desde el Header y el Panel de Administrador:
+ *   · drmEnabled  -> bool  (estado actual)
+ *   · toggleDRM() -> cambia ON/OFF y persiste en localStorage ('drm_enabled')
+ *   · marcarAdmin()-> marca al usuario como administrador (el DRM inicia OFF)
+ *
+ * El valor inicial por defecto es OFF en entorno de desarrollo local y para
+ * administradores; en producción arranca ON y se conserva la preferencia
+ * guardada por el usuario en 'drm_enabled'.
  */
+const DRM_KEY = 'drm_enabled';
+const ADMIN_KEY = 'chachacomani_admin';
+
+function esEntornoDesarrollo() {
+  const host = window.location.hostname;
+  return host === '' || host === 'localhost' || host === '127.0.0.1';
+}
+
+function esAdminGuardado() {
+  try {
+    return localStorage.getItem(ADMIN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function leerPreferenciaDrm() {
+  try {
+    const guardado = localStorage.getItem(DRM_KEY);
+    if (guardado === 'true') return true;
+    if (guardado === 'false') return false;
+  } catch {
+    /* ignorar */
+  }
+  // Sin preferencia guardada: OFF en desarrollo local y para administradores.
+  return !esEntornoDesarrollo() && !esAdminGuardado();
+}
+
 export function useDRM() {
+  const [drmEnabled, setDrmEnabled] = useState(() => leerPreferenciaDrm());
   const [toastMessage, setToastMessage] = useState(null);
   const [toastVisible, setToastVisible] = useState(false);
 
-  const triggerDRMAlert = useCallback((message = 'Contenido protegido: Solo lectura y resaltado autorizado') => {
-    setToastMessage(message);
-    setToastVisible(true);
+  // Persiste la preferencia del usuario en localStorage.
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRM_KEY, String(drmEnabled));
+    } catch {
+      /* localStorage no disponible */
+    }
+    // Al desactivar la protección se oculta cualquier alerta pendiente.
+    if (!drmEnabled) {
+      setToastVisible(false);
+    }
+  }, [drmEnabled]);
+
+  const toggleDRM = useCallback(() => {
+    setDrmEnabled((prev) => !prev);
   }, []);
+
+  const marcarAdmin = useCallback(() => {
+    try {
+      localStorage.setItem(ADMIN_KEY, 'true');
+    } catch {
+      /* localStorage no disponible */
+    }
+    setDrmEnabled(false);
+  }, []);
+
+  const triggerDRMAlert = useCallback(
+    (message = 'Contenido protegido: Solo lectura y resaltado autorizado') => {
+      if (!drmEnabled) return; // con DRM desactivado no se muestra la alerta
+      setToastMessage(message);
+      setToastVisible(true);
+    },
+    [drmEnabled]
+  );
 
   const hideToast = useCallback(() => {
     setToastVisible(false);
   }, []);
 
   useEffect(() => {
+    // Con el DRM desactivado no se registra NINGÚN listener: F12, clic derecho
+    // y las herramientas del navegador quedan totalmente libres para depurar.
+    if (!drmEnabled) return;
+
     // 1. Interceptar Clic Derecho (Context Menu)
     const handleContextMenu = (e) => {
       e.preventDefault();
@@ -125,9 +197,12 @@ export function useDRM() {
       window.removeEventListener('cut', handleCut, { capture: true });
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [triggerDRMAlert]);
+  }, [drmEnabled, triggerDRMAlert]);
 
   return {
+    drmEnabled,
+    toggleDRM,
+    marcarAdmin,
     toastMessage,
     toastVisible,
     hideToast,

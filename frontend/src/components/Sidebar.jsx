@@ -9,7 +9,10 @@ import {
   X,
   Layers,
   Flame,
-  Gem
+  Gem,
+  BarChart3,
+  ShieldCheck,
+  ShieldOff
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -19,7 +22,10 @@ export default function Sidebar({
   selectedTab,
   setSelectedTab,
   isMobileOpen,
-  onCloseMobile
+  onCloseMobile,
+  onOpenAdmin,
+  drmEnabled,
+  onToggleDRM
 }) {
   const getChapterIcon = (num) => {
     if (num <= 3) return <Scale className="w-4 h-4 text-gold-500" />;
@@ -80,6 +86,35 @@ export default function Sidebar({
             Anexos I y II
           </button>
         </div>
+
+        {/* Acceso al Dashboard de Estadísticas (visible en móvil) */}
+        <button
+          onClick={() => {
+            onOpenAdmin?.();
+            onCloseMobile();
+          }}
+          className="mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border border-gold-500/40 bg-gold-500/10 text-gold-700 dark:text-gold-400 hover:bg-gold-500/20 transition-colors"
+          title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+        >
+          <BarChart3 className="w-4 h-4" />
+          Ver Estadísticas
+        </button>
+
+        {/* Toggle de Seguridad DRM (visible en móvil) */}
+        <button
+          onClick={onToggleDRM}
+          role="switch"
+          aria-checked={drmEnabled}
+          className={`mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border transition-colors ${
+            drmEnabled
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15'
+          }`}
+          title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
+        >
+          {drmEnabled ? <ShieldCheck className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+          {drmEnabled ? 'Seguridad DRM: Activa' : 'Seguridad DRM: Desactivada'}
+        </button>
       </div>
 
       {/* Lista de Capítulos */}
