@@ -1,18 +1,23 @@
 export default function HeroSection({ dark, onNavigate }) {
   return (
-    <div className="relative h-[480px] overflow-hidden">
-      <img
-        src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?q=80&w=1920"
-        alt="Minería aurífera a cielo abierto"
-        className="hero-image-animated absolute inset-0 w-full h-full object-cover"
+    <div className="relative h-[480px] overflow-hidden bg-gradient-to-br from-[#0D0B61] via-[#294669] to-[#0D0B61]">
+      {/* Patrón de rejilla sutil estilo malla minera */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
       />
 
+      {/* Overlay radial + vineta para profundidad */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background: dark
-            ? 'linear-gradient(135deg, rgba(13,11,97,.93) 0%, rgba(41,70,105,.8) 50%, rgba(13,11,97,.96) 100%)'
-            : 'linear-gradient(135deg, rgba(13,11,97,.82) 0%, rgba(71,139,141,.66) 50%, rgba(13,11,97,.86) 100%)',
+            ? 'radial-gradient(circle at 50% 130%, rgba(228,211,41,.14), transparent 55%), linear-gradient(135deg, rgba(13,11,97,.35), rgba(8,6,64,.72))'
+            : 'radial-gradient(circle at 50% 130%, rgba(228,211,41,.18), transparent 55%), linear-gradient(135deg, rgba(13,11,97,.3), rgba(13,11,97,.7))',
         }}
       />
 

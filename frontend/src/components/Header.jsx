@@ -3,10 +3,18 @@ import { CARDS } from '../data/landingData.js'
 
 export default function Header({ dark, onNavigate, onToggleTheme }) {
   const [bibliotecaAbierto, setBibliotecaAbierto] = useState(false)
+  const [menuMovil, setMenuMovil] = useState(false)
+  const [bibliotecaMovil, setBibliotecaMovil] = useState(false)
+
+  const cerrarTodo = (dest) => {
+    setMenuMovil(false)
+    setBibliotecaAbierto(false)
+    setBibliotecaMovil(false)
+    onNavigate(dest)
+  }
 
   const irABiblioteca = (card) => {
-    setBibliotecaAbierto(false)
-    onNavigate(card.title === 'Reglamento Interno' ? 'reglamento' : 'en-desarrollo')
+    cerrarTodo(card.title === 'Reglamento Interno' ? 'reglamento' : 'en-desarrollo')
   }
 
   return (
@@ -121,7 +129,81 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
             Login
           </button>
         </nav>
+
+        {/* Burger (móvil) */}
+        <button
+          onClick={() => setMenuMovil(o => !o)}
+          aria-label="Abrir menú de navegación"
+          aria-expanded={menuMovil}
+          className={`md:hidden w-9 h-9 rounded-full border flex items-center justify-center text-base transition-all ${menuMovil ? 'text-[#E4D329] border-[#E4D329]/70 bg-[#E4D329]/10' : (dark ? 'text-white border-[#48B3AF]/70' : 'text-[#0D0B61] border-[#294669]/40')}`}
+        >
+          {menuMovil ? '✕' : '🍔'}
+        </button>
       </div>
+
+      {/* Drawer móvil */}
+      {menuMovil && (
+        <div
+          className="md:hidden absolute left-0 right-0 top-full z-50 border-b backdrop-blur-md"
+          style={{
+            background: dark ? 'rgba(13,11,97,0.98)' : 'rgba(255,255,255,0.98)',
+            borderColor: dark ? '#294669' : 'rgba(41,70,105,0.18)',
+            boxShadow: '0 28px 64px rgba(0,0,0,.4)',
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-6 py-4 space-y-1">
+            <button
+              onClick={() => cerrarTodo('home')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+            >
+              <span className="text-base">🏠</span> Inicio
+            </button>
+
+            {/* Biblioteca expandible */}
+            <div>
+              <button
+                onClick={() => setBibliotecaMovil(o => !o)}
+                aria-expanded={bibliotecaMovil}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+              >
+                <span className="flex items-center gap-3"><span className="text-base">📚</span> Biblioteca</span>
+                <span className={`inline-block text-[10px] transition-transform duration-200 ${bibliotecaMovil ? 'rotate-180' : ''}`}>▾</span>
+              </button>
+              {bibliotecaMovil && (
+                <div className="mt-1 space-y-1 pl-3">
+                  {CARDS.map(card => (
+                    <button
+                      key={card.id}
+                      onClick={() => irABiblioteca(card)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-display text-sm text-left transition-colors ${dark ? 'text-slate-200 hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+                    >
+                      <span className="text-base" style={{ color: card.color }}>{card.icon}</span>
+                      <span className="flex-1 min-w-0 leading-tight">{card.title}</span>
+                      <span className="font-mono text-[10px] shrink-0">
+                        {card.title === 'Reglamento Interno' ? '📜' : '🚧'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onToggleTheme}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+            >
+              <span className="text-base">{dark ? '🌙' : '☀️'}</span> Tema
+            </button>
+
+            <button
+              onClick={() => cerrarTodo('login')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+            >
+              <span className="text-base">🔐</span> Login
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

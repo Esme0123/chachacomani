@@ -11,7 +11,7 @@ export default function App() {
   const [dark, setDark] = useState(false)
 
   return (
-    <>
+    <div className={`min-h-screen transition-colors duration-300 ${dark ? 'bg-[#0D0B61]' : 'bg-slate-50'}`}>
       {/* Efecto global de ripple que sigue al cursor */}
       <CursorRippleOverlay />
 
@@ -32,10 +32,10 @@ export default function App() {
               onToggleTheme={() => setDark(d => !d)}
             />
           )}
-          {vista === 'login' && <LoginPanel onNavigate={setVista} />}
-          {vista === 'register' && <RegisterPanel onNavigate={setVista} />}
+          {vista === 'login' && <LoginPanel dark={dark} onNavigate={setVista} />}
+          {vista === 'register' && <RegisterPanel dark={dark} onNavigate={setVista} />}
         </div>
       )}
-    </>
+    </div>
   )
 }
