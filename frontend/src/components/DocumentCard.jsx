@@ -98,6 +98,16 @@ export default function DocumentCard({ card, dark, onNavigate }) {
 
         {/* ───────── REVERSO ───────── */}
         <div className="card-back absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D0B61] via-[#294669] to-[#0D0B61]">
+          {card.imagen && (
+            <img
+              src={card.imagen}
+              alt={card.title}
+              loading="lazy"
+              onError={(e) => (e.currentTarget.style.display = 'none')}
+              className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+            />
+          )}
+          <div className="absolute inset-0 bg-[#0D0B61]/80 backdrop-blur-[2px] rounded-2xl" />
           {/* Rejilla vectorial sutil (malla minera) */}
           <div
             className="absolute inset-0 pointer-events-none"
