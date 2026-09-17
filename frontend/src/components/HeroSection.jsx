@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const HERO_MAIN = 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=1920&q=80'
+const HERO_MAIN = 'https://unsplash.com/photos/Evss0Whf5OI/download?w=1920'
 const HERO_ALT = 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=1920&q=80'
 
 export default function HeroSection({ dark, onNavigate }) {
@@ -14,8 +14,8 @@ export default function HeroSection({ dark, onNavigate }) {
       {heroImg && (
         <img
           src={heroImg}
-          alt="Minería aurífera de la Cooperativa Chachacomani"
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Camión de cantera de la Cooperativa Minera Chachacomani"
+          className="absolute inset-0 w-full h-full object-cover z-0"
           onError={(e) => {
             e.target.style.display = 'none'
             setHeroStage(s => Math.min(s + 1, 2))
@@ -24,7 +24,7 @@ export default function HeroSection({ dark, onNavigate }) {
       )}
 
       {/* Capa de degradado oscuro para resaltar el texto */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0D0B61]/90 via-[#0D0B61]/75 to-[#294669]/60 z-0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0D0B61]/90 via-[#0D0B61]/75 to-[#294669]/60 z-10" />
 
       {/* Rejilla sutil + halo dorado decorativo */}
       <div
