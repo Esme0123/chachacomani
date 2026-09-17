@@ -73,7 +73,7 @@ const ArticleCard = forwardRef(function ArticleCard({
       {/* Cabecera del Artículo */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-sand-300/60 dark:border-navy-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gold-500/10 dark:bg-gold-500/15 border border-gold-500/40 flex items-center justify-center text-gold-600 dark:text-gold-400 font-bold text-sm font-display shadow-gold-glow/30">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-gold-500/15 border-2 border-amber-300 dark:border-gold-500/40 flex items-center justify-center text-amber-900 dark:text-gold-400 font-bold text-sm font-display shadow-gold-glow/30">
             {article.numero}
           </div>
           <div>

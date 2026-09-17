@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
 
-export default function RegisterPanel({ dark, onNavigate }) {
+export default function RegisterPanel({ dark, onNavigate, onToggleTheme }) {
   const [form, setForm] = useState({ nombre: '', email: '', pass: '', confirm: '' })
 
   const update = (k) => (e) =>
@@ -32,7 +32,7 @@ export default function RegisterPanel({ dark, onNavigate }) {
       />
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        <Header dark={dark} onNavigate={onNavigate} />
+        <Header dark={dark} onNavigate={onNavigate} onToggleTheme={onToggleTheme} />
 
         <div className="flex-1 flex items-center justify-center px-6 py-12">
           <div

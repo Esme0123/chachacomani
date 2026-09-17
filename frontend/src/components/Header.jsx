@@ -111,7 +111,7 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
             onClick={onToggleTheme}
             title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
             aria-label="Cambiar modo claro/oscuro"
-            className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm transition-all ${dark
+            className={`relative z-10 pointer-events-auto w-9 h-9 rounded-full border flex items-center justify-center text-sm transition-all ${dark
                 ? 'border-[#48B3AF]/70 hover:bg-[#48B3AF]/12'
                 : 'border-[#294669]/40 hover:bg-[#294669]/8'
               }`}
@@ -190,7 +190,7 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
 
             <button
               onClick={onToggleTheme}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+              className={`relative z-10 pointer-events-auto w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
             >
               <span className="text-base">{dark ? '🌙' : '☀️'}</span> Tema
             </button>

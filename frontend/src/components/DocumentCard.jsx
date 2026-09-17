@@ -8,16 +8,16 @@ export default function DocumentCard({ card, dark, onNavigate }) {
 
   const contenido = (
     <div
-      className="relative group h-[380px] min-h-[380px] cursor-pointer card-lift"
+      className="relative w-full h-[400px] min-h-[400px] [perspective:1000px] group cursor-pointer card-lift"
       onClick={abrir}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="relative h-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+      <div className="relative w-full h-full duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
 
         {/* ───────── FRENTE ───────── */}
         <div
-          className={`card-front absolute inset-0 [backface-visibility:hidden] flex flex-col items-center justify-between gap-3 p-6 rounded-2xl overflow-hidden ${dark ? 'bg-[#294669]' : 'bg-white'}`}
+          className={`card-front absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col items-center justify-between gap-3 p-6 rounded-2xl overflow-hidden ${dark ? 'bg-[#294669]' : 'bg-white'}`}
           style={{ color: dark ? '#ffffff' : '#0D0B61' }}
         >
           {/* Icon ring */}
@@ -45,20 +45,19 @@ export default function DocumentCard({ card, dark, onNavigate }) {
             )}
           </h3>
 
-          {/* Desc */}
+          {/* Desc (carbón oscuro en modo claro) */}
           <p className="text-[11px] text-center leading-relaxed"
-            style={{ color: dark ? 'rgba(167,227,153,0.72)' : 'rgba(41,70,105,0.78)' }}>
+            style={{ color: dark ? 'rgba(167,227,153,0.72)' : '#334155' }}>
             {card.desc}
           </p>
 
-          {/* Chapter badge */}
+          {/* Chapter badge (ámbar constrastado en modo claro) */}
           <div
-            className="px-3 py-0.5 rounded-full font-mono text-[11px] transition-all duration-300"
-            style={{
-              background: hovered ? `${card.color}22` : 'transparent',
-              border: `1px solid ${card.color}55`,
-              color: card.color,
-            }}
+            className={`px-3 py-0.5 rounded-full font-mono text-[11px] transition-all duration-300 ${
+              dark
+                ? 'bg-[#E4D329]/15 text-[#E4D329] border border-[#E4D329]/50'
+                : 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
+            }`}
           >
             {card.chapter}
           </div>
@@ -82,29 +81,29 @@ export default function DocumentCard({ card, dark, onNavigate }) {
             </div>
           </div>
 
-          {/* Ver button */}
+          {/* Ver button (alta legibilidad en modo claro) */}
           <button
             onClick={abrir}
-            className="w-full py-2 rounded-lg font-display font-semibold text-sm tracking-wider transition-all duration-300"
-            style={{
-              background: `${card.color}18`,
-              color: dark ? '#E4D329' : '#0D0B61',
-              border: `1px solid ${card.color}55`,
-            }}
+            className={`w-full py-2 rounded-lg font-display text-sm tracking-wider transition-all duration-300 ${
+              dark
+                ? 'font-semibold'
+                : 'border-2 border-[#0D0B61] text-[#0D0B61] bg-slate-50 hover:bg-[#0D0B61] hover:text-white font-bold'
+            }`}
+            style={dark ? { background: `${card.color}18`, color: '#E4D329', border: `1px solid ${card.color}55` } : undefined}
           >
             Ver
           </button>
         </div>
 
         {/* ───────── REVERSO ───────── */}
-        <div className="card-back absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D0B61] via-[#294669] to-[#0D0B61]">
+        <div className="card-back absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D0B61] via-[#294669] to-[#0D0B61]">
           {card.imagen && (
             <img
               src={card.imagen}
               alt={card.title}
               loading="lazy"
               onError={(e) => { e.target.style.display = 'none'; }}
-              className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+              className="absolute inset-0 w-full h-full object-cover rounded-2xl brightness-[.6] contrast-[1.15] saturate-[.9]"
             />
           )}
           <div className="absolute inset-0 bg-[#0D0B61]/80 backdrop-blur-[2px] rounded-2xl" />

@@ -9,6 +9,7 @@ import { CursorRippleOverlay } from './components/Effects.jsx'
 export default function App() {
   const [vista, setVista] = useState('home')
   const [dark, setDark] = useState(false)
+  const toggleTheme = () => setDark(d => !d)
 
   // Modo claro/oscuro global: sincroniza la clase 'dark' en <html>.
   // La vista 'reglamento' gestiona su propio tema (regímen/claro) sobre <html>.
@@ -38,11 +39,11 @@ export default function App() {
             <HomePanel
               dark={dark}
               onNavigate={setVista}
-              onToggleTheme={() => setDark(d => !d)}
+              onToggleTheme={toggleTheme}
             />
           )}
-          {vista === 'login' && <LoginPanel dark={dark} onNavigate={setVista} />}
-          {vista === 'register' && <RegisterPanel dark={dark} onNavigate={setVista} />}
+          {vista === 'login' && <LoginPanel dark={dark} onNavigate={setVista} onToggleTheme={toggleTheme} />}
+          {vista === 'register' && <RegisterPanel dark={dark} onNavigate={setVista} onToggleTheme={toggleTheme} />}
         </div>
       )}
     </div>
