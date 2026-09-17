@@ -1,9 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* === PROTECCIÓN DRM Y CONFIGURACIÓN BASE === */
 @layer base {
-  /* DRM: el resto de la interfaz no es seleccionable por defecto */
+
+  /* DRM: Bloqueo de selección global */
   * {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
@@ -12,9 +18,9 @@
     -webkit-touch-callout: none !important;
   }
 
-  /* EXCEPCIÓN EDITORIAL: solo los párrafos normativos son seleccionables */
+  /* Excepción: Texto normativo seleccionable */
   .sel-text,
-  .sel-text *, 
+  .sel-text *,
   .sel-paragraph {
     -webkit-user-select: text !important;
     -moz-user-select: text !important;
@@ -22,10 +28,17 @@
     user-select: text !important;
   }
 
-  /* Resaltado de selección del usuario con acento dorado cálido */
+  /* Resaltado de selección */
   ::selection {
     background: rgba(245, 158, 11, 0.28) !important;
     color: inherit !important;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
   }
 
   body {
@@ -39,7 +52,7 @@
   }
 }
 
-/* Scrollbar personalizada con acento dorado en ambos temas */
+/* === BARRA DE DESPLAZAMIENTO (SCROLLBAR) === */
 ::-webkit-scrollbar {
   width: 9px;
   height: 9px;
@@ -64,38 +77,246 @@
   background: #f59e0b;
 }
 
-/* Animación de pulso sutil para elementos activos */
+/* === ANIMACIONES REGLAMENTO INTERNO (Casquito Minero / TTS) === */
 @keyframes subtle-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.85;
+  }
 }
 
 .animate-subtle-pulse {
   animation: subtle-pulse 3s infinite ease-in-out;
 }
 
-/* Destello de la lámpara del casco minero */
 @keyframes lamp-flash {
-  0%, 100% { opacity: 0.25; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.35); }
+
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
 }
 
 .animate-lamp-flash {
   animation: lamp-flash 0.9s infinite ease-in-out;
 }
 
-/* Bobbing suave del casco flotante */
 @keyframes float-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-float-bob {
   animation: float-bob 3.2s infinite ease-in-out;
 }
 
-/* Papel grueso (grano sutil) para tarjetas de lectura */
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* === EFECTOS PANTALLA PRINCIPAL DEL PORTAL === */
+
+/* 1. Bordes Eléctricos Animados */
+@keyframes electricRotate {
+  0% {
+    background-position: 0% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes electricFlicker {
+
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+
+  20% {
+    opacity: .88;
+    filter: brightness(1.4);
+  }
+
+  50% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+
+  80% {
+    opacity: .82;
+    filter: brightness(1.6);
+  }
+}
+
+.electric-border-outer {
+  position: relative;
+  padding: 2px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #E4D329, #48B3AF, #0D0B61, #A7E399, #F6FF99, #E4D329);
+  background-size: 200% 100%;
+  animation: electricRotate 2s linear infinite, electricFlicker 3s ease-in-out infinite;
+  isolation: isolate;
+}
+
+.electric-border-outer::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 19px;
+  background: inherit;
+  background-size: 200% 100%;
+  filter: blur(10px);
+  opacity: 0.4;
+  z-index: -1;
+  animation: electricRotate 2s linear infinite;
+}
+
+/* 2. Tarjetas con Resplandor */
+@keyframes glowCycle {
+
+  0%,
+  100% {
+    box-shadow:
+      0 0 8px rgba(71, 110, 174, .9),
+      0 0 18px rgba(72, 179, 175, .5),
+      0 0 32px rgba(71, 110, 174, .25),
+      inset 0 0 10px rgba(72, 179, 175, .08);
+    border-color: rgba(72, 179, 175, .7);
+  }
+
+  33% {
+    box-shadow:
+      0 0 12px rgba(228, 211, 41, .8),
+      0 0 24px rgba(167, 227, 153, .5),
+      0 0 44px rgba(228, 211, 41, .2),
+      inset 0 0 10px rgba(167, 227, 153, .08);
+    border-color: rgba(167, 227, 153, .7);
+  }
+
+  66% {
+    box-shadow:
+      0 0 10px rgba(72, 179, 175, .9),
+      0 0 22px rgba(71, 110, 174, .6),
+      0 0 40px rgba(72, 179, 175, .25),
+      inset 0 0 10px rgba(71, 110, 174, .08);
+    border-color: rgba(71, 110, 174, .7);
+  }
+}
+
+.border-glow-card {
+  border: 1.5px solid rgba(72, 179, 175, .6);
+  border-radius: 12px;
+  animation: glowCycle 4s ease-in-out infinite;
+}
+
+/* 3. Ondas Expansivas (Ripple) */
+@keyframes rippleExpand {
+  0% {
+    transform: scale(.4);
+    opacity: .75;
+  }
+
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+.ripple-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(228, 211, 41, .55);
+  pointer-events: none;
+  animation: rippleExpand 2.6s ease-out infinite;
+}
+
+.ripple-ring:nth-child(2) {
+  animation-delay: .85s;
+}
+
+.ripple-ring:nth-child(3) {
+  animation-delay: 1.7s;
+}
+
+/* 4. Partículas Flotantes (Ballpit) */
+@keyframes floatBall {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: var(--ball-opacity);
+  }
+
+  50% {
+    transform: translateY(-60px) scale(1.05);
+    opacity: calc(var(--ball-opacity) * 1.3);
+  }
+
+  100% {
+    transform: translateY(-130px) scale(.8);
+    opacity: 0;
+  }
+}
+
+.ballpit-ball {
+  position: absolute;
+  border-radius: 50%;
+  animation: floatBall var(--ball-dur, 6s) ease-in-out infinite var(--ball-delay, 0s);
+}
+
+/* 5. Movimiento Suave de Imagen de Fondo */
+@keyframes slowPan {
+  0% {
+    transform: scale(1.12) translate(0, 0);
+  }
+
+  33% {
+    transform: scale(1.16) translate(-1.2%, .6%);
+  }
+
+  66% {
+    transform: scale(1.12) translate(1.2%, -.6%);
+  }
+
+  100% {
+    transform: scale(1.12) translate(0, 0);
+  }
+}
+
+.hero-image-animated {
+  animation: slowPan 22s ease-in-out infinite;
+}
+
+/* 6. Elevación al pasar el cursor */
+.card-lift {
+  transition: transform .28s ease, box-shadow .28s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-5px) scale(1.015);
 }
