@@ -14,24 +14,24 @@ import {
     BarChart3
 } from 'lucide-react';
 
-import { useDRM } from './hooks/useDRM';
-import { useTTS } from './hooks/useTTS';
-import { useRefrescoEstadisticas } from './hooks/useRefrescoEstadisticas';
-import { CAPITULOS_DATA, ANEXOS_DATA, REGLAMENTO_METADATA } from './data/reglamentoData';
+import { useDRM } from '../hooks/useDRM';
+import { useTTS } from '../hooks/useTTS';
+import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas';
+import { CAPITULOS_DATA, ANEXOS_DATA, REGLAMENTO_METADATA } from '../data/reglamentoData';
 
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import ArticleCard from './components/ArticleCard';
-import AnexosView from './components/AnexosView';
-import DRMToast from './components/DRMToast';
-import ProgressBar from './components/ProgressBar';
-import SplashScreen from './components/SplashScreen';
-import CasquitoWidget from './components/CasquitoWidget';
-import SelectionTooltip from './components/SelectionTooltip';
-import ModalFormulario from './components/ModalFormulario';
-import AdminDashboard from './components/AdminDashboard';
+import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import ArticleCard from '../components/ArticleCard';
+import AnexosView from '../components/AnexosView';
+import DRMToast from '../components/DRMToast';
+import ProgressBar from '../components/ProgressBar';
+import SplashScreen from '../components/SplashScreen';
+import CasquitoWidget from '../components/CasquitoWidget';
+import SelectionTooltip from '../components/SelectionTooltip';
+import ModalFormulario from '../components/ModalFormulario';
+import AdminDashboard from '../components/AdminDashboard';
 
-import { votarArticulo, obtenerEstadisticas, obtenerMisVotos } from './services/votosService';
+import { votarArticulo, obtenerEstadisticas, obtenerMisVotos } from '../services/votosService';
 
 export default function ReglamentoInternoView({ onVolver }) {
     // 1. DRM Hook
@@ -311,6 +311,18 @@ export default function ReglamentoInternoView({ onVolver }) {
                     title="Error de Conexión"
                     tone="error"
                 />
+
+                {/* Botón Volver al Inicio */}
+                <div className="w-full border-b border-[#294669] bg-[#0D0B61]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
+                        <button
+                            onClick={onVolver}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#E4D329] hover:text-[#F6FF99] hover:bg-[#294669]/80 px-3 py-1.5 rounded-lg bg-[#294669] border border-[#478B8D] transition-all"
+                        >
+                            ← Volver al Inicio
+                        </button>
+                    </div>
+                </div>
 
                 {/* Barra de Navegación Superior */}
                 <Navbar
