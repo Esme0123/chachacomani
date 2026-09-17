@@ -26,7 +26,7 @@ export const CARDS = [
   {
     id: 5, title: 'Reglamento Interno', effect: 'electric', featured: true,
     icon: '📜', chapter: 'XII Títulos', color: '#F6FF99',
-    imagen: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80',
+    imagen: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80',
     desc: 'Normativa integral sobre operaciones diarias, derechos y obligaciones de todos los socios.',
   },
   {

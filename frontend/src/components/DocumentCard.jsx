@@ -103,7 +103,7 @@ export default function DocumentCard({ card, dark, onNavigate }) {
               src={card.imagen}
               alt={card.title}
               loading="lazy"
-              onError={(e) => (e.currentTarget.style.display = 'none')}
+              onError={(e) => { e.target.style.display = 'none'; }}
               className="absolute inset-0 w-full h-full object-cover rounded-2xl"
             />
           )}
