@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
-import { RippleOverlay } from '../components/Effects.jsx'
 
 export default function RegisterPanel({ onNavigate }) {
   const [form, setForm] = useState({ nombre: '', email: '', pass: '', confirm: '' })
-  const [ripple, setRipple] = useState({ x: 50, y: 50, show: false })
 
   const update = (k) => (e) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -21,11 +19,6 @@ export default function RegisterPanel({ onNavigate }) {
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
       style={{ background: '#eef2ff' }}
-      onMouseMove={e => {
-        const r = e.currentTarget.getBoundingClientRect()
-        setRipple({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100, show: true })
-      }}
-      onMouseLeave={() => setRipple(v => ({ ...v, show: false }))}
     >
       <img
         src="https://images.unsplash.com/photo-1504711331083-9c895941bf81?w=1920&h=1080&fit=crop&auto=format"
@@ -37,9 +30,6 @@ export default function RegisterPanel({ onNavigate }) {
         className="absolute inset-0"
         style={{ background: 'linear-gradient(135deg, rgba(238,242,255,.98) 0%, rgba(200,215,240,.94) 100%)' }}
       />
-      {ripple.show && (
-        <RippleOverlay x={ripple.x} y={ripple.y} ringColor="rgba(71,139,141,0.38)" />
-      )}
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <Header dark={false} onNavigate={onNavigate} />
