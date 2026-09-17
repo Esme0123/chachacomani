@@ -97,25 +97,39 @@ export default function DocumentCard({ card, dark, onNavigate }) {
         </div>
 
         {/* ───────── REVERSO ───────── */}
-        <div className="card-back absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D0B61] via-[#294669] to-[#080640]">
-          {card.img && (
-            <img
-              src={card.img}
-              alt={card.title}
-              loading="lazy"
-              onError={(e) => (e.currentTarget.style.display = 'none')}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-          )}
+        <div className="card-back absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D0B61] via-[#294669] to-[#0D0B61]">
+          {/* Rejilla vectorial sutil (malla minera) */}
           <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(160deg, rgba(13,11,97,.50) 0%, rgba(8,6,64,.9) 100%)' }}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
+          {/* Halo dorado central */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(circle at 50% 26%, rgba(228,211,41,.16), transparent 60%)' }}
           />
 
-          <div className="relative z-10 h-full flex flex-col items-center justify-between gap-3 p-6 text-center">
-            <span className="text-4xl drop-shadow-lg">{card.icon}</span>
+          <div className="relative z-10 h-full flex flex-col items-center justify-between gap-4 p-6 text-center">
+            {/* Ícono central con borde reluciente */}
+            <div className="flex items-center justify-center flex-1">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-3xl shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${card.color}26, ${card.color}0d)`,
+                  border: `2px solid ${card.color}`,
+                  boxShadow: `0 0 26px ${card.color}66, inset 0 0 16px ${card.color}33`,
+                }}
+              >
+                {card.icon}
+              </div>
+            </div>
+
             <span className="font-mono text-[10px] tracking-widest text-[#E4D329] border border-[#E4D329]/50 rounded-full px-3 py-1 whitespace-nowrap">
-              DOCUMENTO OFICIAL
+              {esReglamento ? 'DOCUMENTO OFICIAL' : 'SECCIÓN EN DESARROLLO'}
             </span>
             <h3 className="font-display font-bold text-white text-lg leading-tight">{card.title}</h3>
             <p className="text-[#A7E399] text-xs leading-relaxed opacity-90">

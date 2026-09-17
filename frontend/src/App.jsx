@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import HomePanel from './views/HomePanel.jsx'
 import LoginPanel from './views/LoginPanel.jsx'
 import RegisterPanel from './views/RegisterPanel.jsx'
@@ -9,6 +9,15 @@ import { CursorRippleOverlay } from './components/Effects.jsx'
 export default function App() {
   const [vista, setVista] = useState('home')
   const [dark, setDark] = useState(false)
+
+  // Modo claro/oscuro global: sincroniza la clase 'dark' en <html>.
+  // La vista 'reglamento' gestiona su propio tema (regímen/claro) sobre <html>.
+  useLayoutEffect(() => {
+    if (vista !== 'reglamento') {
+      const root = document.documentElement
+      root.classList.toggle('dark', dark)
+    }
+  }, [dark, vista])
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${dark ? 'bg-[#0D0B61]' : 'bg-slate-50'}`}>
