@@ -7,12 +7,31 @@ import {
   ShieldCheck,
   Sparkles
 } from 'lucide-react';
-import { REGLAMENTO_METADATA } from '../data/reglamentoData';
+import { temaReglamento } from '../theme/lecturaTemas';
 
-const FORMULARIO_URL =
+const FORMULARIO_URL_DEFAULT =
   'https://docs.google.com/forms/d/e/1FAIpQLSe2pAtuRwfZq1NiytOHy7V5IqPokeq2Nxo7-N4XnuETHIYL9g/viewform?usp=sharing&ouid=101278048953362428823';
 
-export default function ModalFormulario({ isOpen, onClose, isDark }) {
+export default function ModalFormulario({
+  isOpen,
+  onClose,
+  isDark,
+  tema = temaReglamento,
+  metadata,
+  formulario = {},
+  formUrl = FORMULARIO_URL_DEFAULT
+}) {
+  const {
+    eyeCatch = 'Participación cooperativa',
+    title = 'Formulario de Observaciones al Reglamento',
+    texto = 'Complete el formulario oficial para emitir sus observaciones.',
+    leyA = 'Ley General de Cooperativas N.º 356',
+    leyB = 'Estatuto Orgánico',
+    cta = 'Abrir Formulario en Google Forms',
+    pie = 'Sus aportes serán valorados por el Consejo de Administración y el Consejo de Vigilancia en el marco del procedimiento de reforma previsto en la normativa vigente.',
+    ariaLabel = 'Formulario de Observaciones'
+  } = formulario;
+
   // Bloquear scroll del body y cerrar con la tecla Escape
   useEffect(() => {
     if (!isOpen) return;
@@ -40,7 +59,7 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
           onClick={onClose}
           role="dialog"
           aria-modal="true"
-          aria-label="Formulario de Observaciones al Reglamento"
+          aria-label={ariaLabel}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 24 }}
@@ -55,14 +74,12 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
             {/* Cabecera */}
             <div
               className={`relative shrink-0 overflow-hidden px-6 py-5 sm:px-8 sm:py-6 border-b ${
-                isDark
-                  ? 'bg-gradient-to-br from-navy-800 to-navy-900 border-slate-800'
-                  : 'bg-gradient-to-br from-gold-100 to-cream-100 border-sand-300'
+                isDark ? 'bg-gradient-to-br from-navy-800 to-navy-900 border-slate-800' : tema.modalHeaderClaro
               }`}
             >
               <div
                 className={`absolute top-0 right-0 p-4 opacity-10 pointer-events-none ${
-                  isDark ? 'text-gold-400' : 'text-gold-600'
+                  isDark ? tema.ctaIcono : tema.ctaIconoClaro
                 }`}
               >
                 <ClipboardList className="w-24 h-24" />
@@ -70,16 +87,16 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
 
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-gradient-to-tr from-gold-600 to-gold-400 text-navy-950 shadow-gold-glow shrink-0">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${tema.modalIcono}`}>
                     <ClipboardList className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-widest text-gold-600 dark:text-gold-400">
+                    <p className={`flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-widest ${tema.modalEyebrow}`}>
                       <Sparkles className="w-3 h-3" />
-                      Participación cooperativa
+                      {eyeCatch}
                     </p>
                     <h2 className="text-lg sm:text-xl font-bold text-ink dark:text-white font-display leading-tight mt-1">
-                      Formulario de Observaciones al Reglamento
+                      {title}
                     </h2>
                   </div>
                 </div>
@@ -102,27 +119,25 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
                   isDark ? 'text-slate-300' : 'text-ink-soft'
                 }`}
               >
-                Valoramos enormemente su participación durante este proceso de revisión del
-                Reglamento Interno de {REGLAMENTO_METADATA.nombre}. Sus observaciones permitirán
-                fortalecer la norma interna en conformidad con la{' '}
-                <strong className="text-gold-700 dark:text-gold-300">
-                  Ley General de Cooperativas N.º 356
+                {texto}{' '}
+                {metadata?.nombre && <><span className="text-ink font-semibold">{metadata.nombre}</span>.{' '}</>}
+                Con arreglo a la{' '}
+                <strong className={tema.modalStrong}>
+                  {leyA}
                 </strong>{' '}
-                y el <strong className="text-gold-700 dark:text-gold-300">Estatuto Orgánico</strong>.
-                Para emitir sus aportes, complete el formulario oficial en Google Forms haciendo
-                clic en el botón a continuación, o use la vista previa integrada.
+                y el <strong className={tema.modalStrong}>{leyB}</strong>.
               </p>
 
               {/* Botón principal CTA -> Google Forms */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <a
-                  href={FORMULARIO_URL}
+                  href={formUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-t from-gold-600 to-gold-400 text-navy-950 text-sm font-bold shadow-gold-glow-lg hover:from-gold-500 hover:to-gold-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  className={`inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-gradient-to-t text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all ${tema.modalCta}`}
                 >
                   <ExternalLink className="w-4 h-4" />
-                  Abrir Formulario en Google Forms
+                  {cta}
                 </a>
                 <p className="text-[11px] text-ink-muted dark:text-slate-500 leading-relaxed">
                   La nueva pestaña garantiza el registro directo y seguro de su observación.
@@ -136,7 +151,7 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
                     isDark ? 'text-slate-300' : 'text-ink-soft'
                   }`}
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400" />
+                  <ShieldCheck className={`w-3.5 h-3.5 ${tema.modalCheck}`} />
                   Vista previa del formulario
                 </label>
                 <div
@@ -145,8 +160,8 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
                   }`}
                 >
                   <iframe
-                    src={FORMULARIO_URL}
-                    title="Formulario de Observaciones al Reglamento (Google Forms)"
+                    src={formUrl}
+                    title={title}
                     className="w-full h-[min(62vh,540px)] block"
                     loading="lazy"
                   />
@@ -169,12 +184,8 @@ export default function ModalFormulario({ isOpen, onClose, isDark }) {
                   isDark ? 'text-slate-500' : 'text-ink-muted'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 text-gold-600 dark:text-gold-400 shrink-0 mt-0.5" />
-                <p>
-                  Sus aportes serán valorados por el Consejo de Administración y el Consejo de
-                  Vigilancia en el marco del procedimiento de reforma previsto en el Reglamento
-                  Interno.
-                </p>
+                <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${tema.modalCheck}`} />
+                <p>{pie}</p>
               </div>
             </div>
           </motion.div>

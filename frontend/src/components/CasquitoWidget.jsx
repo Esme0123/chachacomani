@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Gauge, ChevronDown, Square, RotateCcw } from 'lucide-react';
 import { MinerHelmet } from './SplashScreen';
+import { temaReglamento } from '../theme/lecturaTemas';
 
 const SPEEDS = [1, 1.25, 1.5];
 
-export default function CasquitoWidget({ tts, onSpeakChapter }) {
+export default function CasquitoWidget({ tts, onSpeakChapter, tema = temaReglamento }) {
   const [open, setOpen] = useState(false);
   const safeTts = tts || {};
   const {
@@ -56,13 +57,13 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-            className="w-72 rounded-2xl bg-white dark:bg-navy-900/95 border border-sand-300 dark:border-gold-600/40 shadow-cream-panel dark:shadow-gold-glow-lg overflow-hidden backdrop-blur-md"
+            className={`w-72 rounded-2xl border overflow-hidden backdrop-blur-md ${tema.cascPanel}`}
           >
             {/* Cabecera */}
             <div className="px-4 py-3 flex items-center gap-2.5 border-b border-sand-300/60 dark:border-slate-800 bg-cream-100 dark:bg-slate-900">
               <MinerHelmet className="w-8 h-8" glow={isSpeaking && !isPaused} />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-ink dark:text-gold-300 font-display truncate">
+                <p className={`text-xs font-bold font-display truncate ${tema.cascTitulo}`}>
                   El Casquito Minero
                 </p>
                 <p className="text-[10px] text-ink-muted dark:text-slate-400 truncate">
@@ -81,7 +82,7 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
                 <span className="font-mono">Progreso</span>
                 <div className="flex-1 h-1.5 bg-cream-200 dark:bg-slate-800 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-gold-600 to-gold-400 rounded-full"
+                    className={`h-full bg-gradient-to-r rounded-full ${tema.cascProgreso}`}
                     animate={{ width: `${Math.round(progress * 100)}%` }}
                     transition={{ ease: 'linear', duration: 0.2 }}
                   />
@@ -93,7 +94,7 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={handleToggle}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-gold-600 to-gold-500 text-navy-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-gold-glow hover:from-gold-500 hover:to-gold-400 transition-all"
+                  className={`flex-1 py-2.5 rounded-xl bg-gradient-to-r font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${tema.cascPlay}`}
                 >
                   {isSpeaking && !isPaused ? (
                     <><Pause className="w-4 h-4" /> Pausa</>
@@ -105,7 +106,7 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
                 </button>
                 <button
                   onClick={handleRestart}
-                  className="p-2.5 rounded-xl border border-gold-500/40 text-gold-700 dark:text-gold-400 hover:bg-gold-500/15 transition-colors"
+                  className={`p-2.5 rounded-xl border transition-colors ${tema.cascRestablecer}`}
                   title="Volver a escuchar desde el inicio"
                 >
                   <RotateCcw className="w-4 h-4" />
@@ -121,14 +122,14 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
 
               {/* Selector de Velocidad */}
               <div className="flex items-center gap-1.5 bg-cream-100 dark:bg-slate-800 p-1 rounded-xl border border-cream-200 dark:border-slate-700">
-                <Gauge className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400 ml-1.5" />
+                <Gauge className={`w-3.5 h-3.5 ml-1.5 ${tema.cascVelIcono}`} />
                 {SPEEDS.map((s) => (
                   <button
                     key={s}
                     onClick={() => { setRate(s); if (isSpeaking && rerun) rerun(); }}
                     className={`flex-1 py-1.5 text-[11px] rounded-lg transition-all ${
                       rate === s
-                        ? 'bg-gold-500 text-navy-950 font-bold'
+                        ? tema.cascVelActivo
                         : 'text-ink-muted dark:text-slate-400 hover:text-ink dark:hover:text-white'
                     }`}
                   >
@@ -147,7 +148,7 @@ export default function CasquitoWidget({ tts, onSpeakChapter }) {
         whileTap={{ scale: 0.92 }}
         onClick={handleToggle}
         title="El Casquito Minero — lectura por voz"
-        className="relative w-16 h-16 rounded-full bg-white dark:bg-navy-900 border-2 border-sand-300 dark:border-gold-600/50 shadow-cream-panel dark:shadow-gold-glow-lg flex items-center justify-center"
+        className={`relative w-16 h-16 rounded-full border-2 flex items-center justify-center ${tema.cascFondo}`}
       >
         <div className={isSpeaking && !isPaused ? 'animate-float-bob' : ''}>
           <MinerHelmet className="w-10 h-10" glow={isSpeaking && !isPaused} />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { temaReglamento } from '../theme/lecturaTemas';
 
 export function MinerHelmet({ className = 'w-16 h-16', glow = false }) {
   return (
@@ -35,7 +36,7 @@ export function MinerHelmet({ className = 'w-16 h-16', glow = false }) {
   );
 }
 
-export default function SplashScreen({ onComplete }) {
+export default function SplashScreen({ onComplete, tema = temaReglamento, subtitulo = 'Reglamento Interno' }) {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
@@ -54,11 +55,11 @@ export default function SplashScreen({ onComplete }) {
         <motion.div
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.7, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-gold-fume dark:bg-navy-900 overflow-hidden select-none"
+          className={`fixed inset-0 z-[60] flex flex-col items-center justify-center overflow-hidden select-none ${tema.splashFondo}`}
         >
-          {/* Aura dorada de fondo */}
-          <div className="absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full bg-gold-400/10 blur-3xl" />
-          <div className="absolute -bottom-28 -left-24 w-[420px] h-[420px] rounded-full bg-gold-600/10 blur-3xl" />
+          {/* Aura de fondo */}
+          <div className={`absolute -top-24 -right-24 w-[420px] h-[420px] rounded-full blur-3xl ${tema.splashAura1}`} />
+          <div className={`absolute -bottom-28 -left-24 w-[420px] h-[420px] rounded-full blur-3xl ${tema.splashAura2}`} />
 
           <motion.div
             initial={{ y: 12, opacity: 0 }}
@@ -79,25 +80,25 @@ export default function SplashScreen({ onComplete }) {
               NORMAS CHACHACOMANÍ
             </p>
             <p className="mt-1 text-xs uppercase tracking-[0.3em] font-semibold text-ink-muted dark:text-slate-400">
-              Reglamento Interno
+              {subtitulo}
             </p>
           </motion.div>
 
-          {/* Anillo de carga circular con gradiente dorado */}
+          {/* Anillo de carga circular con gradiente */}
           <div className="relative w-16 h-16 mt-10">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="5" className="text-gold-200 dark:text-slate-800" opacity="0.4" />
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="5" className={tema.splashAnillo} opacity="0.4" />
               <motion.circle
                 cx="32" cy="32" r="28" fill="none"
-                stroke="url(#goldGradient)" strokeWidth="5" strokeLinecap="round"
+                stroke="url(#splashGradient)" strokeWidth="5" strokeLinecap="round"
                 initial={{ strokeDasharray: '176 176', strokeDashoffset: 176 }}
                 animate={{ strokeDashoffset: 0 }}
                 transition={{ duration: 1.9, ease: 'easeInOut' }}
               />
               <defs>
-                <linearGradient id="goldGradient" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" />
-                  <stop offset="100%" stopColor="#fbbf24" />
+                <linearGradient id="splashGradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={tema.splashGradStop1} />
+                  <stop offset="100%" stopColor={tema.splashGradStop2} />
                 </linearGradient>
               </defs>
             </svg>

@@ -4,7 +4,8 @@ import { RippleOverlay, ElectricCard, GlowCard } from './Effects.jsx'
 export default function DocumentCard({ card, dark, onNavigate }) {
   const [hovered, setHovered] = useState(false)
   const esReglamento = card.title === 'Reglamento Interno'
-  const abrir = () => onNavigate(esReglamento ? 'reglamento' : 'en-desarrollo')
+  const esEstatuto = card.title === 'Estatuto Orgánico'
+  const abrir = () => onNavigate(esReglamento ? 'reglamento' : esEstatuto ? 'estatuto' : 'en-desarrollo')
 
   const contenido = (
     <div

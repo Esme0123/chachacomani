@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { Scale, BookMarked, Volume2, ThumbsUp, ThumbsDown, LockKeyhole } from 'lucide-react';
+import { temaReglamento } from '../theme/lecturaTemas';
 
 const ArticleCard = forwardRef(function ArticleCard({
   article,
@@ -14,7 +15,8 @@ const ArticleCard = forwardRef(function ArticleCard({
   isReading,
   onListenArticle,
   voto,
-  onVotar
+  onVotar,
+  tema = temaReglamento
 }, ref) {
   // Función para resaltar coincidencias de búsqueda
   const highlightSearch = (text, query) => {
@@ -26,7 +28,7 @@ const ArticleCard = forwardRef(function ArticleCard({
 
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark key={i} className="bg-gold-300 dark:bg-gold-500/40 text-ink dark:text-gold-200 px-1 py-0.5 rounded font-semibold">
+        <mark key={i} className={`px-1 py-0.5 rounded font-semibold ${tema.resaltadoBusqueda}`}>
           {part}
         </mark>
       ) : (
@@ -45,22 +47,22 @@ const ArticleCard = forwardRef(function ArticleCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.05, 0.4) }}
-      className={`group relative p-6 md:p-8 rounded-3xl bg-ivory dark:bg-navy-800 transition-all duration-300 ${
+      className={`group relative p-6 md:p-8 rounded-3xl transition-all duration-300 ${tema.tarjetaFondo} ${
         isReading
-          ? 'border-2 border-amber-500 shadow-lg shadow-amber-500/20'
-          : 'border border-sand-300 hover:border-gold-600/80 dark:border-navy-700 dark:hover:border-gold-600/80 shadow-sm'
+          ? tema.lectAutoActiva
+          : `border border-sand-300 dark:border-navy-700 shadow-sm ${tema.tarjetaHoverBorde}`
       }`}
     >
-      {/* Filete dorado ornamental que se revela al pasar el cursor */}
-      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute left-0 top-8 bottom-8 w-px bg-gradient-to-b from-transparent via-gold-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      {/* Filete ornamental que se revela al pasar el cursor */}
+      <div className={`absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${tema.fileteH}`} />
+      <div className={`absolute left-0 top-8 bottom-8 w-px bg-gradient-to-b from-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${tema.fileteV}`} />
 
       {/* Etiqueta de lectura activa */}
       {isReading && (
         <motion.span
           initial={{ opacity: 0, y: -10, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow-lg shadow-amber-500/30"
+          className={`absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${tema.etiquetaLeyendo}`}
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
@@ -73,11 +75,11 @@ const ArticleCard = forwardRef(function ArticleCard({
       {/* Cabecera del Artículo */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-sand-300/60 dark:border-navy-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-gold-500/15 border-2 border-amber-300 dark:border-gold-500/40 flex items-center justify-center text-amber-900 dark:text-gold-400 font-bold text-sm font-display shadow-gold-glow/30">
+          <div className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center font-bold text-sm font-display shadow-gold-glow/30 ${tema.numeroChip}`}>
             {article.numero}
           </div>
           <div>
-            <span className="text-[11px] font-bold text-gold-600 dark:text-gold-400 tracking-widest uppercase font-sans">
+            <span className={`text-[11px] font-bold tracking-widest uppercase font-sans ${tema.etiquetaArticulo}`}>
               Artículo {article.numero}
             </span>
             <h3 className="font-serif text-base md:text-lg font-semibold text-ink dark:text-slate-100 leading-snug mt-0.5">
@@ -89,14 +91,14 @@ const ArticleCard = forwardRef(function ArticleCard({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => onListenArticle?.(article, chapterId)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gold-600/40 bg-gold-500/5 text-gold-700 dark:text-gold-400 hover:bg-gold-500/15 transition-colors text-[11px] font-semibold"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors text-[11px] font-semibold ${tema.btnEscuchar}`}
             title="Escuchar este artículo con el Casquito Minero"
           >
             <Volume2 className="w-3.5 h-3.5" />
             Escuchar Artículo
           </button>
           <div className="flex items-center gap-2 text-xs text-ink-muted dark:text-slate-400 bg-cream-100 dark:bg-navy-800/80 px-2.5 py-1 rounded-lg border border-sand-300/60 dark:border-navy-700">
-            <Scale className="w-3.5 h-3.5 text-gold-500" />
+            <Scale className={`w-3.5 h-3.5 ${tema.capBadgeIcono}`} />
             <span className="font-mono">Cap. {chapterRoman}</span>
           </div>
         </div>
@@ -116,7 +118,7 @@ const ArticleCard = forwardRef(function ArticleCard({
                   key={lIdx}
                   className={`sel-paragraph ${
                     isSubItem(line)
-                      ? 'pl-4 border-l-2 border-gold-400/50 dark:border-gold-500/50 text-ink dark:text-slate-200'
+                      ? `pl-4 ${tema.lineaSubitem} text-ink dark:text-slate-200`
                       : ''
                   }`}
                 >
@@ -131,11 +133,11 @@ const ArticleCard = forwardRef(function ArticleCard({
       {/* Footer del Artículo */}
       <div className="mt-5 pt-4 border-t border-sand-300/60 dark:border-navy-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-muted dark:text-slate-500">
         <span className="flex items-center gap-1.5">
-          <BookMarked className="w-3.5 h-3.5 text-gold-600 dark:text-gold-500" />
+          <BookMarked className={`w-3.5 h-3.5 ${tema.bookmarkIcono}`} />
           Texto Oficial Aprobado
         </span>
         <span className="flex items-center gap-1.5 font-mono">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold-500 animate-subtle-pulse" />
+          <span className={`inline-block w-1.5 h-1.5 rounded-full animate-subtle-pulse ${tema.puntoEstado}`} />
           Coop. Min. Nevado Chachacomani
         </span>
       </div>
@@ -148,7 +150,7 @@ const ArticleCard = forwardRef(function ArticleCard({
 
         {/* Insignia de artículo ya evaluado (anti-spam) */}
         {voto?.userVote && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold-500/10 border border-gold-500/40 text-[10px] font-bold text-gold-700 dark:text-gold-300">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-bold ${tema.votoInsignia}`}>
             <LockKeyhole className="w-3 h-3" />
             Ya evaluaste este artículo ({voto.userVote === 'positivo' ? '👍' : '👎'})
           </span>

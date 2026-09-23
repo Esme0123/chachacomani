@@ -12,6 +12,7 @@ import {
   ZoomOut,
   BarChart3
 } from 'lucide-react';
+import { temaReglamento } from '../theme/lecturaTemas';
 
 export default function Navbar({
   isDark,
@@ -26,7 +27,10 @@ export default function Navbar({
   setSelectedTab,
   onOpenAdmin,
   drmEnabled,
-  onToggleDRM
+  onToggleDRM,
+  tema = temaReglamento,
+  strings,
+  tieneAnexos = true
 }) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-sand-300/70 dark:border-slate-700/60 bg-cream-50/85 dark:bg-navy-800/85 backdrop-blur-md transition-colors duration-500">
@@ -48,22 +52,24 @@ export default function Navbar({
               className="flex items-center gap-3 cursor-pointer select-none"
               onClick={() => setSelectedTab('capitulos')}
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-gold-600 via-gold-500 to-gold-300 p-0.5 shadow-gold-glow shrink-0 flex items-center justify-center">
-                <div className="w-full h-full bg-ivory dark:bg-navy-900 rounded-[10px] flex items-center justify-center text-gold-600 dark:text-gold-400">
+              <div className={`w-10 h-10 rounded-xl p-0.5 shadow-gold-glow shrink-0 flex items-center justify-center ${tema.logoDisco}`}>
+                <div className={`w-full h-full rounded-[10px] flex items-center justify-center ${tema.logoIconoFondo} ${tema.logoIconoTexto}`}>
                   <Pickaxe className="w-5 h-5 animate-subtle-pulse" />
                 </div>
               </div>
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">
-                    Reglamento Interno
+                  <span className={`text-xs font-bold uppercase tracking-wider ${tema.marcaTexto}`}>
+                    {strings?.marca || 'Reglamento Interno'}
                   </span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold bg-gold-500/10 text-gold-600 dark:text-gold-400 rounded border border-gold-500/30">
-                    R.L.
-                  </span>
+                  {strings?.badge && (
+                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded border ${tema.marcaBadge}`}>
+                      {strings.badge}
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-sm font-bold text-ink dark:text-white truncate font-display">
-                  Nevado Chachacomani
+                  {strings?.marcaSub || 'Nevado Chachacomani'}
                 </h1>
               </div>
             </motion.div>
@@ -75,10 +81,10 @@ export default function Navbar({
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
               <input
                 type="text"
-                placeholder="Buscar artículo, término, multa (Ej. EPP, falta)..."
+                placeholder={strings?.buscarPlaceholder || 'Buscar artículo, término, multa (Ej. EPP, falta)...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-1.5 text-xs bg-cream-100 dark:bg-navy-800/80 border border-sand-300 dark:border-slate-700/60 rounded-xl text-ink dark:text-white placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-gold-500/50 transition-all"
+                className={`w-full pl-9 pr-4 py-1.5 text-xs bg-cream-100 dark:bg-navy-800/80 border border-sand-300 dark:border-slate-700/60 rounded-xl text-ink dark:text-white placeholder-ink-muted focus:outline-none focus:ring-2 transition-all ${tema.busquedaFocus}`}
               />
               {searchTerm && (
                 <button
@@ -100,22 +106,24 @@ export default function Navbar({
                 onClick={() => setSelectedTab('capitulos')}
                 className={`px-3 py-1 rounded-lg transition-all ${
                   selectedTab === 'capitulos'
-                    ? 'bg-gold-500 text-navy-950 font-bold shadow-sm'
-                    : 'text-ink-muted dark:text-slate-300 hover:text-gold-600 dark:hover:text-gold-400'
+                    ? tema.tabActiva
+                    : `text-ink-muted dark:text-slate-300 ${tema.tabHover}`
                 }`}
               >
-                Artículos (1-105)
+                {strings?.tabCapitulos || 'Artículos (1-105)'}
               </button>
-              <button
-                onClick={() => setSelectedTab('anexos')}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  selectedTab === 'anexos'
-                    ? 'bg-gold-500 text-navy-950 font-bold shadow-sm'
-                    : 'text-ink-muted dark:text-slate-300 hover:text-gold-600 dark:hover:text-gold-400'
-                }`}
-              >
-                Anexos I & II
-              </button>
+              {tieneAnexos && strings?.tabAnexos && (
+                <button
+                  onClick={() => setSelectedTab('anexos')}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    selectedTab === 'anexos'
+                      ? tema.tabActiva
+                      : `text-ink-muted dark:text-slate-300 ${tema.tabHover}`
+                  }`}
+                >
+                  {strings.tabAnexos}
+                </button>
+              )}
             </div>
 
             {/* Ajuste de Tamaño de Fuente */}
@@ -125,7 +133,7 @@ export default function Navbar({
                 whileTap={{ scale: 0.95 }}
                 onClick={decreaseFontSize}
                 disabled={fontSize <= 13}
-                className="p-1.5 text-ink-muted dark:text-slate-300 hover:text-gold-600 dark:hover:text-gold-400 disabled:opacity-30 rounded-lg"
+                className={`p-1.5 text-ink-muted dark:text-slate-300 disabled:opacity-30 rounded-lg ${tema.tabHover}`}
                 title="Reducir tamaño de letra"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -138,7 +146,7 @@ export default function Navbar({
                 whileTap={{ scale: 0.95 }}
                 onClick={increaseFontSize}
                 disabled={fontSize >= 22}
-                className="p-1.5 text-ink-muted dark:text-slate-300 hover:text-gold-600 dark:hover:text-gold-400 disabled:opacity-30 rounded-lg"
+                className={`p-1.5 text-ink-muted dark:text-slate-300 disabled:opacity-30 rounded-lg ${tema.tabHover}`}
                 title="Aumentar tamaño de letra"
               >
                 <ZoomIn className="w-4 h-4" />

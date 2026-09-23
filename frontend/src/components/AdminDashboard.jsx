@@ -1,22 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, BarChart3, ThumbsUp, ThumbsDown, Users, CheckCircle2, ShieldCheck, ShieldOff } from 'lucide-react';
-import { CAPITULOS_DATA } from '../data/reglamentoData';
-import { obtenerEstadisticas } from '../services/votosService';
+import { temaReglamento } from '../theme/lecturaTemas';
 import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas';
 
-export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, toggleDRM }) {
+export default function AdminDashboard({
+  isOpen,
+  onClose,
+  isDark,
+  drmEnabled,
+  toggleDRM,
+  tema = temaReglamento,
+  capitulos = [],
+  votos,
+  strings = {}
+}) {
   const [stats, setStats] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
-  const [capituloId, setCapituloId] = useState(CAPITULOS_DATA[0]?.id || null);
+  const [capituloId, setCapituloId] = useState(capitulos[0]?.id || null);
 
   useEffect(() => {
     if (!isOpen) return;
     let activo = true;
     setCargando(true);
     setError(null);
-    obtenerEstadisticas()
+    votos.obtenerEstadisticas()
       .then((datos) => {
         if (!activo) return;
         setStats(datos);
@@ -31,19 +40,18 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
     return () => {
       activo = false;
     };
-  }, [isOpen]);
+  }, [isOpen, votos]);
 
   // Refresco automático en segundo plano mientras el Dashboard está abierto:
   // polling cada 7s + revalidación al volver a la pestaña (focus/visibility).
   const refrescarStats = useCallback(() => {
-    obtenerEstadisticas()
+    votos.obtenerEstadisticas()
       .then((datos) => setStats(datos))
       .catch((e) => {
-        // El error solo se muestra si aún no hay datos (no se borra el dashboard).
         console.error('Error backend:', e);
         setError(e?.message || 'No se pudieron cargar las estadísticas.');
       });
-  }, []);
+  }, [votos]);
 
   useRefrescoEstadisticas(refrescarStats, { intervaloMs: 7000, activo: isOpen });
 
@@ -72,7 +80,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
         isDark ? 'bg-navy-800 border-slate-700' : 'bg-cream-100 border-sand-300'
       }`}
     >
-      <div className="p-2.5 rounded-xl bg-gradient-to-tr from-gold-600 to-gold-400 text-navy-950 shadow-gold-glow shrink-0">
+      <div className={`p-2.5 rounded-xl shrink-0 ${tema.adminIcono}`}>
         {icon}
       </div>
       <div className="min-w-0">
@@ -99,7 +107,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
           onClick={onClose}
           role="dialog"
           aria-modal="true"
-          aria-label="Dashboard de Administrador - Evaluación del Reglamento"
+          aria-label="Dashboard de Administrador - Evaluación de la Normativa"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 24 }}
@@ -114,25 +122,23 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
             {/* Cabecera */}
             <div
               className={`relative shrink-0 overflow-hidden px-6 py-5 sm:px-8 border-b ${
-                isDark
-                  ? 'bg-gradient-to-br from-navy-800 to-navy-900 border-slate-800'
-                  : 'bg-gradient-to-br from-gold-100 to-cream-100 border-sand-300'
+                isDark ? 'bg-gradient-to-br from-navy-800 to-navy-900 border-slate-800' : tema.adminHeaderClaro
               }`}
             >
-              <div className={`absolute top-0 right-0 p-4 opacity-10 pointer-events-none ${isDark ? 'text-gold-400' : 'text-gold-600'}`}>
+              <div className={`absolute top-0 right-0 p-4 opacity-10 pointer-events-none ${isDark ? tema.ctaIcono : tema.ctaIconoClaro}`}>
                 <BarChart3 className="w-24 h-24" />
               </div>
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-gradient-to-tr from-gold-600 to-gold-400 text-navy-950 shadow-gold-glow shrink-0">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${tema.adminIcono}`}>
                     <BarChart3 className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-mono font-bold uppercase tracking-widest text-gold-600 dark:text-gold-400">
-                      Panel de Administración
+                    <p className={`text-[11px] font-mono font-bold uppercase tracking-widest ${tema.adminEyebrow}`}>
+                      {strings.adminEyebrow || 'Panel de Administración'}
                     </p>
                     <h2 className="text-lg sm:text-xl font-bold text-ink dark:text-white font-display leading-tight mt-1">
-                      Evaluación del Reglamento Interno
+                      {strings.adminTitle || 'Evaluación de la Normativa'}
                     </h2>
                   </div>
                 </div>
@@ -186,13 +192,15 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
             <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-6">
               {cargando && !stats ? (
                 <div className="flex flex-col items-center justify-center py-14 gap-3 text-ink-muted dark:text-slate-400">
-                  <div className="w-8 h-8 rounded-full border-2 border-gold-500/30 border-t-gold-500 animate-spin" />
+                  <div className={`w-8 h-8 rounded-full border-2 animate-spin ${tema.adminSpinner}`} />
                   <p className="text-xs">Cargando estadísticas...</p>
                 </div>
               ) : error && !stats ? (
                 <div className="text-center py-12 text-sm text-rose-600 dark:text-rose-400">
                   <p>{error}</p>
-                  <p className="mt-2 text-xs opacity-70">Compruebe que el backend PHP esté disponible.</p>
+                  <p className="mt-2 text-xs opacity-70">
+                    {strings.adminErrorHint || 'Compruebe que el servicio de datos esté disponible.'}
+                  </p>
                 </div>
               ) : !stats ? (
                 <p className="text-sm text-ink-muted dark:text-slate-400">Sin datos disponibles.</p>
@@ -228,8 +236,8 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
                   >
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted dark:text-slate-400">
-                        <CheckCircle2 className="w-4 h-4 text-gold-600 dark:text-gold-400" />
-                        Aprobación General del Reglamento
+                        <CheckCircle2 className={`w-4 h-4 ${tema.adminCheck}`} />
+                        {strings.adminAprobacionLabel || 'Aprobación General'}
                       </p>
                       <p className="text-xl font-bold text-ink dark:text-white font-display">
                         {stats.aprobacionGeneral !== null ? `${stats.aprobacionGeneral}%` : '—'}
@@ -237,7 +245,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
                     </div>
                     <div className="mt-3 h-2.5 w-full rounded-full bg-cream-200 dark:bg-navy-900 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-gold-600 via-gold-500 to-emerald-500 transition-all duration-700"
+                        className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${tema.adminProgreso}`}
                         style={{ width: `${stats.aprobacionGeneral ?? 0}%` }}
                       />
                     </div>
@@ -246,15 +254,15 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
                   {/* Filtro por Capítulo */}
                   <div className="space-y-2">
                     <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted dark:text-slate-400">
-                      <BarChart3 className="w-3.5 h-3.5 text-gold-600 dark:text-gold-400" />
+                      <BarChart3 className={`w-3.5 h-3.5 ${tema.adminSelect}`} />
                       Desglose por Capítulo
                     </label>
                     <select
                       value={capituloId}
                       onChange={(e) => setCapituloId(Number(e.target.value))}
-                      className={`w-full px-3 py-2 text-xs rounded-xl border bg-cream-100 dark:bg-navy-800 text-ink dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/50 transition-all ${
+                      className={`w-full px-3 py-2 text-xs rounded-xl border bg-cream-100 dark:bg-navy-800 text-ink dark:text-white focus:outline-none focus:ring-2 transition-all ${
                         isDark ? 'border-slate-700' : 'border-sand-300'
-                      }`}
+                      } ${tema.adminFocus}`}
                     >
                       {stats.capitulos.map((c) => (
                         <option key={c.capituloId} value={c.capituloId}>
@@ -324,7 +332,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
                                 isDark ? 'border-slate-700/50' : 'border-sand-200'
                               }`}
                             >
-                              <td className="px-4 py-2.5 font-mono font-bold text-gold-600 dark:text-gold-400">
+                              <td className={`px-4 py-2.5 font-mono font-bold ${tema.adminCeldaNum}`}>
                                 {a.numero}
                               </td>
                               <td className="px-4 py-2.5 text-ink dark:text-slate-200 leading-snug max-w-[18rem]">
@@ -342,8 +350,8 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
                                     <div
                                       className={`h-full rounded-full transition-all duration-500 ${
                                         a.aprobacion !== null && a.aprobacion >= 50
-                                          ? 'bg-gradient-to-r from-gold-500 to-emerald-500'
-                                          : 'bg-gradient-to-r from-rose-500 to-gold-500'
+                                          ? tema.adminBarraOK
+                                          : tema.adminBarraNO
                                       }`}
                                       style={{ width: `${a.aprobacion ?? 0}%` }}
                                     />
@@ -370,9 +378,7 @@ export default function AdminDashboard({ isOpen, onClose, isDark, drmEnabled, to
               }`}
             >
               <p className="text-[11px] leading-relaxed text-ink-muted dark:text-slate-500">
-                Estadísticas en tiempo real desde el backend PHP + MySQL (backend/). No existe
-                modo simulación: si el API falla, el error se muestra y nada se guarda en
-                localStorage.
+                {strings.adminFooter || 'Estadísticas del documento en tiempo real.'}
               </p>
             </div>
           </motion.div>

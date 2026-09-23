@@ -3,6 +3,7 @@ import HomePanel from './views/HomePanel.jsx'
 import LoginPanel from './views/LoginPanel.jsx'
 import RegisterPanel from './views/RegisterPanel.jsx'
 import ReglamentoInternoView from './views/ReglamentoInternoView.jsx'
+import EstatutoOrganicoView from './views/EstatutoOrganicoView.jsx'
 import EnDesarrolloView from './views/EnDesarrolloView.jsx'
 import { CursorRippleOverlay } from './components/Effects.jsx'
 
@@ -12,9 +13,9 @@ export default function App() {
   const toggleTheme = () => setDark(d => !d)
 
   // Modo claro/oscuro global: sincroniza la clase 'dark' en <html>.
-  // La vista 'reglamento' gestiona su propio tema (regímen/claro) sobre <html>.
+  // Las vistas 'reglamento' y 'estatuto' gestionan su propio tema (regímen/claro).
   useLayoutEffect(() => {
-    if (vista !== 'reglamento') {
+    if (vista !== 'reglamento' && vista !== 'estatuto') {
       const root = document.documentElement
       root.classList.toggle('dark', dark)
     }
@@ -27,6 +28,10 @@ export default function App() {
 
       {vista === 'reglamento' && (
         <ReglamentoInternoView onVolver={() => setVista('home')} />
+      )}
+
+      {vista === 'estatuto' && (
+        <EstatutoOrganicoView onVolver={() => setVista('home')} />
       )}
 
       {vista === 'en-desarrollo' && (
