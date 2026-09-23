@@ -94,91 +94,91 @@ export const ESTATUTO_CAPITULOS = [
         id: 10,
         numero: 10,
         denominacion: "NÚMERO DE ASOCIADAS Y ASOCIADOS",
-        contenido: "La Cooperativa tiene un número variable y limitado de asociadas y asociados, de acuerdo con la capacidad de trabajo y los recursos de la cooperativa. El mínimo de asociadas y asociados exigido por la Ley General de Cooperativas Nº 356 deberá mantenerse como condición de subsistencia de la entidad."
+        contenido: "El número de asociadas y asociados es ilimitado; sin embargo, deberá ajustarse a las actividades y necesidades de la cooperativa."
       },
       {
         id: 11,
         numero: 11,
         denominacion: "REQUISITOS DE ADMISIÓN",
-        contenido: "Podrán ser admitidas como asociadas o asociados las personas naturales mayores de dieciocho (18) años que reúnan los siguientes requisitos:\na) Cumplir los requisitos previstos en la Ley General de Cooperativas Nº 356 y su Decreto Supremo Reglamentario Nº 1995.\nb) Dedicarse a la actividad minera o acreditar idoneidad y aptitud para el trabajo cooperativizado.\nc) No pertenecer simultáneamente a otra cooperativa de producción, salvo los casos autorizados por la Ley.\nd) No haber sido expulsadas o excluidas de otra cooperativa mediante resolución firme, salvo rehabilitación acreditada.\ne) Aceptar expresamente el presente Estatuto Orgánico, el Reglamento Interno y las resoluciones de las Asambleas Generales.\nf) Suscribir y pagar el Certificado de Aportación en las condiciones que establezca la Asamblea General.\ng) Los demás requisitos que la Asamblea General establezca mediante Reglamento Interno."
+        contenido: "Para ser asociada o asociado de la Cooperativa, además de reunir los requisitos exigidos por la Ley General de Cooperativas, deberán cumplir con los siguientes: a) Ser mayor de 18 años. b) Suscribir y pagar un certificado de aportación. c) No pertenecer a otra cooperativa de producción. d) Ser aceptado en Asamblea General Extraordinaria. e) Cumplir con el trabajo personal en la cooperativa."
       },
       {
         id: 12,
         numero: 12,
         denominacion: "PROCEDIMIENTO PARA SER ASOCIADA Y ASOCIADO",
-        contenido: "La admisión de nuevas asociadas y asociados se someterá al siguiente procedimiento:\na) Presentación de la solicitud por escrito ante la Secretaría del Consejo de Administración.\nb) Informe y calificación por el Consejo de Administración, previa verificación del cumplimiento de los requisitos.\nc) Aprobación por la Asamblea General Extraordinaria, conforme al Reglamento Interno.\nd) Suscripción y pago del Certificado de Aportación.\ne) Registro en el Libro de Registro de Asociadas y Asociados y comunicación a la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP)."
+        contenido: "Solicitar por escrito al Consejo de Administración su inclusión y habilitación; esta instancia elevará informe detallado a la Asamblea General Extraordinaria para su aceptación o rechazo. En caso de aceptación, se mencionarán en el Acta los nombres y apellidos de las y los nuevos asociados."
       },
       {
         id: 13,
         numero: 13,
         denominacion: "OBLIGACIONES",
-        contenido: "Son obligaciones de las asociadas y asociados, además de las señaladas en la Ley General de Cooperativas Nº 356, su Decreto Supremo Reglamentario Nº 1995 y el Reglamento Interno, las siguientes:\na) Cumplir el presente Estatuto Orgánico, el Reglamento Interno y las resoluciones válidamente adoptadas por las Asambleas Generales y los Consejos.\nb) Efectuar los aportes económicos y cooperativos establecidos, incluyendo el pago oportuno del Certificado de Aportación.\nc) Concurrir personalmente y con regularidad a las labores de la Cooperativa, salvo los casos de licencia o comisión autorizada.\nd) Asistir puntualmente a las Asambleas Generales Ordinarias y Extraordinarias.\ne) Participar en los programas de educación y capacitación cooperativa.\nf) Desempeñar los cargos directivos y comisiones para los que sea elegida o designada.\ng) Velar por el patrimonio social y por el prestigio de la Cooperativa."
+        contenido: "Son obligaciones de las asociadas y asociados: a) Cumplir y velar por el cumplimiento de la Ley General de Cooperativas, su Decreto Supremo Reglamentario, las disposiciones del ente regulador de Cooperativas, el presente Estatuto, el Reglamento Interno y las resoluciones de la Asamblea General, así como las disposiciones del Consejo de Administración. b) Pagar el valor del certificado de aportación y las obligaciones económicas contraídas con la cooperativa, dentro de los plazos fijados. c) Participar en forma efectiva en las actividades planificadas por la cooperativa, las que se normarán de acuerdo al Reglamento Interno. d) Asistir a las asambleas generales y reuniones que se convoquen, así como desempeñar los cargos y comisiones que les sean encomendados. e) La asociada o el asociado de nuevo ingreso compartirá plenamente las responsabilidades de todas las obligaciones anteriormente contraídas por la Cooperativa. f) Serán directamente responsables ante la cooperativa la asociada y/o el asociado que, con sus actos u omisiones, lesionen los intereses de la cooperativa."
       },
       {
         id: 14,
         numero: 14,
         denominacion: "DERECHOS",
-        contenido: "I. Son derechos de las asociadas y asociados, además de los establecidos en la Ley General de Cooperativas Nº 356 y su Decreto Supremo Reglamentario Nº 1995, los siguientes:\na) Participar con voz y voto en las Asambleas Generales Ordinarias y Extraordinarias.\nb) Elegir y ser elegidas o elegidos para los cargos de dirección, fiscalización, comités y comisiones.\nc) Ejercer el derecho a la información sobre la gestión económica, financiera y social de la Cooperativa.\nd) Percibir la redistribución de excedentes de percepción conforme a su participación en el trabajo.\ne) Participar de los servicios y beneficios de educación, previsión social y apoyo a la colectividad que otorgue la Cooperativa.\nf) Impugnar y ejercer los recursos que reconozca la normativa vigente frente a las resoluciones que afecten sus derechos.\n\nII. Todo derecho de las asociadas y asociados se ejerce sin menoscabo de los derechos de las demás asociadas y asociados y de la Cooperativa, conforme a los principios de igualdad y equidad."
+        contenido: "I. Son derechos de las asociadas y los asociados: a) Manifestarse con libertad y ejercer el derecho de voz y voto en las asambleas, conforme al Art. 37 numeral 1 de la Ley N° 356. b) Ser elector y elegido para ocupar cargos dentro de los Consejos, comisiones o comités que establezca el presente Estatuto Orgánico o las asambleas generales. c) Proponer al Consejo de Administración cualquier asunto de interés para la cooperativa. d) Observar y fiscalizar el movimiento económico, equipo, maquinaria y auditorías específicas de anteriores gestiones de la cooperativa. e) Solicitar por escrito al Consejo de Administración la convocatoria a la Asamblea General Ordinaria o Extraordinaria, con el apoyo de la mayoría de las asociadas y asociados inscritos legalmente. f) Recibir su cuota parte de los excedentes de percepción, de acuerdo al trabajo y actividades realizadas y/o servicios prestados en la cooperativa. g) Solicitar y recibir información del funcionamiento, administración y actividades de la cooperativa. h) Recibir educación, capacitación e información en materia cooperativa. i) Recibir cuanto beneficio otorgue la cooperativa a sus asociadas y asociados. II. Los derechos descritos en el presente Estatuto no se entenderán como restrictivos de los establecidos en la Ley N° 356, su Decreto Supremo N° 1995 y otros que puedan surgir de disposiciones legales en materia de cooperativas."
       },
       {
         id: 15,
         numero: 15,
         denominacion: "RESTRICCIONES",
-        contenido: "Las asociadas y asociados tendrán las siguientes restricciones:\na) No podrán pertenecer simultáneamente a otra cooperativa de producción ni a un sindicato laboral dentro de la Cooperativa, conforme a la Ley.\nb) No podrán acumular más de un (1) Certificado de Aportación ni votar en lugar de otra asociada o asociado.\nc) No podrán ceder, transferir ni gravar su Certificado de Aportación fuera de los casos y condiciones previstos en el presente Estatuto y la Ley.\nd) No podrán usar el nombre, bienes o recursos de la Cooperativa en beneficio propio o de terceros.\ne) Las demás previstas en la Ley, el Decreto Supremo Reglamentario Nº 1995 y el Reglamento Interno."
+        contenido: "Según dispone el Artículo 37 de la Ley General de Cooperativas, ninguna asociada o asociado de la Cooperativa podrá: 1. Pertenecer a otra cooperativa de producción; 2. Pertenecer a un sindicato laboral; 3. Pertenecer a los Consejos de Administración o Vigilancia de otra cooperativa simultáneamente, en cualquier parte del país."
       },
       {
         id: 16,
         numero: 16,
         denominacion: "PÉRDIDA DE CALIDAD DE ASOCIADA Y ASOCIADO",
-        contenido: "La calidad de asociada o asociado se pierde por las siguientes causales:\na) Retiro voluntario.\nb) Exclusión.\nc) Expulsión.\nd) Abandono injustificado.\ne) Muerte de la asociada o asociado.\nf) Las demás que establezcan la Ley General de Cooperativas Nº 356, su Decreto Supremo Reglamentario Nº 1995, el presente Estatuto y el Reglamento Interno.\n\nLa pérdida de la calidad de asociada o asociado no libera de las obligaciones económicas pendientes con la Cooperativa, que podrán compensarse con la devolución del Certificado de Aportación, conforme a la Ley."
+        contenido: "La calidad de las asociadas y asociados se pierde por las siguientes causas: 1) Por renuncia voluntaria. 2) Por exclusión. 3) Por expulsión. 4) Por abandono. 5) Por extinción de la personalidad jurídica. 6) Por muerte."
       },
       {
         id: 17,
         numero: 17,
         denominacion: "RETIRO VOLUNTARIO",
-        contenido: "Toda asociada o asociado podrá retirarse voluntariamente de la Cooperativa mediante renuncia escrita presentada ante el Consejo de Administración, salvo que la Cooperativa se encuentre en proceso de liquidación.\n\nEl retiro se hará efectivo previa aprobación de la Asamblea General y previo cumplimiento de las obligaciones económicas y laborales de la asociada o asociado, debiendo devolverse el Certificado de Aportación conforme al procedimiento establecido en el presente Estatuto y la Ley."
+        contenido: "El retiro voluntario se regirá por las siguientes reglas: 1. Debe ser comunicado mediante nota dirigida al Consejo de Administración y aprobado mediante Asamblea General Extraordinaria. 2. En caso de que la renuncia voluntaria de uno o varios asociados a la vez ocasione impedimentos para la continuidad del funcionamiento de la Cooperativa, la Asamblea General Extraordinaria, de forma fundamentada, aplazará excepcionalmente la consideración de las mencionadas renuncias."
       },
       {
         id: 18,
         numero: 18,
         denominacion: "EXCLUSIÓN DE ASOCIADAS Y ASOCIADOS",
-        contenido: "La exclusión es la privación temporal de los derechos de asociada o asociado, prevista como sanción por la Ley y el presente Estatuto, sin la pérdida definitiva de la calidad de asociada o asociado.\n\nSerá determinada mediante proceso sumario sustanciado por el Tribunal de Honor u órgano competente, con pleno respeto al debido proceso y al derecho a la defensa, conforme al Reglamento Específico de Régimen Disciplinario del presente Estatuto."
+        contenido: "La exclusión de una asociada o asociado será determinada en los siguientes casos: a) Por actuar en forma contraria a los intereses de la cooperativa o cometer actos que repercutan en contra del buen prestigio de la cooperativa y de los asociados. b) Por negarse a cumplir con sus aportaciones u obligaciones contraídas con la cooperativa, así como prestar sus servicios conforme disponga la Asamblea General y los Consejos directivos, salvo casos justificados. c) Por incumplimiento reiterado de las disposiciones estatutarias y de los Consejos directivos."
       },
       {
         id: 19,
         numero: 19,
         denominacion: "EXPULSIÓN",
-        contenido: "La expulsión es la pérdida definitiva de la calidad de asociada o asociado, determinada por resolución fundamentada dentro de un proceso sustanciado con la garantía del debido proceso.\n\nLa decisión será adoptada por dos tercios de las asociadas y asociados presentes en Asamblea General Extraordinaria, a propuesta fundada del Tribunal de Honor, previo informe del Consejo de Administración. La expulsión no libera de las responsabilidades civiles y penales que correspondan."
+        contenido: "La expulsión procederá por las siguientes causales: a) Por dedicarse al rescate y desvío clandestino de minerales y ocultación de la producción. b) Por negociar, sin conocimiento de la cooperativa, los artículos, insumos, herramientas y otros bienes que adquiera la cooperativa. c) Por usar los recursos económicos de la cooperativa en fondos no autorizados por la Asamblea General y el presente Estatuto, salvo casos excepcionales de extrema necesidad. d) Por realizar actividades que causen daño al patrimonio social, a la honorabilidad de los Consejos, de los asociados y al prestigio de la cooperativa. e) Por acciones divisionistas o que violenten la unidad de la cooperativa, antes de manifestarse sobre cualquier problema en la Asamblea General. f) Por ingresar a otro tipo de sociedad y/o cooperativa minera de la misma actividad."
       },
       {
         id: 20,
         numero: 20,
         denominacion: "ABANDONO",
-        contenido: "Se produce abandono cuando la asociada o asociado se aleja de la Cooperativa sin comunicación ni autorización, o cuando acumula inasistencias injustificadas superiores a noventa (90) días dentro de la gestión.\n\nEl Consejo de Administración elevará los antecedentes a la Asamblea General Extraordinaria para que, previo proceso, resuelva la pérdida de la calidad de asociada o asociado, sin perjuicio del derecho a la devolución del Certificado de Aportación."
+        contenido: "Cuando sea necesario, el Consejo de Administración convocará a Asamblea General Extraordinaria para que defina sobre la pérdida de calidad de asociado de quienes hayan abandonado por más de 90 días sin que medie causa justificada."
       },
       {
         id: 21,
         numero: 21,
         denominacion: "MUERTE DE ASOCIADA O ASOCIADO",
-        contenido: "En caso de fallecimiento de una asociada o asociado, sus derechos y obligaciones cooperativas se transmitirán a sus herederos legalmente reconocidos, previa declaratoria de herederos y presentación de la documentación correspondiente.\n\nLos herederos se subrogarán en los derechos y obligaciones del causante conforme a la Ley General de Cooperativas Nº 356, su Decreto Supremo Reglamentario Nº 1995, el presente Estatuto y el Reglamento Interno, pudiendo solicitar la transferencia del Certificado de Aportación o la designación de representante."
+        contenido: "En caso de fallecimiento de una asociada o asociado, los aportes y excedentes de percepción que pudieran corresponderle pasarán a sus sucesores, quienes deberán designar a uno de ellos para asumir la titularidad del Certificado de Aportación, previa presentación de la aceptación de herencia, requisito con el cual la Cooperativa procederá al cambio de nombre del titular del Certificado de Aportación, de acuerdo al presente Estatuto Orgánico."
       },
       {
         id: 22,
         numero: 22,
         denominacion: "OBLIGACIÓN DE REGISTRO",
-        contenido: "La Cooperativa mantendrá un Registro de Asociadas y Asociados, debidamente actualizado, con el nombre, número de Certificado de Aportación, fecha de admisión, domicilio y demás datos que exija la normativa vigente.\n\nCualquier modificación de los datos registrales deberá ser comunicada por la asociada o asociado de manera oportuna y se comunicará a la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP) cuando corresponda."
+        contenido: "En los casos de retiro o renuncia voluntaria, expulsión, exclusión, abandono y muerte, el Consejo de Administración remitirá los antecedentes o la resolución, según corresponda, a conocimiento de la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP), a efectos de su registro."
       },
       {
         id: 23,
         numero: 23,
         denominacion: "DERECHO A LA DEVOLUCIÓN DEL VALOR DEL CERTIFICADO DE APORTACIÓN",
-        contenido: "La asociada o asociado que pierda la calidad de asociada o asociado, o sus herederos, tendrán derecho a la devolución del valor pagado de su Certificado de Aportación.\n\nLa devolución se efectuará previa aprobación de la Asamblea General Extraordinaria, previo descuento de las obligaciones pendientes con la Cooperativa, dentro del plazo máximo de ciento ochenta (180) días calendario desde la presentación formal de la solicitud, conforme a la Ley General de Cooperativas Nº 356."
+        contenido: "I. La pérdida de la calidad de asociado por renuncia voluntaria, expulsión, abandono o extinción de la personalidad jurídica dará lugar a la devolución obligatoria del certificado de aportación que hubiera pagado, más los excedentes si los hubiera, previo descuento de toda deuda que tuviera la asociada o asociado con la cooperativa. En caso de muerte, si el o los herederos decidieran la no permanencia en la cooperativa, se procederá a la devolución referida. II. Si transcurridos dos años, computables a partir de la desvinculación de la Cooperativa, las asociadas o asociados no reclaman la devolución del valor del certificado de aportación, este prescribirá a favor del Fondo Social de la Cooperativa. III. El procedimiento para la devolución del Certificado de Aportación comenzará con la nota de solicitud al presidente del Consejo de Administración, quien instruirá al Tesorero un informe pormenorizado de activos y pasivos, informe que será elevado a la Asamblea General."
       },
       {
         id: 24,
         numero: 24,
         denominacion: "REINCORPORACIÓN",
-        contenido: "La asociada o asociado que hubiera perdido la calidad de tal por retiro voluntario, abandono o exclusión, podrá solicitar su reincorporación mediante petición escrita ante el Consejo de Administración.\n\nLa reincorporación será resuelta por la Asamblea General Extraordinaria, previo cumplimiento de los requisitos de admisión y de las obligaciones pendientes, en las condiciones que aquella determine, no adquiriendo ningún derecho adquirido previo."
+        contenido: "La asociada o asociado que voluntariamente deje de pertenecer a la cooperativa y desee reincorporarse deberá cumplir los mismos requisitos exigidos a las nuevas asociadas y asociados, y ser aceptado mediante resolución de la Asamblea General Extraordinaria."
       }
     ]
   },
