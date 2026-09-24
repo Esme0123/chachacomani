@@ -396,6 +396,96 @@ export const ESTATUTO_CAPITULOS = [
         denominacion: "PRESIDENTE",
         contenido: "Son atribuciones del Presidente: a) Ejercer la representación legal de la cooperativa en todos los actos cooperativos, administrativos y legales, de carácter público y privado. b) Presidir y dirigir las Asambleas Generales, las reuniones del Consejo de Administración y cualquier otro acto oficial de la Cooperativa. c) Firmar con la Tesorera o Tesorero todos los documentos que importen obligaciones y contratos comerciales, bancarios y otros inherentes a las actividades económicas de la Cooperativa. d) Supervisar que los libros contables de la Cooperativa sean llevados correctamente. e) Nombrar, promover y cesar a los trabajadores y/o empleados administrativos, con arreglo a las leyes sociales. f) Elaborar los informes solicitados por los Consejos y Comités, así como asistir a las reuniones y Asambleas. g) Elaborar el plan anual operativo para su consideración en el Consejo de Administración. h) Firmar con la Secretaria o Secretario General la correspondencia general y cualquier otro documento que así se requiera. i) Poner en conocimiento del Consejo de Vigilancia las disposiciones, acuerdos y resoluciones emitidas."
       },
+      {
+        id: 58,
+        numero: 58,
+        denominacion: "DE LA SECRETARIA O SECRETARIO GENERAL",
+        contenido: "Podrá ejercer las funciones del presidente en ausencia de este. Sus atribuciones son: a) Redactar y firmar con el presidente las actas, los registros, memorias, informes, resoluciones y convocatorias a asambleas generales, reuniones del Consejo de Administración y reuniones conjuntas de ambos Consejos. b) Llevar en orden correlativo los archivos de la documentación oficial de la cooperativa. c) Tener al día los libros de actas, registros de asociadas y asociados, y otros."
+      },
+      {
+        id: 59,
+        numero: 59,
+        denominacion: "TESORERO",
+        contenido: "Se constituye en responsable del manejo de los recursos económicos y de llevar correctamente los libros de contabilidad y la documentación de las operaciones que realice la cooperativa, así como de presentar rendición de cuentas en cualquier momento que lo solicite la Asamblea General y/o los Consejos. Tiene las siguientes funciones: a) Velar por la correcta inversión de los fondos conforme al presupuesto anual. b) Informar, cuando lo requiera el Consejo de Administración, sobre el estado económico de la cooperativa. c) Llevar el control de los libros de contabilidad, de caja y la respectiva documentación contable. d) Coordinar y hacer seguimiento de la elaboración de los Estados Financieros cuando finalice la gestión económica. e) Proporcionar información al Consejo de Administración y de Vigilancia para los arqueos de caja que se le practiquen. f) Depositar en la cuenta bancaria de la cooperativa, o tenerlos bajo custodia documentada, los fondos recaudados. g) Firmar cheques y comprobantes con el presidente de la Cooperativa. h) Recaudar los ingresos de la Cooperativa, cobrar los adeudos y, en su caso, efectuar los pagos que correspondan. i) Tener en su custodia y bajo su responsabilidad todos los bienes de la Cooperativa, bajo minucioso inventario valorado."
+      },
+      {
+        id: 60,
+        numero: 60,
+        denominacion: "VOCAL",
+        contenido: "Son atribuciones de los Vocales: a) Reemplazar o cubrir las acefalías que se produjeran por alguna causa dentro del Consejo, exceptuando al Presidente, hasta que en Asamblea General Ordinaria se elija al titular. b) Cumplir con las asignaciones que se les delegue."
+      },
+      {
+        id: 61,
+        numero: 61,
+        denominacion: "GERENCIA",
+        contenido: "I. El Consejo de Administración podrá contar con un Gerente o Gerenta, quien dirigirá las actividades operativas de la institución, velando por los intereses de la misma. El Gerente podrá concurrir a las reuniones que celebre el Consejo de Administración y a la Asamblea General, únicamente con voz y sin voto. II. El gerente se constituirá en instancia operativa del Consejo de Administración, de acuerdo con las disposiciones, instrucciones, deberes y atribuciones que le señale el presente Estatuto y le delegue el Consejo de Administración. III. Para ser gerente debe acreditar suficiente capacidad profesional y técnica para el desempeño del cargo, siendo sus atribuciones, deberes y responsabilidades los establecidos en el Reglamento Interno correspondiente. IV. Ni el gerente ni los empleados administrativos de la cooperativa podrán dedicarse, por cuenta propia ni ajena, a trabajo o negocio similar que tenga relación con el giro de la cooperativa."
+      },
+      {
+        id: 62,
+        numero: 62,
+        denominacion: "CONSEJO DE VIGILANCIA Y SU CONFORMACIÓN",
+        contenido: "El Consejo de Vigilancia es el órgano de control y fiscalización del manejo económico-financiero, legal y del funcionamiento de la cooperativa; vela porque el Consejo de Administración y las asociadas y asociados cumplan con la normativa vigente y el presente Estatuto. El número de miembros debe ser impar y estará integrado por un Presidente, un Secretario y un Vocal, elegidos en Asamblea General por un periodo de 2 años, pudiendo ser reelegidos por un solo periodo consecutivo."
+      },
+      {
+        id: 63,
+        numero: 63,
+        denominacion: "REUNIONES",
+        contenido: "I. El Consejo de Vigilancia se reunirá una vez al mes y, de manera extraordinaria, cuantas veces sea necesario, a convocatoria del Presidente o a solicitud de la mitad más uno de sus miembros. II. El quórum legal estará constituido por la mitad más uno de sus miembros, y sus acuerdos constarán en un libro de actas con la firma de todos los asistentes a la reunión."
+      },
+      {
+        id: 64,
+        numero: 64,
+        denominacion: "ATRIBUCIONES DEL CONSEJO DE VIGILANCIA",
+        contenido: "a. Ejercer el control y fiscalización del manejo económico-financiero, legal y de funcionamiento de la cooperativa. b. Tener acceso a toda la información documentada generada por la administración de la cooperativa, a través del Consejo de Administración. c. Vigilar y verificar que el patrimonio de la cooperativa sea debidamente registrado, valorado y salvaguardado. d. Vigilar que la información contable generada sea transparente, completa, oportuna y veraz. e. Vigilar que el Consejo de Administración y los comités cumplan con las funciones establecidas en el Estatuto Orgánico, los reglamentos internos y las resoluciones de la Asamblea General. f. Convocar a la Asamblea General Ordinaria cuando el Consejo de Administración no lo haga en los plazos y formas establecidos por el Artículo 55 de la Ley N° 356 y el presente Estatuto. g. Seleccionar al auditor interno y/o externo, de acuerdo al Estatuto Orgánico y la normativa vigente. h. Hacer seguimiento al cumplimiento de las recomendaciones de los informes de auditoría interna y/o externa. i. Supervisar el trabajo de la auditoría interna de la cooperativa, aprobando su plan anual de trabajo, cuando corresponda. j. Practicar arqueos de caja de forma sorpresiva, cuantas veces sea necesario. k. Verificar los saldos de las cuentas, los inventarios de existencias y los Activos Fijos valorados. l. Emitir informes y dictámenes sobre las actividades y decisiones del Consejo de Administración, que serán puestos en conocimiento de la Asamblea General para la toma de decisiones. m. Reportar oportunamente a la Asamblea General sobre las infracciones que no hayan sido absueltas o resueltas por el Consejo de Administración. n. Cumplir otras atribuciones establecidas en la Ley General de Cooperativas, su Reglamento, el presente Estatuto, los reglamentos internos y las que le señale la Asamblea General. o. Elevar informe y convocar al Tribunal de Honor para el procesamiento disciplinario por contravenciones. p. Otras establecidas en la Ley General de Cooperativas, su Decreto Reglamentario y el presente Estatuto."
+      },
+      {
+        id: 65,
+        numero: 65,
+        denominacion: "RESPONSABILIDAD",
+        contenido: "Los miembros del Consejo de Vigilancia, en caso de incumplimiento de sus funciones y atribuciones, son responsables conjunta y solidariamente de la gestión administrativa, legal, económica, financiera y contable del Consejo de Administración."
+      },
+      {
+        id: 66,
+        numero: 66,
+        denominacion: "RESTRICCIÓN",
+        contenido: "Las consejeras o consejeros de vigilancia no podrán realizar actos ni actividades, ni ejercer facultades establecidas para el Consejo de Administración."
+      },
+      {
+        id: 67,
+        numero: 67,
+        denominacion: "COMITÉ DE EDUCACIÓN",
+        contenido: "El Comité de Educación es el encargado de realizar gestiones para lograr la capacitación cooperativa y técnica de las asociadas y asociados, y estará integrado por 2 miembros elegidos en Asamblea General Ordinaria. Su mandato tendrá una duración de 2 años."
+      },
+      {
+        id: 68,
+        numero: 68,
+        denominacion: "ATRIBUCIONES DEL COMITÉ DE EDUCACIÓN",
+        contenido: "Son atribuciones y funciones del Comité de Educación, sin perjuicio de las demás establecidas por la ley: a) Organizar y desarrollar programas de educación, capacitación e información en el ámbito cooperativo, y difundir los principios y valores del cooperativismo. b) Gestionar programas de capacitación técnica, administrativa, económica, financiera, contable y otras. c) Elaborar anualmente un plan de trabajo que deberá ser presentado al Consejo de Administración, y rendir al final de su gestión un informe de las labores desarrolladas a la Asamblea General. d) Presentar mensualmente informe de actividades al Consejo de Administración. e) Utilizar los recursos asignados por el Consejo de Administración. f) Presentar al Consejo de Administración el informe de las labores realizadas, al finalizar la gestión económica. g) Otras, de acuerdo a las necesidades de la Cooperativa."
+      },
+      {
+        id: 69,
+        numero: 69,
+        denominacion: "COMITÉ DE PREVISIÓN SOCIAL Y APOYO A LA COLECTIVIDAD",
+        contenido: "Es el encargado de realizar gestiones para la consolidación de los programas de bienestar social de las asociadas, asociados y de la colectividad."
+      },
+      {
+        id: 70,
+        numero: 70,
+        denominacion: "ATRIBUCIONES DEL COMITÉ DE PREVISIÓN SOCIAL Y APOYO A LA COLECTIVIDAD",
+        contenido: "El Comité de Previsión Social y Apoyo a la Colectividad estará compuesto por 2 miembros, designados por 2 años. Sus atribuciones son: a) Preparar y desarrollar programas de bienestar social en beneficio de los asociados y sus familiares, conforme a lo dispuesto por la Ley General de Cooperativas. b) Utilizar los recursos asignados por el Consejo de Administración, de conformidad a lo dispuesto por el Artículo 45 de la Ley General de Cooperativas. c) Presentar al Consejo de Administración el informe de las labores realizadas, al finalizar la gestión económica. d) Otras, de acuerdo a las necesidades de la Cooperativa."
+      },
+      {
+        id: 71,
+        numero: 71,
+        denominacion: "REGLAS APLICABLES A LAS COMISIONES O COMITÉS",
+        contenido: "Todos los comités tienen la obligación de entregar sus informes ante el Consejo de Administración, para que este los eleve a conocimiento y consideración de la Asamblea General."
+      },
+      {
+        id: 72,
+        numero: 72,
+        denominacion: "COMISIONES O COMITÉS",
+        contenido: "La Asamblea General podrá conformar otras comisiones o comités que sean necesarios para el funcionamiento y operatividad de la cooperativa."
+      }
     ]
   },
   {
@@ -409,13 +499,13 @@ export const ESTATUTO_CAPITULOS = [
         id: 73,
         numero: 73,
         denominacion: "INTEGRACIÓN DE LA COOPERATIVA",
-        contenido: "La Cooperativa fomentará la integración cooperativa en sus niveles económico, social y educativo, conforme al artículo 6 de la Ley General de Cooperativas Nº 356.\n\nSin afectar su autonomía de gestión, la Cooperativa podrá integrarse a organizaciones de grado superior del sistema cooperativo, tales como la Federación Departamental de Cooperativas Mineras de La Paz (FECOMAN L.P.), la Federación Nacional de Cooperativas Mineras de Bolivia (FENCOMIN R.L.) y la Confederación Nacional de Cooperativas de Bolivia (CONCOBOL)."
+        contenido: "En el marco del Derecho Cooperativo, es la unión de las cooperativas para formar parte del Sistema Cooperativo y ser representadas a nivel regional, departamental, nacional e internacional, con la finalidad de fortalecerse económica, técnica, tecnológica, financiera y administrativamente, además de mejorar las condiciones sociales, deportivas y culturales de la Cooperativa."
       },
       {
         id: 74,
         numero: 74,
         denominacion: "DE LA AFILIACIÓN",
-        contenido: "La afiliación, desafiliación o la modificación de la participación de la Cooperativa en las organizaciones de grado superior se resolverá por la Asamblea General Extraordinaria, mediante votación de dos tercios de las asociadas y asociados presentes.\n\nLos aportes de integración se presupuestarán anualmente y su ejecución será fiscalizada por el Consejo de Vigilancia."
+        contenido: "La afiliación será al siguiente nivel superior existente, según corresponda y conforme a lo establecido en el Art. 81 de la Ley General de Cooperativas."
       }
     ]
   },
@@ -430,91 +520,82 @@ export const ESTATUTO_CAPITULOS = [
         id: 75,
         numero: 75,
         denominacion: "REGLAMENTOS ESPECÍFICOS",
-        contenido: "La Cooperativa se dotará de Reglamentos Específicos para regular de manera detallada las materias de régimen disciplinario, conciliación y arbitraje cooperativo, y régimen electoral, conforme a las bases establecidas en el presente CAPÍTULO VI, la Ley General de Cooperativas Nº 356 y su Decreto Supremo Reglamentario Nº 1995."
+        contenido: "Para el funcionamiento interno de la Cooperativa, tendrá como mínimo los siguientes Reglamentos Específicos: a. Reglamento Disciplinario. b. Reglamento de Conciliación y Arbitraje. c. Reglamento Electoral. d. Reglamento Interno. e. Otros, de acuerdo a la necesidad de la Cooperativa."
       },
       {
         id: 76,
         numero: 76,
         denominacion: "TRIBUNAL DE HONOR",
-        contenido: "El Tribunal de Honor es el órgano encargado de conocer y sustanciar los procesos disciplinarios contra las asociadas, asociados, consejeras y consejeros, integrantes de Comités y personal de apoyo de la Cooperativa.\n\nSerá elegido por la Asamblea General Ordinaria y ejercerá sus funciones con independencia, imparcialidad y respeto al debido proceso.",
+        contenido: "El Tribunal de Honor estará constituido por un presidente, un secretario y un Vocal como titulares, designados por la Asamblea General Ordinaria por el periodo de 2 años.",
         subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
       },
       {
         id: 77,
         numero: 77,
         denominacion: "REQUISITOS",
-        contenido: "Para ser miembro del Tribunal de Honor se requiere:\na) Ser asociada o asociado en ejercicio pleno de sus derechos.\nb) No registrar sanciones disciplinarias durante la gestión inmediatamente anterior.\nc) No tener vínculo de parentesco con las partes involucradas en los procesos a su cargo.\nd) Acreditar idoneidad moral y compromiso institucional.",
-        subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
+        contenido: "Para ser miembro del Tribunal de Honor se requiere: a) Tener amplio conocimiento de la cooperativa y una antigüedad mínima de 2 años como asociada o asociado. b) Ser cooperativista minero meritorio y reconocido por su intachable conducta."
       },
       {
         id: 78,
         numero: 78,
         denominacion: "LUGAR DE SESIONES",
-        contenido: "El Tribunal de Honor sesionará en el domicilio de la Cooperativa, o en el lugar que expresamente se señale en la citación, garantizando el acceso y la privacidad necesarios para el adecuado desarrollo del proceso disciplinario.",
-        subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
+        contenido: "El Tribunal de Honor deberá realizar sus sesiones y actuados en el domicilio legal de la cooperativa."
       },
       {
         id: 79,
         numero: 79,
-        denominacion: "ATRIBUCIÓN",
-        contenido: "Es atribución del Tribunal de Honor conocer los casos de presuntas infracciones a la Ley, el Estatuto Orgánico, el Reglamento Interno y las resoluciones sociales, así como proponer a la Asamblea General Extraordinaria las sanciones de exclusión o expulsión, previa sustanciación del proceso.",
-        subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
+        denominacion: "ATRIBUCIÓN DEL TRIBUNAL DE HONOR",
+        contenido: "a. Realizar procesos investigativos y sumariales, previo informe y a convocatoria del Consejo de Administración y/o Vigilancia, a consejeros, asociadas y asociados que infrinjan las normas cooperativas, el presente Estatuto y el Reglamento Interno. b. Recibir denuncias y solicitar a los Consejos los antecedentes de las asociadas y asociados denunciados. c. Presentar ante los Consejos y la Asamblea General Extraordinaria el informe de los procesos sumariales y su dictamen, debiendo la Asamblea General Extraordinaria emitir la resolución final en caso de expulsión, y en grado de apelación para el caso de exclusión."
       },
       {
         id: 80,
         numero: 80,
-        denominacion: "INFRACCIONES Y SANCIONES",
-        contenido: "Las infracciones se clasifican en leves, graves y muy graves, conforme a la escala establecida en el Reglamento Específico de Régimen Disciplinario.\n\nLas sanciones aplicables son:\na) Amonestación verbal.\nb) Amonestación escrita.\nc) Multa, conforme a la escala aprobada por la Asamblea General.\nd) Suspensión temporal de derechos (exclusión).\ne) Expulsión, previo proceso y aprobación de dos tercios de la Asamblea General Extraordinaria.",
-        subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
+        denominacion: "DE LAS INFRACCIONES Y SANCIONES",
+        contenido: "I. Las infracciones cometidas por las asociadas y asociados, según su gravedad, serán: a. Leves. b. Graves. c. Gravísimas. II. Las sanciones impuestas de acuerdo a la gravedad serán: a. Amonestación. b. Multa. c. Exclusión. d. Expulsión. III. El Reglamento Interno de la Cooperativa dispondrá los procesos, la tipificación de infracciones y el procedimiento."
       },
       {
         id: 81,
         numero: 81,
-        denominacion: "PROCEDIMIENTO SANCIONADOR",
-        contenido: "El procedimiento sancionador observará las siguientes etapas:\na) Denuncia o informe del Consejo de Administración, del Consejo de Vigilancia o de cualquier asociada o asociado.\nb) Apertura del sumario por el Tribunal de Honor y notificación al presunto infractor.\nc) Etapa probatoria y descargos con pleno respeto al derecho a la defensa.\nd) Informe y dictamen del Tribunal de Honor.\ne) Resolución de la instancia competente y, en su caso, de la Asamblea General Extraordinaria.",
-        subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
+        denominacion: "PROCEDIMIENTO SANCIONADOR DE EXCLUSIÓN Y EXPULSIÓN",
+        contenido: "La exclusión y expulsión de asociadas y asociados será realizada previo proceso sumario ante el Tribunal de Honor, bajo el siguiente procedimiento: 1. Etapa de Iniciación: se formalizará con la notificación al o los asociados presuntos infractores, con los cargos que se les atribuyen, advirtiéndoles que de no presentar pruebas de descargo o alegaciones en el término previsto en el siguiente numeral, se emitirá la resolución correspondiente. 2. Etapa de Tramitación: los presuntos infractores, en el plazo de veinte (20) días calendario a partir de su notificación, podrán presentar todas las pruebas, alegaciones, documentos e información que crean convenientes a sus intereses. 3. Etapa de Terminación: vencido el término de prueba, el Tribunal de Honor, en el plazo de diez (10) días calendario, emitirá resolución que imponga o desestime la sanción de exclusión o expulsión de la asociada o asociado. 4. En caso de imponerse sanción, esta deberá consignar básicamente la causal atribuida, el nombre y apellido completo y la cédula de identidad; se remitirán los actuados en el término de diez (10) días calendario a conocimiento del Consejo de Administración y Vigilancia, quien los elevará ante la Asamblea General Extraordinaria como instancia de apelación para el caso de exclusión, y para el caso de expulsión, para su correspondiente aprobación por la Asamblea General Extraordinaria. En ambos casos, la decisión final será tomada por dos terceras partes de las asociadas y asociados presentes."
       },
       {
         id: 82,
         numero: 82,
         denominacion: "INFORMES Y DICTÁMENES",
-        contenido: "El Tribunal de Honor emitirá informes y dictámenes escritos, fundamentados y oportunos, dentro de los plazos establecidos en el Reglamento Específico de Régimen Disciplinario.\n\nLos dictámenes serán puestos en conocimiento de los Consejos de Administración y Vigilancia y, cuando corresponda, de la Asamblea General Extraordinaria, garantizando la reserva del proceso en lo pertinente.",
-        subseccion: "SUBSECCIÓN I — RÉGIMEN DISCIPLINARIO"
+        contenido: "Los informes y dictámenes emitidos por el Tribunal de Honor deberán contar con el voto favorable de la mitad más uno de sus miembros."
       },
       {
         id: 83,
         numero: 83,
-        denominacion: "JUNTA DE CONCILIACIÓN",
-        contenido: "La Junta de Conciliación es el órgano encargado de promover la solución armónica de los conflictos internos de la Cooperativa, mediante la conciliación y la mediación.\n\nSerá elegida por la Asamblea General Ordinaria y actuará con neutralidad, procurando preservar la unidad y la convivencia cooperativa.",
+        denominacion: "DE LA CONFORMACIÓN DE LA JUNTA DE CONCILIACIÓN",
+        contenido: "I. Para la solución de controversias al interior de la cooperativa, se conformará la Junta de Conciliación. II. Estará conformada por 2 asociadas y asociados elegidos en Asamblea General Ordinaria, y durarán en sus funciones 2 años.",
         subseccion: "SUBSECCIÓN II — CONCILIACIÓN Y ARBITRAJE COOPERATIVO"
       },
       {
         id: 84,
         numero: 84,
-        denominacion: "ACEPTACIÓN",
-        contenido: "La conciliación es de aplicación voluntaria. Las partes podrán someter sus diferencias a la Junta de Conciliación mediante aceptación escrita, de manera previa o posterior al surgimiento del conflicto.\n\nLos acuerdos conciliatorios constarán en acta y tendrán fuerza obligatoria entre las partes, conforme al Reglamento Específico de Conciliación y Arbitraje.",
-        subseccion: "SUBSECCIÓN II — CONCILIACIÓN Y ARBITRAJE COOPERATIVO"
+        denominacion: "ACEPTACIÓN DE LAS ASOCIADAS Y ASOCIADOS AL PROCEDIMIENTO DE SOLUCIÓN DE CONTROVERSIAS",
+        contenido: "Las asociadas y asociados, a tiempo de afiliarse a la cooperativa, en el marco de la Ley General de Cooperativas, su Decreto Reglamentario, el presente Estatuto y los reglamentos internos, aceptan sujetarse al procedimiento de solución de controversias a cargo de la Junta de Conciliación."
       },
       {
         id: 85,
         numero: 85,
         denominacion: "ARBITRAJE COOPERATIVO",
-        contenido: "Los conflictos que no sean resueltos mediante conciliación podrán someterse a arbitraje cooperativo de equidad, según las reglas que fije el Reglamento Específico de Conciliación y Arbitraje, dentro del marco de la Ley General de Cooperativas Nº 356 y la legislación aplicable.",
-        subseccion: "SUBSECCIÓN II — CONCILIACIÓN Y ARBITRAJE COOPERATIVO"
+        contenido: "I. Los mecanismos de arbitraje estarán contemplados en el Reglamento Especial aprobado por la Asamblea de la CONCOBOL, y se regirán por las normas de conciliación y arbitraje vigentes. II. Las resoluciones y actas emitidas por el Tribunal de Arbitraje o Conciliación serán definitivas e inapelables."
       },
       {
         id: 86,
         numero: 86,
         denominacion: "COMITÉ ELECTORAL",
-        contenido: "El Comité Electoral es el órgano encargado de conducir los procesos de elección de las consejeras, consejeros y miembros de los Comités de la Cooperativa.\n\nSerá designado por la Asamblea General Ordinaria saliente y garantizará la transparencia, imparcialidad y legalidad del proceso electoral.",
+        contenido: "El Comité Electoral es el órgano encargado de coordinar, supervisar y coadyuvar el proceso electoral del Consejo de Administración, Consejo de Vigilancia y demás comités. I. Mediante Asamblea General Ordinaria se procederá a la elección del Comité Electoral, compuesto por 3 asociadas y asociados, quienes durarán en su mandato desde su elección hasta la culminación del proceso electoral.",
         subseccion: "SUBSECCIÓN III — RÉGIMEN ELECTORAL"
       },
       {
         id: 87,
         numero: 87,
         denominacion: "ELECCIÓN DE CONSEJEROS",
-        contenido: "La elección de las consejeras y consejeros y de los miembros de los Comités se realizará en Asamblea General, mediante voto directo, igual, universal y secreto, conforme al Reglamento Específico de Régimen Electoral.\n\nCorresponde a la asociada o asociado elegido o elegida aceptar el cargo conforme a las condiciones que determine la Asamblea General.",
-        subseccion: "SUBSECCIÓN III — RÉGIMEN ELECTORAL"
+        contenido: "I. Las disposiciones respecto a la forma y el procedimiento de elecciones, así como el tipo y modalidad de votación, se definirán en el Reglamento Interno de Régimen Electoral aprobado por la Asamblea General. II. La emisión del voto en las elecciones o en las asambleas es personal. No podrá ser delegado a terceras personas."
       }
     ]
   },
@@ -529,43 +610,43 @@ export const ESTATUTO_CAPITULOS = [
         id: 88,
         numero: 88,
         denominacion: "CIERRE DE GESTIÓN",
-        contenido: "La gestión económica de la Cooperativa se computará del uno (1) de enero al treinta y uno (31) de diciembre de cada año, fecha en la que se establecerá el cierre de gestión.\n\nAl cierre, la Tesorería, conjuntamente con el Consejo de Administración, procederá al corte, balance y elaboración de los estados financieros, con la fiscalización del Consejo de Vigilancia."
+        contenido: "Concluido el ejercicio económico, se elaborarán los Estados Financieros aplicando normas de contabilidad generalmente aceptadas. Dichos estados financieros estarán compuestos mínimamente por: a. Balance General con todos sus anexos. b. Estado de Resultados. c. Balance de Comprobación de Sumas y Saldos. d. Estado de Resultados Acumulados. e. Estado de Cambios en la Situación Financiera. Todos estos trabajos estarán bajo la responsabilidad del Tesorero del Consejo de Administración, con la participación de un(a) profesional del área contable."
       },
       {
         id: 89,
         numero: 89,
         denominacion: "APROBACIÓN DE LOS ESTADOS FINANCIEROS",
-        contenido: "Los estados financieros, junto con el informe del Consejo de Vigilancia, serán presentados a la Asamblea General Ordinaria para su análisis y aprobación, dentro de los plazos que establezca el Reglamento Interno.\n\nLa aprobación de los estados financieros no libera de responsabilidad a las consejeras y consejeros por los actos de su gestión."
+        contenido: "Previo pronunciamiento del Consejo de Vigilancia, los Estados Financieros serán presentados por el Consejo de Administración a la Asamblea General Ordinaria para su consideración y aprobación."
       },
       {
         id: 90,
         numero: 90,
         denominacion: "MEMORIA ANUAL",
-        contenido: "El Consejo de Administración presentará a la Asamblea General Ordinaria la Memoria Anual de la gestión, que contendrá la memoria de actividades, los estados financieros, el informe de ejecución del presupuesto, la propuesta de distribución de excedentes y las proyecciones de la siguiente gestión."
+        contenido: "Los Consejos de Administración, de Vigilancia y los Comités elaborarán la Memoria Anual para su presentación a la Asamblea General Ordinaria, para su consiguiente revisión y aprobación."
       },
       {
         id: 91,
         numero: 91,
         denominacion: "PRESENTACIÓN PARA REGISTRO",
-        contenido: "Los estados financieros y la memoria anual aprobados serán remitidos a la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP), en los plazos y formas que disponga la normativa vigente, para fines de registro, control y fiscalización."
+        contenido: "El Consejo de Administración elevará a la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP), para su registro, los Estados Financieros y la Memoria Anual aprobados por la Asamblea General."
       },
       {
         id: 92,
         numero: 92,
         denominacion: "LIBROS DE REGISTRO",
-        contenido: "La Cooperativa llevará obligatoriamente, entre otros, los siguientes libros:\na) Libro de Registro de Asociadas y Asociados.\nb) Libro de Actas de Asambleas Generales.\nc) Libro de Actas del Consejo de Administración.\nd) Libro de Actas del Consejo de Vigilancia.\ne) Libro de Actas del Tribunal de Honor, Junta de Conciliación y Comités.\nf) Libro de Contabilidad, Inventarios y de Registro de Aportaciones.\n\nLos libros deberán estar foliados, sellados y habilitados conforme a la normativa vigente."
+        contenido: "La Cooperativa dispondrá, para el registro de sus actos y actividades, de los siguientes libros: a. De Actas para Asambleas Generales. b. Registro de asociadas y asociados. c. De actas para cada Consejo y Comités. d. De Contabilidad, Caja, Diario y Mayor. En todos los libros citados queda terminantemente prohibido: a) Alterar los asientos y el orden progresivo de las fechas. b) Dejar espacios en blanco o efectuar raspaduras. c) Arrancar hojas o mutilar alguna parte del libro."
       },
       {
         id: 93,
         numero: 93,
         denominacion: "APERTURA DE LIBROS",
-        contenido: "Los libros contables y de registro serán aperturados y habilitados por la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP) o la autoridad competente, y se custodiarán bajo la responsabilidad de la Secretaría General y la Tesorería, conforme al presente Estatuto y el Reglamento Interno."
+        contenido: "La apertura de libros se hará obligatoriamente por medio de un Notario de Fe Pública. Los registros realizados en libros no autorizados carecen de valor legal."
       },
       {
         id: 94,
         numero: 94,
         denominacion: "NUEVOS LIBROS",
-        contenido: "Cuando se hubiera concluido un libro, se aperturará uno nuevo con la autorización correspondiente, dejándose constancia del cierre del anterior y del número de folios utilizados. La apertura, conservación y custodia de los libros se sujetará a la normativa vigente."
+        contenido: "Para la apertura de nuevos libros será requisito indispensable haber llenado los libros anteriores y haber procedido con el cierre del mismo."
       }
     ]
   },
@@ -580,31 +661,31 @@ export const ESTATUTO_CAPITULOS = [
         id: 95,
         numero: 95,
         denominacion: "DISOLUCIÓN Y LIQUIDACIÓN",
-        contenido: "La Cooperativa se disolverá por las causas previstas en la Ley General de Cooperativas Nº 356, su Decreto Supremo Reglamentario Nº 1995 y el presente Estatuto, mediante resolución de la Asamblea General Extraordinaria adoptada por dos tercios de los votos de las asociadas y asociados habilitados.\n\nLa disolución podrá ser con liquidación o sin liquidación, conforme a la forma prevista por la Asamblea y la normativa vigente."
+        contenido: "La cooperativa se disolverá conforme a las causales establecidas en el Art. 71 de la Ley General de Cooperativas, y para la liquidación se seguirá el procedimiento establecido en la Ley General de Cooperativas, el Decreto Supremo Reglamentario y los reglamentos dispuestos por la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP)."
       },
       {
         id: 96,
         numero: 96,
         denominacion: "FUSIÓN",
-        contenido: "La Cooperativa podrá fusionarse con una o más cooperativas mediante la reunión de sus patrimonios y la integración de sus asociadas y asociados en una nueva cooperativa, previa resolución de fusión adoptada por dos tercios de los votos en Asamblea General Extraordinaria, conforme a la Ley."
+        contenido: "Procede cuando dos o más cooperativas se disuelven sin liquidarse para constituir una nueva."
       },
       {
         id: 97,
         numero: 97,
         denominacion: "ESCISIÓN",
-        contenido: "La Cooperativa podrá escindirse dividiendo su patrimonio y su activo y pasivo en dos o más cooperativas, previa resolución de escisión adoptada por dos tercios de los votos en Asamblea General Extraordinaria, conforme a la Ley General de Cooperativas Nº 356 y su Decreto Supremo Reglamentario Nº 1995."
+        contenido: "Procede cuando una cooperativa destina una parte del Fondo Social para constituir una nueva cooperativa."
       },
       {
         id: 98,
         numero: 98,
         denominacion: "ABSORCIÓN",
-        contenido: "La Cooperativa podrá ser absorbida por otra cooperativa o absorber a otra u otras, conservando la cooperativa absorbente la personalidad jurídica y asumiendo los derechos y obligaciones de la absorción, previa resolución adoptada por dos tercios de los votos en Asamblea General Extraordinaria."
+        contenido: "Procede cuando una cooperativa incorpora a otra u otras que se disuelven sin liquidarse."
       },
       {
         id: 99,
         numero: 99,
         denominacion: "DESTINO DEL REMANENTE",
-        contenido: "Concluida la liquidación, el remanente del patrimonio social, una vez cubiertas las obligaciones sociales y devuelto el valor del Certificado de Aportación, tendrá como destino:\na) En caso de disolución con liquidación, su entrega a una entidad cooperativa o de economía solidaria designada por la Asamblea General.\nb) En ningún caso, la distribución del remanente entre las asociadas y asociados a título de utilidad.\n\nEl destino del remanente se sujetará a la Ley General de Cooperativas Nº 356 y a la legislación vigente."
+        contenido: "Una vez ordenada su liquidación por las autoridades competentes, se pagarán las deudas y se devolverá el valor nominal actualizado del certificado de aportación; el remanente se entregará a la cooperativa de grado superior a la que está afiliada o, en su defecto, a otra cooperativa del lugar, con destino a educación y fomento cooperativo."
       }
     ]
   },
