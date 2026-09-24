@@ -14,7 +14,12 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
   }
 
   const irABiblioteca = (card) => {
-    cerrarTodo(card.title === 'Reglamento Interno' ? 'reglamento' : 'en-desarrollo')
+    const destino = card.title === 'Reglamento Interno'
+      ? 'reglamento'
+      : card.title === 'Estatuto Orgánico'
+        ? 'estatuto'
+        : 'en-desarrollo'
+    cerrarTodo(destino)
   }
 
   return (
@@ -98,7 +103,7 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
                       {card.title}
                     </span>
                     <span className={`font-mono text-[10px] shrink-0 ${dark ? 'text-[#476EAE]' : 'text-[#294669]'}`}>
-                      {card.title === 'Reglamento Interno' ? '📜' : '🚧'}
+                      {card.enDesarrollo === true ? '🚧' : '📜'}
                     </span>
                   </button>
                 ))}
@@ -180,7 +185,7 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
                       <span className="text-base" style={{ color: card.color }}>{card.icon}</span>
                       <span className="flex-1 min-w-0 leading-tight">{card.title}</span>
                       <span className="font-mono text-[10px] shrink-0">
-                        {card.title === 'Reglamento Interno' ? '📜' : '🚧'}
+                        {card.enDesarrollo === true ? '🚧' : '📜'}
                       </span>
                     </button>
                   ))}

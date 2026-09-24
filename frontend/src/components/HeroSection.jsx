@@ -15,7 +15,7 @@ export default function HeroSection({ dark, onNavigate }) {
         <img
           src={heroImg}
           alt="Camión de cantera de la Cooperativa Minera Chachacomani"
-          className="absolute inset-0 w-full h-full object-cover z-0"
+          className="absolute inset-0 w-full h-full object-cover z-0 animate-hero-zoom"
           onError={(e) => {
             e.target.style.display = 'none'
             setHeroStage(s => Math.min(s + 1, 2))
@@ -44,23 +44,23 @@ export default function HeroSection({ dark, onNavigate }) {
         }}
       />
 
-      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6 gap-4">
-        <h1 className="font-display font-bold text-white text-5xl md:text-6xl leading-none tracking-widest">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 sm:px-6 gap-3 sm:gap-4">
+        <h1 className="font-display font-bold text-white text-3xl sm:text-5xl lg:text-6xl leading-none tracking-widest">
           COOPERATIVA MINERA
         </h1>
-        <h2 className="font-display font-semibold text-[#E4D329] text-lg md:text-2xl tracking-[0.2em]">
+        <h2 className="font-display font-semibold text-[#E4D329] text-base sm:text-xl md:text-2xl tracking-[0.18em] sm:tracking-[0.2em]">
           AURÍFERA NEVADO CHACHACOMANI R.L.
         </h2>
 
-        <p className="font-body text-[#A7E399] text-sm max-w-xl leading-relaxed opacity-90">
+        <p className="font-body text-[#A7E399] text-xs sm:text-sm max-w-xl leading-relaxed opacity-90">
           Accede a toda la normativa legal vigente: estatutos, reglamentos internos
           y procedimientos institucionales de la Cooperativa.
         </p>
 
-        <div className="flex gap-4 flex-wrap justify-center mt-2">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center w-full sm:w-auto mt-2">
           <button
             onClick={() => onNavigate('reglamento')}
-            className="font-display font-bold tracking-widest px-8 py-3 rounded-lg text-[#0D0B61] transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+            className="font-display font-bold tracking-widest px-8 py-3 rounded-lg text-[#0D0B61] transition-all duration-300 hover:scale-105 hover:shadow-2xl w-full sm:w-auto"
             style={{
               background: 'linear-gradient(135deg,#E4D329,#F6FF99)',
               boxShadow: '0 4px 28px rgba(228,211,41,.5)',
@@ -70,7 +70,7 @@ export default function HeroSection({ dark, onNavigate }) {
           </button>
           <button
             onClick={() => onNavigate('login')}
-            className="font-display font-bold tracking-widest px-8 py-3 rounded-lg text-white border border-[#48B3AF] hover:bg-[#48B3AF]/18 transition-all duration-300"
+            className="font-display font-bold tracking-widest px-8 py-3 rounded-lg text-white border border-[#48B3AF] hover:bg-[#48B3AF]/18 transition-all duration-300 w-full sm:w-auto"
           >
             INICIAR SESIÓN
           </button>

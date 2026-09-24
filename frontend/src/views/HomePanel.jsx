@@ -26,7 +26,7 @@ export default function HomePanel({ dark, onNavigate, onToggleTheme }) {
               style={{ background: 'linear-gradient(90deg, transparent, #E4D329, transparent)' }} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
             {CARDS.map(card => (
               <DocumentCard key={card.id} card={card} dark={dark} onNavigate={onNavigate} />
             ))}

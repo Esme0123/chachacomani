@@ -312,6 +312,21 @@
   animation: slowPan 22s ease-in-out infinite;
 }
 
+/* 5b. Zoom Continuo Ken Burns para el Hero */
+@keyframes continuousZoom {
+  0%, 100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.animate-hero-zoom {
+  animation: continuousZoom 20s ease-in-out infinite;
+}
+
 /* 6. Elevación al pasar el cursor */
 .card-lift {
   transition: transform .28s ease, box-shadow .28s ease;

@@ -1,36 +1,36 @@
 export const CARDS = [
   {
-    id: 1, title: 'Estatuto Orgánico', effect: 'electric',
+    id: 1, title: 'Estatuto Orgánico', effect: 'electric', enDesarrollo: false,
     icon: '⚖️', chapter: 'VIII Capítulos', color: '#E4D329',
     imagen: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80',
     desc: 'Marco legal fundamental que rige la estructura, organización y funcionamiento de la Cooperativa Minera.',
   },
   {
-    id: 2, title: 'Reglamento Disciplinario', effect: 'glow',
+    id: 2, title: 'Reglamento Disciplinario', effect: 'glow', enDesarrollo: true,
     icon: '📋', chapter: '45 Artículos', color: '#48B3AF',
     imagen: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80',
     desc: 'Normas de conducta y procedimientos disciplinarios para socios, directivos y trabajadores.',
   },
   {
-    id: 3, title: 'Conciliación y Arbitraje', effect: 'electric',
+    id: 3, title: 'Conciliación y Arbitraje', effect: 'electric', enDesarrollo: true,
     icon: '🤝', chapter: 'III Secciones', color: '#A7E399',
     imagen: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?auto=format&fit=crop&w=800&q=80',
     desc: 'Procedimientos de resolución de conflictos internos mediante mediación, conciliación y arbitraje.',
   },
   {
-    id: 4, title: 'Reglamento Electoral', effect: 'glow',
+    id: 4, title: 'Reglamento Electoral', effect: 'glow', enDesarrollo: true,
     icon: '🗳️', chapter: '32 Artículos', color: '#476EAE',
     imagen: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
     desc: 'Normas que rigen los procesos de elección de directivos y representantes de la Cooperativa.',
   },
   {
-    id: 5, title: 'Reglamento Interno', effect: 'electric', featured: true,
+    id: 5, title: 'Reglamento Interno', effect: 'electric', featured: true, enDesarrollo: false,
     icon: '📜', chapter: 'XII Títulos', color: '#F6FF99',
     imagen: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80',
     desc: 'Normativa integral sobre operaciones diarias, derechos y obligaciones de todos los socios.',
   },
   {
-    id: 6, title: 'Seguridad e Higiene', effect: 'glow',
+    id: 6, title: 'Seguridad e Higiene', effect: 'glow', enDesarrollo: true,
     icon: '⛑️', chapter: 'ISO 45001', color: '#48B3AF',
     imagen: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
     desc: 'Protocolos de seguridad ocupacional, higiene industrial y gestión ambiental responsable.',

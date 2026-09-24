@@ -130,6 +130,13 @@ export default function NormativaReaderView({ documento, onVolver }) {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // Título dinámico de la pestaña según el documento leído.
+    useEffect(() => {
+        const baseTitle = 'Coop. Minera Aurífera Nevado Chachacomani R.L.';
+        document.title = metadata?.tipo ? `${metadata.tipo} | ${baseTitle}` : baseTitle;
+        return () => { document.title = baseTitle; };
+    }, [metadata?.tipo]);
+
     const toggleTheme = () => setIsDark(!isDark);
     const increaseFontSize = () => setFontSize((prev) => Math.min(prev + 1, 22));
     const decreaseFontSize = () => setFontSize((prev) => Math.max(prev - 1, 13));

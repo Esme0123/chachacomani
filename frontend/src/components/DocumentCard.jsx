@@ -5,6 +5,7 @@ export default function DocumentCard({ card, dark, onNavigate }) {
   const [hovered, setHovered] = useState(false)
   const esReglamento = card.title === 'Reglamento Interno'
   const esEstatuto = card.title === 'Estatuto Orgánico'
+  const esDocumentoOficial = card.enDesarrollo === false || esReglamento || esEstatuto
   const abrir = () => onNavigate(esReglamento ? 'reglamento' : esEstatuto ? 'estatuto' : 'en-desarrollo')
 
   const contenido = (
@@ -139,12 +140,14 @@ export default function DocumentCard({ card, dark, onNavigate }) {
             </div>
 
             <span className="font-mono text-[10px] tracking-widest text-[#E4D329] border border-[#E4D329]/50 rounded-full px-3 py-1 whitespace-nowrap">
-              {esReglamento ? 'DOCUMENTO OFICIAL' : 'SECCIÓN EN DESARROLLO'}
+              {esDocumentoOficial ? 'DOCUMENTO OFICIAL' : 'SECCIÓN EN DESARROLLO'}
             </span>
             <h3 className="font-display font-bold text-white text-lg leading-tight">{card.title}</h3>
             <p className="text-[#A7E399] text-xs leading-relaxed opacity-90">
-              {esReglamento
-                ? 'Normativa integral disponible en el portal de lectura protegida de la Cooperativa.'
+              {esDocumentoOficial
+                ? esEstatuto
+                  ? 'Marco legal disponible en el portal de lectura protegida de la Cooperativa.'
+                  : 'Normativa integral disponible en el portal de lectura protegida de la Cooperativa.'
                 : 'Sección en desarrollo. Este documento normativo estará disponible próximamente.'}
             </p>
             <button
@@ -152,7 +155,7 @@ export default function DocumentCard({ card, dark, onNavigate }) {
               className="px-5 py-2 rounded-lg font-display font-bold text-xs tracking-wider text-[#0D0B61] transition-all hover:scale-105"
               style={{ background: 'linear-gradient(135deg,#E4D329,#F6FF99)', boxShadow: '0 4px 20px rgba(228,211,41,.45)' }}
             >
-              {esReglamento ? 'Ver Documento' : '🚧 En Desarrollo'}
+              {esDocumentoOficial ? 'Ver Documento' : '🚧 En Desarrollo'}
             </button>
           </div>
         </div>

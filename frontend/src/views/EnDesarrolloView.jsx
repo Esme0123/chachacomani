@@ -8,7 +8,6 @@ const ICONOS_MINERIA = [
 
 export default function EnDesarrolloView({ onVolver }) {
   const documentos = [
-    { title: 'Estatuto Orgánico', icon: '⚖️', color: '#E4D329' },
     { title: 'Reglamento Disciplinario', icon: '📋', color: '#48B3AF' },
     { title: 'Conciliación y Arbitraje', icon: '🤝', color: '#A7E399' },
     { title: 'Reglamento Electoral', icon: '🗳️', color: '#476EAE' },
