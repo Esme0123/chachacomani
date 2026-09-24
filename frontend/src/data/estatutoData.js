@@ -699,22 +699,22 @@ export const ESTATUTO_CAPITULOS = [
       {
         id: 100,
         numero: "Primera",
-        denominacion: "NORMAS DE DESARROLLO",
-        contenido: "Quedan facultadas la Asamblea General y el Consejo de Administración para dictar los reglamentos internos, resoluciones y disposiciones complementarias que resulten necesarios para la aplicación y cumplimiento del presente Estatuto Orgánico, dentro del marco de la Ley General de Cooperativas Nº 356.",
+        denominacion: "REFORMA DEL ESTATUTO",
+        contenido: "El presente Estatuto podrá ser modificado de forma parcial o total, en Asamblea General Extraordinaria convocada para el efecto, con la aprobación de dos terceras partes de los asociados presentes en asamblea, el que será presentado dentro de los 45 días siguientes a la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP) para su homologación.",
         esDisposicion: true
       },
       {
         id: 101,
         numero: "Segunda",
         denominacion: "CASOS NO PREVISTOS",
-        contenido: "Los casos no previstos en el presente Estatuto Orgánico serán resueltos por la Asamblea General Extraordinaria, con sujeción a lo dispuesto por la Constitución Política del Estado, la Ley General de Cooperativas Nº 356, su Decreto Supremo Reglamentario Nº 1995 y las disposiciones emitidas por la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP).",
+        contenido: "Los casos no previstos en el presente Estatuto serán resueltos preferentemente en el marco de la Ley General de Cooperativas y su Decreto Supremo Reglamentario. Supletoriamente a las anteriores, se aplicarán las normas de la cooperativa de grado inmediato superior y, sucesivamente, las que sigan en grado.",
         esDisposicion: true
       },
       {
         id: 102,
         numero: "Tercera",
         denominacion: "VIGENCIA",
-        contenido: "El presente Estatuto Orgánico entra en vigencia a partir de su aprobación por la Asamblea General y de su registro ante la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP).\n\nToda disposición estatutaria anterior que contravenga el presente Estatuto queda sin efecto.",
+        contenido: "El presente Estatuto, compuesto de 99 artículos, VIII capítulos y tres disposiciones finales, entrará en vigencia una vez que esté aprobado mediante Resolución Administrativa de la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP).",
         esDisposicion: true
       }
     ]
