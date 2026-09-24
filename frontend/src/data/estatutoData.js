@@ -193,86 +193,86 @@ export const ESTATUTO_CAPITULOS = [
         id: 25,
         numero: 25,
         denominacion: "DEL FONDO SOCIAL",
-        contenido: "El Fondo Social de la Cooperativa estará constituido por las aportaciones de las asociadas y asociados, con un valor unitario de Bs. 10.000.- (DIEZ MIL 00/100 BOLIVIANOS) por Certificado de Aportación.\n\nEl monto, forma y plazos de pago podrán ser modificados por la Asamblea General Extraordinaria conforme al presente Estatuto y la Ley General de Cooperativas Nº 356."
+        contenido: "El fondo social de la cooperativa es variable e ilimitado, constituido por certificados de aportación nominativos y transferibles conforme a la Ley General de Cooperativas y su Decreto Supremo Reglamentario, con un valor unitario de Bs. 10.000.- (monto consignado en el Certificado de Aportación de la Cooperativa), el cual además será incrementado por: a. El valor de los certificados de aportación suscritos y pagados. b. El valor del inventario de bienes muebles, inmuebles y otros sujetos a registro. c. Los créditos, subvenciones y donativos que se hagan a favor de la cooperativa. d. Los fondos de reserva y otros utilizados para los fines creados, con el porcentaje de los excedentes que se destinen para este objetivo."
       },
       {
         id: 26,
         numero: 26,
         denominacion: "CERTIFICADO DE APORTACIÓN",
-        contenido: "El Certificado de Aportación es el título nominativo, indivisible y de igual valor que acredita la calidad de asociada o asociado y que representa el aporte social en el Fondo Social de la Cooperativa.\n\nEs nominativo, indivisible y sólo transferible en los casos y condiciones establecidos por la Ley General de Cooperativas Nº 356, su Decreto Supremo Reglamentario Nº 1995 y el presente Estatuto Orgánico."
+        contenido: "I. Los certificados de aportación son nominativos, indivisibles y solo transferibles en las condiciones que determina la Ley General de Cooperativas, su Decreto Supremo Reglamentario, el presente Estatuto y el Reglamento Interno. Pueden ser pagados en dinero efectivo, en bienes negociables y en trabajo personal. II. El valor de los certificados de aportación podrá ser modificado de acuerdo a la reglamentación interna y aprobado por Asamblea General Ordinaria. El nuevo valor será aplicado a las nuevas incorporaciones de asociadas y asociados a partir de la aprobación de su inclusión en la Asamblea General Extraordinaria."
       },
       {
         id: 27,
         numero: 27,
         denominacion: "CLASES DE APORTACIONES",
-        contenido: "Las aportaciones de las asociadas y asociados son de las siguientes clases:\na) Aportaciones al Fondo Social: el valor del Certificado de Aportación suscrito y pagado.\nb) Aportaciones al Fondo de Accidente y otros fondos cooperativos: las que establezca la Asamblea General conforme al Reglamento Interno.\nc) Aportaciones extraordinarias: las acordadas por la Asamblea General Extraordinaria.\n\nLas aportaciones no generan intereses y no pueden ser gravadas por las asociadas y asociados."
+        contenido: "Las aportaciones que no son en dinero, sino en especie y fuerza de trabajo, serán valuadas conforme a una escala de costos del sector cooperativo, tomando en cuenta los valores comerciales y del mercado laboral, hasta cubrir el monto del Certificado de Aportación."
       },
       {
         id: 28,
         numero: 28,
         denominacion: "CARACTERÍSTICAS, ALCANCE Y CONTENIDO DEL CERTIFICADO DE APORTACIÓN",
-        contenido: "El Certificado de Aportación contendrá, al menos, los siguientes datos:\na) Nombre de la Cooperativa y de la asociada o asociado titular.\nb) Número correlativo y fecha de emisión.\nc) Valor nominal y forma de pago.\nd) Las firmas del presidente y del secretario del Consejo de Administración.\ne) Las menciones de que es nominativo, indivisible y de igual valor, y de que su transferencia se rige por la Ley y el Estatuto.\n\nEl Certificado de Aportación acredita la calidad de asociada o asociado y los derechos que de ella emanan."
+        contenido: "El certificado de aportación deberá consignar mínimamente las siguientes especificaciones: 1. Denominación; 2. Número de registro de la Cooperativa en la AFCOOP; 3. Clase y domicilio de la Cooperativa; 4. Fecha de su constitución; 5. Nombre de la asociada o asociado; 6. Numeración correlativa; 7. Valor del certificado; 8. Fecha de su otorgamiento; 9. Firmas del presidente, secretario y tesorero del Consejo de Administración; 10. Aquellas dispuestas por la Autoridad de regulación sectorial correspondiente."
       },
       {
         id: 29,
         numero: 29,
         denominacion: "CERTIFICADOS DE PARTICIPACIÓN",
-        contenido: "La Cooperativa podrá emitir Certificados de Participación para captar recursos complementarios de financiamiento, conforme a las condiciones que apruebe la Asamblea General Extraordinaria y la normativa aplicable.\n\nLos Certificados de Participación no confieren la calidad de asociada o asociado y otorgan los derechos que expresamente se les asignen."
+        contenido: "Con el objeto de incrementar recursos para el financiamiento de las operaciones, se emitirán certificados de participación, que pueden ser cubiertos por los asociados o por personas ajenas a la cooperativa, los cuales devengarán un interés no superior al legal."
       },
       {
         id: 30,
         numero: 30,
         denominacion: "REGLAS DE LOS CERTIFICADOS DE PARTICIPACIÓN",
-        contenido: "I. Los Certificados de Participación serán nominativos o al portador, según resolución de la Asamblea General.\n\nII. Su emisión, negociación, redención e intereses se sujetarán a las condiciones aprobadas por la Asamblea General Extraordinaria y a la normativa vigente.\n\nIII. Los Certificados de Participación no podrán emitirse por un monto superior al que la Cooperativa esté en condiciones de redimir, según la evaluación financiera presentada por el Consejo de Administración."
+        contenido: "a. Devengar un interés en favor de su tenedor, establecido en el Reglamento Interno. b. No podrán ser emitidos con plazo superior a diez (10) años. c. Tendrán calidad de documento ejecutivo. d. Los casos de mora en su devolución y pago de intereses se contemplarán en el Reglamento Interno."
       },
       {
         id: 31,
         numero: 31,
         denominacion: "TRANSFERENCIA DEL CERTIFICADO DE APORTACIÓN",
-        contenido: "La transferencia del Certificado de Aportación sólo procederá por sucesión hereditaria y, excepcionalmente, por cesión autorizada conforme al Reglamento Interno.\n\nToda transferencia deberá ser aprobada por la Asamblea General Extraordinaria y comunicada de inmediato a la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP), salvo los casos previstos en la Ley."
+        contenido: "I. Las transferencias de los certificados de aportación se harán mediante solicitud escrita al Consejo de Administración, firmada por los interesados. II. Una vez aceptada, la solicitud debe ser aprobada por la Asamblea General Extraordinaria y asentada en acta, procediéndose a su registro correspondiente en la cooperativa y posterior inscripción ante la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP)."
       },
       {
         id: 32,
         numero: 32,
         denominacion: "PROPIEDAD COLECTIVA E INDIVIDUAL",
-        contenido: "Los bienes, derechos y obligaciones adquiridos por la Cooperativa constituyen patrimonio colectivo de propiedad de la entidad, administrado en beneficio de todas las asociadas y asociados.\n\nLas asociadas y asociados no tienen derechos individuales sobre los bienes sociales, sino sobre su Certificado de Aportación y sobre la redistribución de excedentes de percepción conforme a la Ley y el presente Estatuto."
+        contenido: "I. La propiedad colectiva —los recursos provenientes de las aportaciones de las asociadas y asociados, así como los bienes inmuebles, muebles, donaciones, reservas, fondos y ahorros de la Cooperativa— es de propiedad conjunta y colectiva de todas sus asociadas y asociados. No podrá ser afectada por ninguna clase de deudas, obligaciones y compromisos de carácter personal o unilateral que contraigan sus asociadas, asociados, consejeras y consejeros. II. La propiedad individual es todo instrumento de trabajo que pasa a formar parte del patrimonio personal de cada asociada y/o asociado."
       },
       {
         id: 33,
         numero: 33,
         denominacion: "EXCEDENTES DE PERCEPCIÓN",
-        contenido: "Constituyen excedentes de percepción los resultados positivos netos que la Cooperativa obtenga al cierre de la gestión económica, una vez deducidos los costos, gastos, amortizaciones y las cargas fiscales correspondientes.\n\nSu redistribución entre las asociadas y asociados se efectuará exclusivamente bajo la modalidad de retorno cooperativo, en proporción a la participación en el trabajo, y en ningún caso en relación directa con el capital."
+        contenido: "I. Son los recursos resultantes de las actividades de la cooperativa, una vez deducida la totalidad de los gastos, costos, tributos, fondos, reservas legales y estatutarias, y otras reservas, previsiones o provisiones determinadas en Asamblea General. II. En aplicación del principio de equidad en la distribución, los excedentes de percepción se repartirán entre las asociadas y los asociados en razón a su participación en el trabajo, y de acuerdo al Estatuto Orgánico y Reglamento."
       },
       {
         id: 34,
         numero: 34,
         denominacion: "CONSTITUCIÓN DE RESERVA Y FONDOS",
-        contenido: "De los excedentes netos de percepción de cada gestión se constituirán de manera obligatoria las siguientes reservas y fondos:\na) Reserva Legal: el diez por ciento (10%).\nb) Fondo de Educación: el cinco por ciento (5%).\nc) Fondo de Previsión Social y Apoyo a la Colectividad: el cinco por ciento (5%).\nd) Reserva Voluntaria: el veinte por ciento (20%).\n\ne) El sesenta por ciento (60%) restante se destinará a la distribución entre las asociadas y asociados, en proporción a su participación en el trabajo.\n\nLa Asamblea General podrá modificar estos porcentajes dentro del marco de la Ley General de Cooperativas Nº 356."
+        contenido: "La Cooperativa está obligada a constituir los siguientes fondos no repartibles, con la siguiente forma de distribución: 1. Reserva Legal: se conformará con un mínimo del diez por ciento (10%) de los Estados Financieros. 2. Fondo de Educación: se destinará el cinco por ciento (5%) de los Estados Financieros. 3. Fondo de Previsión Social y Apoyo a la Colectividad: se constituirá con el cinco por ciento (5%) de los Estados Financieros. 4. 20% de reserva voluntaria, que servirá para fortalecer el patrimonio y/o afrontar las pérdidas que hubiere como resultado de futuros ejercicios económicos. 5. 60% para la distribución entre las asociadas y asociados y/o previsiones que resuelva la Asamblea General Ordinaria, a propuesta del Consejo de Administración."
       },
       {
         id: 35,
         numero: 35,
         denominacion: "USO DE LA RESERVA Y FONDOS OBLIGATORIOS",
-        contenido: "La Reserva Legal se destinará a la cobertura de pérdidas de la Cooperativa y, en general, al fortalecimiento patrimonial, no pudiendo distribuirse entre las asociadas y asociados.\n\nLos fondos de Educación y de Previsión Social y Apoyo a la Colectividad se aplicarán a los fines específicos que los constituyen, conforme a los artículos 37 y 38 del presente Estatuto, y no podrán disponerse para otros destinos sin resolución expresa de la Asamblea General."
+        contenido: "La forma de organizar y utilizar la reserva y los fondos obligatorios señalados en el Artículo anterior deberá fijarse tomando en cuenta: 1. La necesidad de incrementar la Reserva Legal hasta alcanzar, por lo menos, el veinticinco por ciento (25%) del Fondo Social. 2. La necesidad de ampliación de los Fondos de Educación y de Previsión Social y Apoyo a la Colectividad, como medio para aumentar la capacidad de servicios de la cooperativa hacia sus asociadas y asociados y hacia la colectividad. En caso de superarse el porcentaje de la Reserva Legal, el excedente se destinará a incrementar estos fondos."
       },
       {
         id: 36,
         numero: 36,
         denominacion: "RESERVA LEGAL",
-        contenido: "La Reserva Legal se constituirá con el diez por ciento (10%) de los excedentes netos de percepción de cada gestión, hasta alcanzar el límite que fije la Asamblea General, sin perjuicio del mínimo legal.\n\nLos recursos de la Reserva Legal se administrarán bajo la responsabilidad del Tesoro, con la fiscalización del Consejo de Vigilancia, y sólo podrán utilizarse para cubrir pérdidas, previa resolución de la Asamblea General Extraordinaria."
+        contenido: "La Reserva Legal se constituye para prevenir riesgos y afrontar las pérdidas y/o siniestros que hubiere. Los recursos utilizados de esta reserva se reconstituirán en los términos de la Ley General de Cooperativas, su Decreto Supremo Reglamentario y el Estatuto Orgánico y/o Reglamento."
       },
       {
         id: 37,
         numero: 37,
         denominacion: "FONDO DE PREVISIÓN SOCIAL Y APOYO A LA COLECTIVIDAD",
-        contenido: "La Cooperativa constituirá el Fondo de Previsión Social y Apoyo a la Colectividad con el cinco por ciento (5%) de los excedentes netos de percepción, destinado a:\na) Atención de contingencias de enfermedad, accidente y fallecimiento de asociadas y asociados.\nb) Programas de bienestar y apoyo a las familias de las asociadas y asociados.\nc) Obras y servicios de apoyo a la comunidad de Chachacomani y su zona de influencia.\n\nLa administración del Fondo estará a cargo del Comité de Previsión Social y Apoyo a la Colectividad, conforme al presente Estatuto y al Reglamento Interno."
+        contenido: "El Fondo de Previsión Social y Apoyo a la Colectividad tendrá por objeto proporcionar el mayor bienestar social a las asociadas y los asociados, sus beneficiarios y la colectividad, en el marco de la Ley General de Cooperativas, el Decreto Supremo Reglamentario, el Estatuto Orgánico y sus Reglamentos."
       },
       {
         id: 38,
         numero: 38,
         denominacion: "ADMINISTRACIÓN DEL FONDO DE EDUCACIÓN",
-        contenido: "El Fondo de Educación, constituido con el cinco por ciento (5%) de los excedentes netos de percepción, será administrado por el Comité de Educación y se destinará a:\na) Programas de educación, capacitación y formación cooperativa.\nb) Capacitación técnica, minera, administrativa y de seguridad industrial.\nc) Adquisición de material didáctico, bibliográfico y equipamiento educativo.\n\nEl Comité de Educación informará anualmente sobre la ejecución de los recursos del Fondo ante la Asamblea General Ordinaria."
-      }
+        contenido: "I. La realización de las actividades señaladas en el Art. 46 de la Ley N° 356, de 11 de abril de 2013, Ley General de Cooperativas, estará a cargo de la Cooperativa, que será la encargada de administrar los recursos del Fondo de Educación Cooperativo. Estas actividades son obligatorias para la Cooperativa. II. La Cooperativa podrá suscribir convenios con instituciones nacionales e internacionales legalmente reconocidas, para la realización de las actividades educativas, en conformidad con el Estatuto Orgánico y los Reglamentos de la Cooperativa. III. La Cooperativa, de forma individual o mediante convenios entre cooperativas, podrá establecer unidades o departamentos especializados en Educación Cooperativa. IV. El importe de este Fondo que no se haya aplicado en una gestión deberá materializarse necesariamente dentro del ejercicio económico de la siguiente gestión. De no procederse en este sentido, serán pasibles de las sanciones dispuestas por la AFCOOP."
+      },
     ]
   },
   {
@@ -286,206 +286,116 @@ export const ESTATUTO_CAPITULOS = [
         id: 39,
         numero: 39,
         denominacion: "ESTRUCTURA",
-        contenido: "La estructura orgánica de la Cooperativa está conformada por los siguientes órganos:\na) La Asamblea General, como órgano máximo de decisión.\nb) El Consejo de Administración, como órgano ejecutivo y representativo.\nc) El Consejo de Vigilancia, como órgano de fiscalización y control interno.\nd) El Comité de Educación.\ne) El Comité de Previsión Social y Apoyo a la Colectividad.\nf) La Gerencia, como órgano operativo de apoyo técnico y administrativo.\n\ng) El Tribunal de Honor, la Junta de Conciliación y el Comité Electoral, conforme al CAPÍTULO VI del presente Estatuto."
+        contenido: "La estructura organizativa de la cooperativa (Artículo 50 de la Ley General de Cooperativas) estará compuesta por: a) La Asamblea General. b) El Consejo de Administración. c) El Consejo de Vigilancia. d) El Tribunal de Honor. e) La Junta de Conciliación. f) Comisiones o Comités que establezcan las asambleas generales de acuerdo a la necesidad emergente."
       },
       {
         id: 40,
         numero: 40,
         denominacion: "ASAMBLEA GENERAL",
-        contenido: "La Asamblea General, constituida por la reunión de las asociadas y asociados habilitados, es la autoridad máxima de la Cooperativa. Sus resoluciones son obligatorias para todas las asociadas y asociados, presentes y ausentes, salvo los casos en que la Ley o el presente Estatuto exijan votación calificada.\n\nLas decisiones de la Asamblea General sólo pueden ser modificadas o dejadas sin efecto por otra Asamblea de igual o mayor jerarquía."
+        contenido: "La Asamblea General es soberana y suprema, y sus resoluciones tendrán carácter obligatorio para todas las asociadas y asociados, presentes y ausentes, conforme establece el presente Estatuto, mientras no contraríen las disposiciones legales de la Ley General de Cooperativas, su Decreto Supremo Reglamentario y las disposiciones del ente regulador de cooperativas."
       },
       {
         id: 41,
         numero: 41,
         denominacion: "CLASES DE ASAMBLEAS",
-        contenido: "I. Asamblea General Ordinaria: se celebrará al menos una vez al año, en la fecha que fije el Consejo de Administración, para considerar la memoria, los estados financieros, el informe de fiscalización, la distribución de excedentes y los asuntos de trámite ordinario.\n\nII. Asamblea General Extraordinaria: se celebrará cuantas veces sea necesario para tratar asuntos específicos señalados en el orden del día, como modificaciones al Estatuto, admisión y exclusión de asociadas y asociados, aprobación de presupuestos extraordinarios y demás asuntos de trascendencia institucional."
+        contenido: "Las asambleas generales podrán ser ordinarias y extraordinarias. Las asambleas ordinarias se realizarán por lo menos una vez al año; las extraordinarias se realizarán cuantas veces sea necesario para la buena marcha de la cooperativa."
       },
       {
         id: 42,
         numero: 42,
         denominacion: "CONVOCATORIA",
-        contenido: "Las Asambleas Generales serán convocadas por el Consejo de Administración, y en su defecto por el Consejo de Vigilancia, con una anticipación mínima de diez (10) días calendario, mediante aviso que indicará fecha, hora, lugar u orden del día.\n\nLa convocatoria se publicará por los medios oficiales de la Cooperativa, garantizando la información oportuna de todas las asociadas y asociados. La inasistencia injustificada no impide la validez de las resoluciones adoptadas conforme al quórum."
+        contenido: "I. Corresponde al Consejo de Administración convocar a las Asambleas Generales Ordinarias y Extraordinarias, bajo responsabilidad y sanción; la convocatoria debe estar firmada por el Consejo de Administración y emitida con 10 días de anticipación. II. Toda convocatoria a Asamblea General Ordinaria o Extraordinaria será por escrito, dando a conocer el orden del día a considerarse y fijando el lugar, fecha y hora. III. De no darse cumplimiento a lo establecido anteriormente, corresponderá la aplicación de lo dispuesto por el Art. 55 de la Ley General de Cooperativas y el Art. 36, parágrafo V, del Decreto Supremo Reglamentario."
       },
       {
         id: 43,
         numero: 43,
         denominacion: "QUÓRUM",
-        contenido: "La Asamblea General se instalará válidamente con la presencia de la mitad más uno (quórum de la mayoría simple) de las asociadas y asociados habilitados.\n\nSi a la hora señalada no se reuniera el quórum, la Asamblea se celebrará media hora después con las asociadas y asociados presentes. El quórum establecido en este artículo no rige para la instalación de la segunda convocatoria."
+        contenido: "La Asamblea General Ordinaria o Extraordinaria se efectuará con la asistencia del 50% más uno de las asociadas y asociados legalmente registrados. Si a la fecha y hora señaladas no se hubiera alcanzado el quórum correspondiente, se llevará a cabo después de 30 minutos con el número de asociadas y asociados asistentes, previsión que será dada a conocer en la convocatoria."
       },
       {
         id: 44,
         numero: 44,
         denominacion: "DECISIONES Y NÚMERO DE VOTOS",
-        contenido: "I. En las Asambleas Generales rige el principio de un voto por asociada o asociado, sin importar el número de Certificados de Aportación.\n\nII. Las resoluciones se adoptarán por mayoría simple de votos de las asociadas y asociados presentes, salvo que la Ley, el presente Estatuto o el Reglamento Interno exijan una mayoría calificada de dos tercios.\n\nIII. No podrán votar las asociadas y asociados sobre asuntos en los que tengan interés directo en contrario respecto de la Cooperativa, conforme a la Ley."
+        contenido: "I. Los acuerdos y resoluciones de las Asambleas Generales Ordinarias y Extraordinarias se tomarán por simple mayoría de votos, salvo en los casos que se requieran dos tercios, haciéndose constar en el Libro de Actas con la firma del Consejo de Administración y del Consejo de Vigilancia. II. Los miembros de los Consejos de Administración, Vigilancia, Tribunal de Honor, comisiones y comités no podrán votar en las asambleas generales en las que se considere la aprobación de los Estados Financieros y otros temas relacionados con la responsabilidad de los miembros del Consejo de Administración, Vigilancia, comités y Tribunal de Honor."
       },
       {
         id: 45,
         numero: 45,
         denominacion: "ATRIBUCIONES DE LAS ASAMBLEAS",
-        contenido: "1. Son atribuciones de la Asamblea General Ordinaria:\na) Aprobar el informe del Consejo de Administración, los estados financieros y la memoria anual.\nb) Aprobar la distribución de excedentes y la constitución de reservas y fondos.\nc) Elegir a las consejeras y consejeros de los Consejos de Administración y Vigilancia y a los miembros de los Comités.\nd) Fijar las asignaciones de los cuerpos directivos dentro del marco de la Ley.\ne) Conocer los informes y observaciones del Consejo de Vigilancia.\n\n2. Son atribuciones de la Asamblea General Extraordinaria, además de las que le asigne la Ley:\na) Reformar el presente Estatuto Orgánico y aprobar el Reglamento Interno.\nb) Aprobar la admisión, retiro, transferencia, exclusión o expulsión de asociadas y asociados.\nc) Aprobar presupuestos extraordinarios, emisión de Certificados de Participación y operaciones de financiamiento.\nd) Resolver sobre la disolución, fusión, escisión o absorción de la Cooperativa.\ne) Conocer los asuntos reservados a su competencia según la Ley, el presente Estatuto y el Reglamento Interno."
+        contenido: "Son atribuciones de la Asamblea: 1. Ordinaria: Conocer y pronunciarse sobre las cuentas, la memoria anual, los informes de actividades de ambos Consejos, gerencia y comités. a. Conocer y pronunciarse sobre los estados financieros de la gestión económica, previo pronunciamiento del Consejo de Vigilancia y de auditoría, cuando corresponda. b. Considerar y pronunciarse sobre las políticas y planes de trabajo, programas y proyectos que presente el Consejo de Administración. c. Considerar y aprobar el Plan de Operaciones y Presupuesto de la siguiente gestión. d. Elegir a los miembros de los Consejos de Administración y Vigilancia, comités o comisiones, Tribunal de Honor y Junta de Conciliación. e. Remover a los miembros de los Consejos de Administración y Vigilancia, comités o comisiones y Tribunal de Honor, conforme establece el presente Estatuto. f. Determinar el destino de los excedentes de percepción y el porcentaje del mismo, de acuerdo a las normas establecidas en la Ley General de Cooperativas y el presente Estatuto. g. Deliberar y resolver sobre las propuestas que presenten el Consejo de Administración, el Consejo de Vigilancia, los comités o las asociadas y asociados ante la Asamblea. h. Conocer y aprobar la valorización de los certificados de aportación. i. Aprobar, cuando corresponda, las asignaciones para las consejeras y los consejeros, los integrantes del Tribunal de Honor y los integrantes de los diferentes comités y comisiones. j. Analizar y aprobar resoluciones, conclusiones, recomendaciones y tareas en ejercicio de su mandato. k. Fijar aportes y contribuciones económicas ordinarias y extraordinarias. l. Determinar por resolución la aprobación o rechazo de las actividades de gestión de los Consejos. m. Conocer y resolver todos los asuntos que no estén dentro de las competencias de los otros órganos de gobierno de la cooperativa. n. Otras establecidas en la Ley General de Cooperativas y su Decreto Supremo Reglamentario. 2. Extraordinaria: a. Autorizar la enajenación de bienes de la Cooperativa, la realización de inversiones y el endeudamiento de la Cooperativa que estén por encima de los límites establecidos para el Consejo de Administración, conforme al Reglamento Interno. b. Aprobar emprendimientos asociativos, convenios, contratos y acuerdos que cuenten con estudios y/o justificaciones que demuestren su viabilidad social y económica. c. Considerar y resolver los actos de los integrantes de los Consejos de Administración y Vigilancia contrapuestos al Estatuto Orgánico, la Ley General de Cooperativas y disposiciones conexas y complementarias. d. Remover a los miembros de los Consejos de Administración y Vigilancia, conforme establece el presente Estatuto. e. Aprobar la inclusión de asociadas y asociados, cuando corresponda. f. Ejercer la función de instancia de apelación en última instancia respecto de las resoluciones sancionatorias emitidas por el Tribunal de Honor, revocando, anulando, modificando o confirmando las mismas, en el marco de los principios del debido proceso, la Ley N° 356 y su Reglamento; emitiendo a tal fin la resolución correspondiente. g. Aprobar la exclusión o expulsión de asociadas y asociados, cuando corresponda. h. Aprobar la fusión, disolución, escisión, cambio de nombre u otro cambio sustancial de la Cooperativa, por dos tercios de votos de las asociadas y asociados asistentes a la Asamblea. i. Considerar las modificaciones o reformas al Estatuto Orgánico, con la aprobación de dos tercios de votos de las asociadas y asociados asistentes en la Asamblea. j. Dictar resoluciones relativas a cualquier problema establecido en el temario. k. Determinar por resolución la ampliación de las actividades de la cooperativa. l. Crear nuevas secciones de acuerdo a las disposiciones de la Asamblea General y a las disponibilidades y posibilidades de trabajo. m. Elegir a los delegados a los congresos. n. Considerar y tratar temas de carácter orgánico, disciplinario, o cualquier otro asunto para la buena marcha de la Cooperativa, que no sea de competencia de la Asamblea Ordinaria. o. Otras atribuciones establecidas en la Ley General de Cooperativas y su Decreto Supremo Reglamentario."
       },
       {
         id: 46,
         numero: 46,
         denominacion: "DE LOS CONSEJOS DE ADMINISTRACIÓN Y VIGILANCIA",
-        contenido: "I. El Consejo de Administración es el órgano ejecutivo y representativo de la Cooperativa, y el Consejo de Vigilancia es el órgano de fiscalización y control interno. Ambos serán elegidos en Asamblea General Ordinaria, por mayoría simple de votos, entre las asociadas y asociados en ejercicio pleno de sus derechos.\n\nII. Los miembros de ambos Consejos ejercerán sus funciones con responsabilidad, transparencia, honestidad y lealtad institucional, sujetos al presente Estatuto, al Reglamento Interno y a la normativa cooperativa vigente."
+        contenido: "La elección para el Consejo de Administración y Vigilancia será por simple mayoría de votos, conforme a la reglamentación específica para el acto eleccionario."
       },
       {
         id: 47,
         numero: 47,
         denominacion: "ASIGNACIONES ECONÓMICAS",
-        contenido: "Las consejeras y consejeros de administración y vigilancia no recibirán remuneración fija por el ejercicio de sus cargos.\n\nLa Asamblea General podrá asignar dietas, viáticos o bonificaciones de gestión con cargo al presupuesto, conforme a la Ley General de Cooperativas Nº 356, los artículos 46 y siguientes de su Decreto Supremo Reglamentario Nº 1995 y las resoluciones de la Asamblea."
+        contenido: "Los miembros titulares del Consejo de Administración y del Consejo de Vigilancia podrán gozar de una asignación o compensación económica por su dedicación y desempeño de funciones, de acuerdo a la realidad económica de la cooperativa, incorporada en el presupuesto anual."
       },
       {
         id: 48,
         numero: 48,
         denominacion: "INDEPENDENCIA DE GESTIÓN",
-        contenido: "Los Consejos de Administración y Vigilancia ejercen sus funciones con plena independencia entre sí.\n\nNingún miembro del Consejo de Vigilancia podrá integrar simultáneamente el Consejo de Administración ni los Comités cuya gestión fiscalice. Las asociadas y asociados elegidos para un cargo directivo no pueden ocupar simultáneamente otro cargo directivo en la Cooperativa."
+        contenido: "La gestión de los Consejos de Administración y Vigilancia de la Cooperativa debe respetar la independencia, coordinación y cooperación en el desarrollo de las funciones de ambos consejos, en el ámbito de sus atribuciones y competencias establecidas en la Ley N° 356, su Decreto Supremo Reglamentario, el Estatuto Orgánico y el Reglamento Interno."
       },
       {
         id: 49,
         numero: 49,
         denominacion: "REQUISITOS",
-        contenido: "Para ser elegida o elegido miembro del Consejo de Administración, del Consejo de Vigilancia o de los Comités se requiere:\na) Ser asociada o asociado en ejercicio pleno de sus derechos.\nb) No registrar deudas de carácter económico con la Cooperativa.\nc) No haber sido sancionada o sancionado con expulsión o exclusión durante la gestión inmediatamente anterior.\nd) Acreditar idoneidad, honorabilidad y compromiso cooperativo.\n\nLos requisitos adicionales serán establecidos en el Reglamento Interno."
+        contenido: "Para ser elegido miembro del Consejo de Administración o Vigilancia, la asociada o asociado deberá cumplir los siguientes requisitos: a) Ser asociada o asociado en pleno desempeño de su trabajo personal en la cooperativa. b) Estar al día en el cumplimiento de las obligaciones con la cooperativa. c) Ser ciudadana o ciudadano boliviano, residente en el país, y estar en pleno ejercicio de los derechos constitucionales. d) No desempeñar cargos directivos en partidos políticos ni ocupar cargos jerárquicos en entidades públicas o privadas incompatibles con el cooperativismo. e) No ser trabajador en relación de dependencia laboral con la cooperativa. f) No ser cónyuge ni pariente de alguno de los miembros de los Consejos de Administración y Vigilancia, ni de cargos ejecutivos, hasta el segundo grado de consanguinidad y afinidad. g) No haber participado en acciones contrarias a los valores, principios e intereses de alguna cooperativa. h) No tener sentencia ejecutoriada en materia penal. i) Contar con conocimientos en cooperativismo debidamente acreditados. j) Tener 2 años de antigüedad como mínimo. k) No tener conflicto de intereses, asuntos litigiosos o deudas en mora con la cooperativa. l) No estar suspendido mediante resolución emitida por el Tribunal de Honor."
       },
       {
         id: 50,
         numero: 50,
         denominacion: "REMOCIÓN",
-        contenido: "Las consejeras y consejeros y los miembros de los Comités podrán ser removidos de sus cargos antes de la conclusión de su mandato, mediante Resolución de la Asamblea General Extraordinaria, cuando:\na) Incumplan sus obligaciones estatutarias o reglamentarias de manera reiterada.\nb) Causen perjuicio económico o institucional a la Cooperativa.\nc) Se inhabilite al ejercicio del cargo por pérdida de los requisitos exigidos.\n\nLa remoción se resolverá previo informe y proceso que garantice el derecho a la defensa y el debido proceso."
+        contenido: "Los miembros del Consejo de Administración y Vigilancia podrán ser removidos de sus cargos por Asamblea General Ordinaria o Extraordinaria, por dos terceras partes de los votos de las asociadas y asociados presentes, previo sumario convocado para tal objeto, por las siguientes causas: Para ambos Consejos: a. Por inasistencia a 3 reuniones continuas o 6 discontinuas sin la licencia respectiva. b. Por retrasar intencionalmente la convocatoria a Asamblea General Ordinaria. c. Por daños económicos y sociales causados a la Cooperativa. d. Por incumplimiento de la Ley General de Cooperativas, el presente Estatuto, el Reglamento Interno y las resoluciones tomadas en Asamblea General. e. Por negligencia, irresponsabilidad o abuso en el cumplimiento de sus funciones y obligaciones. f. Por contar con sentencia ejecutoriada resultado de un proceso civil o penal, en cuyo caso se aplicará la remoción tácita. g. Otras establecidas en la Ley General de Cooperativas y su Reglamento. Para el Consejo de Administración, adicionalmente: a. Por resistencia a rendir cuentas del manejo de los fondos de la Cooperativa. b. Por conducir la administración de la Cooperativa en forma irresponsable, debidamente comprobada. Para el Consejo de Vigilancia, adicionalmente: Por no observar las resoluciones del Consejo de Administración que sean perjudiciales a los intereses de la Cooperativa, en forma escrita."
       },
       {
         id: 51,
         numero: 51,
         denominacion: "PROHIBICIONES",
-        contenido: "Queda prohibido a las consejeras, consejeros, integrantes de Comités y autoridades de la Cooperativa:\na) Usar información institucional para beneficio propio o de terceros.\nb) Utilizar los bienes o recursos de la Cooperativa con fines personales o políticos.\nc) Contraer obligaciones a nombre de la Cooperativa sin autorización expresa.\nd) Formar parte, simultáneamente, de más de un órgano ejecutivo o de fiscalización de la Cooperativa.\ne) Ejercer actos de competencia desleal en contra de la Cooperativa.\n\nEl incumplimiento dará lugar a las responsabilidades estatutarias, civiles y penales que correspondan."
+        contenido: "Las prohibiciones para ser consejera o consejero son: 1. Tener conflicto de intereses, asuntos litigiosos o deudas en mora con la Cooperativa. 2. Encontrarse suspendida o suspendido mediante resolución emitida por el Tribunal de Honor correspondiente, y agotadas todas las instancias previstas en su Estatuto Orgánico. 3. Incumplir lo establecido por el Artículo 65 de la Ley N° 356 y la normativa sectorial correspondiente."
       },
       {
         id: 52,
         numero: 52,
         denominacion: "CONSEJO DE ADMINISTRACIÓN Y SU CONFORMACIÓN",
-        contenido: "El Consejo de Administración estará conformado por las siguientes carteras titulares:\na) Presidencia.\nb) Secretaría General.\nc) Tesorería.\n\nd) Dos (2) Vocalías.\n\nLa Asamblea General, mediante el Reglamento Interno, podrá establecer carteras adicionales de carácter operativo que no modifiquen la estructura orgánica prevista en el presente Estatuto."
+        contenido: "El Consejo de Administración es el órgano ejecutivo y representativo de la Cooperativa, en número impar, y estará conformado por Presidencia, Secretaría General, Tesorería y dos Vocales."
       },
       {
         id: 53,
         numero: 53,
         denominacion: "DURACIÓN DEL MANDATO",
-        contenido: "Las consejeras y consejeros de los Consejos de Administración y Vigilancia y los miembros de los Comités durarán en sus funciones dos (2) años calendario, pudiendo ser reelectas y reelectos conforme al Reglamento Electoral.\n\nLos cargos serán ejercidos personalmente y de manera indelegable, salvo los casos de licencia o comisión autorizados por la Asamblea General."
+        contenido: "La gestión administrativa tendrá una duración de 2 años calendario, pudiendo ser reelectos por un periodo consecutivo como máximo, pudiendo reasumir nuevamente en otras gestiones, pasando como mínimo un periodo desde la dejación del cargo."
       },
       {
         id: 54,
         numero: 54,
         denominacion: "REUNIONES DE LOS CONSEJEROS",
-        contenido: "I. El Consejo de Administración se reunirá ordinariamente al menos una vez al mes y extraordinariamente cuantas veces sea necesario, a convocatoria de su Presidencia o de la mayoría de sus miembros.\n\nII. El Consejo de Vigilancia se reunirá al menos una vez cada dos (2) meses y extraordinariamente cuando las circunstancias lo exijan.\n\nIII. Las reuniones se realizarán con quórum de la mitad más uno de sus miembros y sus decisiones constarán en el Libro de Actas correspondiente."
+        contenido: "I. El Consejo de Administración se reunirá una vez al mes y, de manera extraordinaria, cuantas veces sea necesario, a convocatoria del Presidente o a solicitud de la mitad más uno de sus miembros. II. El quórum legal estará constituido por la mitad más uno de sus miembros, y sus acuerdos constarán en un libro de actas con la firma de todos los asistentes a la reunión."
       },
       {
         id: 55,
         numero: 55,
         denominacion: "ATRIBUCIONES DEL CONSEJO DE ADMINISTRACIÓN",
-        contenido: "Son atribuciones y obligaciones del Consejo de Administración:\na) Cumplir y hacer cumplir la Ley, el Decreto Supremo Reglamentario Nº 1995, el presente Estatuto, el Reglamento Interno y las resoluciones de la Asamblea General.\nb) Ejercer la representación legal e institucional de la Cooperativa.\nc) Planificar, dirigir, coordinar y supervisar la gestión administrativa, económica, técnica y social de la Cooperativa.\nd) Convocar a las Asambleas Generales Ordinarias y Extraordinarias.\ne) Elaborar y presentar el Plan Operativo Anual, el presupuesto, los estados financieros y la memoria anual.\nf) Administrar y resguardar el patrimonio, los bienes, maquinaria y documentación de la Cooperativa.\ng) Elevar informes y antecedentes al Tribunal de Honor para la sustanciación de procesos disciplinarios.\nh) Proponer a la Asamblea General la distribución de excedentes, bonos e incentivos.\ni) Las demás que le asignen la Ley, el presente Estatuto y el Reglamento Interno."
+        contenido: "a. Cumplir la Ley General de Cooperativas, su Decreto Supremo Reglamentario, el presente Estatuto y las disposiciones legales respecto al funcionamiento de la cooperativa. b. Ejercer la administración y representación legal de la cooperativa. c. Convocar a Asambleas Generales Ordinarias y Extraordinarias. d. Ejecutar las determinaciones aprobadas por las Asambleas Generales. e. Ejecutar las recomendaciones de las auditorías internas y externas, así como del ente regulador de cooperativas. f. Aprobar la estructura administrativa de la cooperativa y definir los niveles salariales de los empleados administrativos, si los hubiere. g. Definir las políticas económicas, administrativas y financieras en el marco de los lineamientos establecidos por la Asamblea General y las normas de regulación. h. Definir el plan operacional anual de la cooperativa y ponerlo en consideración de la Asamblea General Ordinaria de Asociados para su aprobación. i. Proponer a la Asamblea General Ordinaria la aprobación del valor o la revaloración de los certificados de aportación, así como el valor de los certificados de aportación que no sean en efectivo. j. Decidir, conforme a los límites establecidos en el Reglamento Interno, sobre la compra-venta, permuta, donaciones y la contracción de préstamos por sumas que no comprometan la estabilidad económica de la cooperativa, poniendo el hecho en conocimiento de la Asamblea General (incluye decidir sobre gastos de equipos, insumos, materiales, transporte, adquisición de bienes muebles y otros necesarios para mejorar el funcionamiento administrativo). k. Delegar funciones para la gestión administrativa al gerente. l. Presentar anualmente ante la Asamblea General Ordinaria los Estados Financieros, la Memoria Anual y el Plan Operativo correspondiente, para su consideración y aprobación. m. Llevar un Registro de asociadas y asociados. n. Planificar y organizar el funcionamiento de cada una de las secciones de la Cooperativa, para su aprobación en la Asamblea General. o. Hacer cumplir las sanciones a las asociadas y asociados que infrinjan el Estatuto y otras disposiciones, de acuerdo al Reglamento Interno de la Cooperativa. p. Llevar un inventario y custodiar todos los bienes de la Cooperativa. q. Inscribir todas las actas registrables de la Cooperativa ante el ente regulador de cooperativas. r. Elevar ante la Asamblea General Extraordinaria las solicitudes de admisión e inclusión, y los procesos de exclusión y expulsión de asociados, para su consideración. s. Presentar, a requerimiento del Consejo de Vigilancia, toda la información documentada generada por la administración de la cooperativa. t. Elevar informe y convocar al Tribunal de Honor para el procesamiento disciplinario por contravenciones. u. Otras establecidas por la Ley General de Cooperativas y su Decreto Supremo Reglamentario."
       },
       {
         id: 56,
         numero: 56,
         denominacion: "RESPONSABILIDAD",
-        contenido: "Las consejeras y consejeros del Consejo de Administración son solidariamente responsables por las decisiones que adopten, salvo que dejen constancia expresa y oportuna de su voto disidente en el Libro de Actas.\n\nLa responsabilidad civil por los perjuicios causados se determinará conforme a la Ley General de Cooperativas Nº 356, sin perjuicio de las responsabilidades administrativas y penales que correspondan."
+        contenido: "Los miembros del Consejo de Administración son solidariamente responsables de: a. El manejo de fondos y el destino de los mismos. b. La efectividad de las aportaciones de los asociados. c. La existencia de los libros, registros contables y otros que se hallan establecidos en el presente Estatuto. d. La veracidad de los saldos de los diferentes fondos y cuentas de los excedentes obtenidos y de las pérdidas sufridas. e. El cumplimiento de las obligaciones que imponen las disposiciones legales que rigen a las cooperativas. f. Los trabajos autorizados por la Asamblea General."
       },
       {
         id: 57,
         numero: 57,
         denominacion: "PRESIDENTE",
-        contenido: "La Presidencia del Consejo de Administración ejercerá las siguientes atribuciones:\na) Representar legal e institucionalmente a la Cooperativa ante autoridades públicas, privadas y entidades del sistema cooperativo.\nb) Convocar y presidir las reuniones del Consejo de Administración y las Asambleas Generales.\nc) Autorizar, conjuntamente con la Tesorería, los pagos y egresos conforme al presupuesto aprobado.\nd) Velar por el cumplimiento de la Ley, el Estatuto, el Reglamento Interno y las resoluciones sociales.\ne) Firmar, conjuntamente con la Secretaría General, las actas, resoluciones y la documentación institucional.\nf) Las demás que le asignen la Ley, el Estatuto y el Reglamento Interno."
+        contenido: "Son atribuciones del Presidente: a) Ejercer la representación legal de la cooperativa en todos los actos cooperativos, administrativos y legales, de carácter público y privado. b) Presidir y dirigir las Asambleas Generales, las reuniones del Consejo de Administración y cualquier otro acto oficial de la Cooperativa. c) Firmar con la Tesorera o Tesorero todos los documentos que importen obligaciones y contratos comerciales, bancarios y otros inherentes a las actividades económicas de la Cooperativa. d) Supervisar que los libros contables de la Cooperativa sean llevados correctamente. e) Nombrar, promover y cesar a los trabajadores y/o empleados administrativos, con arreglo a las leyes sociales. f) Elaborar los informes solicitados por los Consejos y Comités, así como asistir a las reuniones y Asambleas. g) Elaborar el plan anual operativo para su consideración en el Consejo de Administración. h) Firmar con la Secretaria o Secretario General la correspondencia general y cualquier otro documento que así se requiera. i) Poner en conocimiento del Consejo de Vigilancia las disposiciones, acuerdos y resoluciones emitidas."
       },
-      {
-        id: 58,
-        numero: 58,
-        denominacion: "DE LA SECRETARIA O SECRETARIO GENERAL",
-        contenido: "La Secretaría General ejercerá las siguientes atribuciones:\na) Reemplazar a la Presidencia en casos de ausencia, impedimento o enfermedad.\nb) Redactar y custodiar las actas, libros y la documentación institucional formal de la Cooperativa.\nc) Llevar el Registro de Asociadas y Asociados y su Kárdex de Control.\nd) Expedir certificaciones y comunicaciones oficiales.\ne) Tramitar la documentación ante la Autoridad de Fiscalización y Control de Cooperativas (AFCOOP) y otras entidades.\nf) Las demás que le asignen la Ley, el Estatuto y el Reglamento Interno."
-      },
-      {
-        id: 59,
-        numero: 59,
-        denominacion: "TESORERO",
-        contenido: "La Tesorería ejercerá las siguientes atribuciones:\na) Administrar y custodiar los recursos económicos y financieros de la Cooperativa.\nb) Manejar la contabilidad y mantener actualizado el registro de ingresos y egresos.\nc) Controlar los ingresos por producción y comercialización de mineral aurífero, y los egresos autorizados.\nd) Elaborar los estados financieros y el balance general anual.\ne) Efectuar los cobros y pagos autorizados, con documentación de respaldo.\nf) Presentar informes económicos a la Asamblea General y rendiciones de cuentas.\ng) Las demás que le asignen la Ley, el Estatuto y el Reglamento Interno."
-      },
-      {
-        id: 60,
-        numero: 60,
-        denominacion: "VOCAL",
-        contenido: "Las Vocalías cumplirán las siguientes funciones:\na) Asistir a las reuniones del Consejo y participar con voz y voto en sus decisiones.\nb) Ejercer las comisiones y tareas que les encomiende el Consejo de Administración.\nc) Reemplazar temporalmente a las carteras del Consejo en casos de ausencia, conforme al Reglamento Interno.\nd) Apoyar la difusión de comunicados, convocatorias y resoluciones institucionales.\ne) Las demás que les asigne el Consejo de Administración dentro de sus competencias."
-      },
-      {
-        id: 61,
-        numero: 61,
-        denominacion: "GERENCIA",
-        contenido: "La Gerencia es el órgano operativo de apoyo técnico, administrativo y financiero de la Cooperativa, designado por el Consejo de Administración.\n\nEl gerente o gerenta ejecutará las políticas y decisiones del Consejo de Administración, administrará los procesos operativos y velará por el cumplimiento de los objetivos institucionales, sin atribuciones de representación social, salvo las expresamente delegadas por el Consejo de Administración."
-      },
-      {
-        id: 62,
-        numero: 62,
-        denominacion: "CONSEJO DE VIGILANCIA Y SU CONFORMACIÓN",
-        contenido: "El Consejo de Vigilancia estará conformado por las siguientes carteras titulares:\na) Presidencia.\nb) Secretaría.\nc) Una (1) Vocalía.\n\nSus miembros ejercerán el control y la fiscalización de la gestión administrativa, económica y financiera de la Cooperativa, conforme a la Ley, el presente Estatuto y el Reglamento Interno."
-      },
-      {
-        id: 63,
-        numero: 63,
-        denominacion: "REUNIONES",
-        contenido: "El Consejo de Vigilancia se reunirá ordinariamente al menos una vez cada dos (2) meses y extraordinariamente a convocatoria de su Presidencia o de la mayoría de sus miembros.\n\nLas sesiones se realizarán con quórum de la mitad más uno de sus miembros y las decisiones constarán en el Libro de Actas respectivo."
-      },
-      {
-        id: 64,
-        numero: 64,
-        denominacion: "ATRIBUCIONES DEL CONSEJO DE VIGILANCIA",
-        contenido: "Son atribuciones del Consejo de Vigilancia:\na) Supervisar la marcha administrativa, contable y financiera de la Cooperativa.\nb) Fiscalizar el cumplimiento de la Ley, el Decreto Supremo Reglamentario Nº 1995, el Estatuto y el Reglamento Interno.\nc) Verificar inventarios, arqueos de caja, conciliaciones y el estado del patrimonio social.\nd) Revisar los estados financieros y emitir informes ante la Asamblea General.\ne) Convocar a Asamblea General cuando el Consejo de Administración no lo hiciere.\nf) Poner en conocimiento del Consejo de Administración las observaciones y recomendaciones de control.\ng) Las demás que le asignen la Ley, el Estatuto y el Reglamento Interno."
-      },
-      {
-        id: 65,
-        numero: 65,
-        denominacion: "RESPONSABILIDAD",
-        contenido: "Las consejeras y consejeros del Consejo de Vigilancia son solidariamente responsables por los daños y perjuicios que se deriven del incumplimiento de sus funciones de fiscalización y control, conforme a la Ley General de Cooperativas Nº 356, salvo constancia expresa de su voto disidente."
-      },
-      {
-        id: 66,
-        numero: 66,
-        denominacion: "RESTRICCIÓN",
-        contenido: "El Consejo de Vigilancia no podrá injerir en las atribuciones y funciones exclusivas del Consejo de Administración ni en la gestión operativa de la Cooperativa.\n\nSus observaciones serán elevadas formalmente al Consejo de Administración, y de persistir diferencias, a la Asamblea General para su resolución definitiva."
-      },
-      {
-        id: 67,
-        numero: 67,
-        denominacion: "COMITÉ DE EDUCACIÓN",
-        contenido: "El Comité de Educación estará conformado por asociadas y asociados elegidos por la Asamblea General Ordinaria, y será responsable de promover la educación y capacitación cooperativa, técnica y minera.\n\nAdministrará el Fondo de Educación conforme al artículo 38 del presente Estatuto y presentará informes periódicos de su gestión a la Asamblea General."
-      },
-      {
-        id: 68,
-        numero: 68,
-        denominacion: "ATRIBUCIONES DEL COMITÉ DE EDUCACIÓN",
-        contenido: "Son atribuciones del Comité de Educación:\na) Diseñar y ejecutar programas de educación y capacitación cooperativa.\nb) Promover talleres técnicos, mineros y de seguridad industrial.\nc) Administrar los recursos del Fondo de Educación con transparencia.\nd) Coordinar con instituciones públicas, privadas y del sistema cooperativo la realización de cursos y convenios.\ne) Elaborar informes anuales de gestión y presentarlos ante la Asamblea General Ordinaria."
-      },
-      {
-        id: 69,
-        numero: 69,
-        denominacion: "COMITÉ DE PREVISIÓN SOCIAL Y APOYO A LA COLECTIVIDAD",
-        contenido: "El Comité de Previsión Social y Apoyo a la Colectividad estará conformado por asociadas y asociados elegidos por la Asamblea General Ordinaria.\n\nSerá el encargado de administrar el Fondo de Previsión Social y Apoyo a la Colectividad y de canalizar los programas de bienestar y apoyo social a favor de las asociadas, asociados, sus familias y la comunidad."
-      },
-      {
-        id: 70,
-        numero: 70,
-        denominacion: "ATRIBUCIONES DEL COMITÉ DE PREVISIÓN SOCIAL Y APOYO A LA COLECTIVIDAD",
-        contenido: "Son atribuciones del Comité de Previsión Social y Apoyo a la Colectividad:\na) Administrar el Fondo de Previsión Social y Apoyo a la Colectividad.\nb) Atender las solicitudes de apoyo económico por enfermedad, accidente o fallecimiento.\nc) Ejecutar programas sociales y obras de apoyo a la comunidad de Chachacomani.\nd) Coordinar con el Consejo de Administración el presupuesto de los programas sociales.\ne) Presentar informes de gestión ante la Asamblea General Ordinaria."
-      },
-      {
-        id: 71,
-        numero: 71,
-        denominacion: "REGLAS APLICABLES A LAS COMISIONES O COMITÉS",
-        contenido: "I. Los Comités y Comisiones se regirán por las disposiciones del presente Estatuto, el Reglamento Interno y las resoluciones de la Asamblea General.\n\nII. Durarán en sus funciones dos (2) años calendario, conforme al Artículo 53, salvo resolución contraria de la Asamblea General.\n\nIII. No podrán asumir atribuciones reservadas a la Asamblea General, al Consejo de Administración o al Consejo de Vigilancia.\n\nIV. Responderán por el manejo de los recursos que administren y rendirán cuentas ante la Asamblea General."
-      },
-      {
-        id: 72,
-        numero: 72,
-        denominacion: "COMISIONES O COMITÉS",
-        contenido: "La Cooperativa podrá constituir Comisiones o Comités especiales para el cumplimiento de programas y proyectos específicos, previa resolución de la Asamblea General o del Consejo de Administración, dentro del ámbito de sus competencias.\n\nLas Comisiones o Comités especiales tendrán carácter temporal y concluirán sus funciones al cumplimiento de su objeto o al vencimiento del plazo asignado, quedando su informe final a disposición de la Asamblea General."
-      }
     ]
   },
   {
