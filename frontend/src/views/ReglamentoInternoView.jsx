@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import NormativaReaderView from './NormativaReaderView';
 import { CAPITULOS_DATA, ANEXOS_DATA, REGLAMENTO_METADATA } from '../data/reglamentoData';
-import * as votosService from '../services/votosService';
+import { crearVotosService } from '../services/votosService';
 import { temaReglamento } from '../theme/lecturaTemas';
 
 const FORMULARIO_URL =
@@ -63,6 +64,11 @@ const strings = {
 };
 
 export default function ReglamentoInternoView({ onVolver }) {
+  // El servicio se memoriza: `NormativaReaderView` usa la identidad del objeto
+  // `votos` como dependencia de sus efectos, así que debe ser estable entre
+  // renders o la carga de votos se dispararía en bucle.
+  const votos = useMemo(() => crearVotosService('reglamento', CAPITULOS_DATA), []);
+
   return (
     <NormativaReaderView
       onVolver={onVolver}
@@ -72,7 +78,7 @@ export default function ReglamentoInternoView({ onVolver }) {
         metadata: REGLAMENTO_METADATA,
         capitulos: CAPITULOS_DATA,
         anexos: ANEXOS_DATA,
-        votos: votosService,
+        votos,
         formUrl: FORMULARIO_URL,
         mostrarFormulario: true,
         strings,

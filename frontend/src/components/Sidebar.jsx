@@ -25,8 +25,11 @@ export default function Sidebar({
   isMobileOpen,
   onCloseMobile,
   onOpenAdmin,
+  puedeVerEstadisticas = false,
   drmEnabled,
   onToggleDRM,
+  puedeGestionarDrm = false,
+  cambiandoDrm = false,
   tema = temaReglamento,
   strings,
   tieneAnexos = true
@@ -98,34 +101,53 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Acceso al Dashboard de Estadísticas (visible en móvil) */}
-        <button
-          onClick={() => {
-            onOpenAdmin?.();
-            onCloseMobile();
-          }}
-          className={`mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border transition-colors ${tema.botonEstadisticas}`}
-          title="Dashboard de Administrador: estadísticas de evaluación de artículos"
-        >
-          <BarChart3 className="w-4 h-4" />
-          Ver Estadísticas
-        </button>
+        {/* Acceso al Dashboard de Estadísticas (visible en móvil).
+            `estadisticas:ver` es exclusivo del Administrador. */}
+        {puedeVerEstadisticas && (
+          <button
+            onClick={() => {
+              onOpenAdmin?.();
+              onCloseMobile();
+            }}
+            className={`mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border transition-colors ${tema.botonEstadisticas}`}
+            title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Ver Estadísticas
+          </button>
+        )}
 
-        {/* Toggle de Seguridad DRM (visible en móvil) */}
-        <button
-          onClick={onToggleDRM}
-          role="switch"
-          aria-checked={drmEnabled}
-          className={`mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border transition-colors ${
-            drmEnabled
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15'
-              : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15'
-          }`}
-          title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
-        >
-          {drmEnabled ? <ShieldCheck className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
-          {drmEnabled ? 'Seguridad DRM: Activa' : 'Seguridad DRM: Desactivada'}
-        </button>
+        {/* Seguridad DRM (visible en móvil).
+            Interruptor sólo para el Administrador; etiqueta para el resto. */}
+        {puedeGestionarDrm ? (
+          <button
+            onClick={onToggleDRM}
+            disabled={cambiandoDrm}
+            role="switch"
+            aria-checked={drmEnabled}
+            className={`mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border transition-colors disabled:opacity-60 ${
+              drmEnabled
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15'
+            }`}
+            title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
+          >
+            {drmEnabled ? <ShieldCheck className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+            {cambiandoDrm ? 'Actualizando DRM…' : drmEnabled ? 'Seguridad DRM: Activa' : 'Seguridad DRM: Desactivada'}
+          </button>
+        ) : (
+          <div
+            className={`mt-2 w-full inline-flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-xl border cursor-default select-none ${
+              drmEnabled
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+            }`}
+            title="Estado de la protección de contenido. Sólo el Administrador del sistema puede cambiarla."
+          >
+            {drmEnabled ? <ShieldCheck className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
+            {drmEnabled ? 'DRM: Activa' : 'DRM: Inactiva'} · sólo Admin
+          </div>
+        )}
       </div>
 
       {/* Lista de Capítulos */}

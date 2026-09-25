@@ -5,10 +5,10 @@ import DocumentCard from '../components/DocumentCard.jsx'
 import { Ballpit } from '../components/Effects.jsx'
 import { CARDS } from '../data/landingData.js'
 
-export default function HomePanel({ dark, onNavigate, onToggleTheme }) {
+export default function HomePanel({ dark, onNavigate, onToggleTheme, onIrAPerfil }) {
   return (
     <div className={`min-h-screen flex flex-col ${dark ? 'bg-[#060440]' : 'bg-slate-50'}`}>
-      <Header dark={dark} onNavigate={onNavigate} onToggleTheme={onToggleTheme} />
+      <Header dark={dark} onNavigate={onNavigate} onToggleTheme={onToggleTheme} onIrAPerfil={onIrAPerfil} />
       <HeroSection dark={dark} onNavigate={onNavigate} />
 
       <section className="relative flex-1 py-16 px-6">

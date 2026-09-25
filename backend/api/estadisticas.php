@@ -1,29 +1,41 @@
 <?php
 /**
- * GET /backend/api/estadisticas.php
+ * GET /backend/api/estadisticas.php?documento=reglamento|estatuto
  *
- * Devuelve las estadísticas globales de evaluación del Reglamento:
+ * Devuelve las estadísticas de evaluación del documento solicitado:
  *   - totalVotos / aprobacionGeneral
  *   - capitulos[]: por capítulo (desglose con % de aprobación)
  *   - cada capítulo trae sus articulos[] con likes/dislikes/aprobación
+ *
+ * Todos los contadores se calculan en MySQL: si un artículo no tiene filas, el
+ * frontend lo completa con ceros a partir del catálogo oficial (nunca inventa
+ * cifras).
+ *
+ * Esta consulta NO exige sesión ni permiso: es el backing de la barra de votos
+ * del lector, que es pública por diseño. El detalle administrativo de la
+ * evaluación de artículos (Dashboard del Administrador) se restringe en la
+ * interfaz con el permiso `estadisticas:ver`, que sólo tiene el rol `admin`
+ * (ver `roles.php`); ningún endpoint permite escribir ni borrar aquí.
  *
  * Uso desde el Dashboard de Administración de React.
  */
 declare(strict_types=1);
 
-// Cabeceras CORS universales (se envía antes que cualquier otra cosa).
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Voter-Token');
-header('Content-Type: application/json; charset=UTF-8');
-
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/roles.php';
+require_once __DIR__ . '/auth_lib.php';
 
 enviarCors();
 manejarPreflight();
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
+if (metodoHttp() !== 'GET') {
     jsonError('Método no permitido. Use GET.', 405);
+}
+
+$documento = validarDocumento($_GET['documento'] ?? 'reglamento');
+if ($documento === null) {
+    jsonError('El parámetro `documento` debe ser "reglamento" o "estatuto".', 400);
 }
 
 // Consulta agregada: artículos con su conteo de votos por tipo
@@ -33,12 +45,16 @@ $sql = 'SELECT
             COALESCE(SUM(CASE WHEN v.tipo_voto = "positivo" THEN 1 ELSE 0 END), 0) AS likes,
             COALESCE(SUM(CASE WHEN v.tipo_voto = "negativo" THEN 1 ELSE 0 END), 0) AS dislikes
         FROM votos_articulos v
+        WHERE v.documento = :documento
         GROUP BY v.articulo_id, v.capitulo_id
         ORDER BY v.capitulo_id ASC, v.articulo_id ASC';
 
 try {
-    $filas = db()->query($sql)->fetchAll();
+    $stmt = db()->prepare($sql);
+    $stmt->execute([':documento' => $documento]);
+    $filas = $stmt->fetchAll();
 } catch (PDOException $e) {
+    error_log('estadisticas: ' . $e->getMessage());
     jsonError('No se pudieron obtener las estadísticas.', 500);
 }
 
@@ -85,6 +101,8 @@ $totalVotos = array_sum(array_column($capitulos, 'totalVotos'));
 $totalLikes = array_sum(array_column($capitulos, 'likes'));
 
 jsonResponse([
+    'ok'                => true,
+    'documento'         => $documento,
     'totalVotos'        => $totalVotos,
     'aprobacionGeneral' => $totalVotos > 0 ? (int) round(($totalLikes / $totalVotos) * 100) : null,
     'capitulos'         => $capitulos,

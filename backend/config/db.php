@@ -2,18 +2,24 @@
 /**
  * Conexión PDO a la base de datos (optimizada para cPanel / GoDaddy).
  *
- * ▸ Cambie DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASS con las credenciales
- *   que cPanel le muestre en "MySQL® Databases".
- * ▸ La base de datos se proporciona en `schema.sql` (importable en phpMyAdmin).
+ * ▸ Las credenciales se leen de las constantes de este archivo y pueden
+ *   sobrescribirse con variables de entorno (útil en cPanel → "Application
+ *   Environment Variables"): DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS.
+ * ▸ La base de datos se proporciona en `schema.sql` (importable en phpMyAdmin)
+ *   y los cambios sobre una base ya existente se aplican con `php migrar.php`.
  *
  * Charset utf8mb4: permiso para emojis (👍/👎) y todo el alfabeto oficial.
  */
 declare(strict_types=1);
 
-// Cabeceras CORS universales (se envía antes que cualquier otra cosa).
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Voter-Token');
-header('Content-Type: application/json; charset=UTF-8');
+// Las cabeceras CORS las emite SIEMPRE api/helpers.php (enviarCors()), que se
+// encarga además de respetar la lista de orígenes permitidos. Este archivo NO
+// debe enviar cabeceras: si lo hiciera, cada endpoint respondería con DOS
+// cabeceras Access-Control-Allow-Origin y el navegador rechazaría la respuesta
+// por CORS, dejando la aplicación inteira sin conexión con el API.
+if (!headers_sent()) {
+    header('Content-Type: application/json; charset=UTF-8');
+}
 
 const DB_HOST = 'localhost';
 const DB_PORT = 3306;
@@ -23,17 +29,32 @@ const DB_PASS = 'chochocomani123.';
 
 /**
  * Orígenes permitidos por CORS.
- * - Para desarrollo local (Vite) se autoriza http://localhost:5173
+ * - Para desarrollo local (Vite) se autoriza http://localhost:3000 y :5173
  * - En producción se incluye el dominio de GoDaddy.
  * Dejar como '*' permite cualquier origen (útil durante la migración).
  */
 const ALLOWED_ORIGINS = [
-    'http://localhost:5173',      // dev server de Vite
+    'http://localhost:3000',      // dev server de Vite (vite.config.js)
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://normas.chachacomani.com', // <- GoDaddy (producción)
     'https://chachacomani.com',   // dominio alternativo
     '*',                          // wildcard (permite cualquier origen durante la migración)
 ];
+
+/**
+ * Devuelve el valor de una credencial priorizando la variable de entorno.
+ * @param string $constante Nombre de la constante declarada arriba.
+ */
+function credencial(string $constante): string
+{
+    $entorno = getenv($constante);
+    if (is_string($entorno) && $entorno !== '') {
+        return $entorno;
+    }
+    return (string) constant($constante);
+}
 
 function db(): PDO
 {
@@ -44,9 +65,9 @@ function db(): PDO
 
     $dsn = sprintf(
         'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-        DB_HOST,
-        DB_PORT,
-        DB_NAME
+        credencial('DB_HOST'),
+        (int) credencial('DB_PORT'),
+        credencial('DB_NAME')
     );
 
     $opciones = [
@@ -57,7 +78,7 @@ function db(): PDO
     ];
 
     try {
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, $opciones);
+        $pdo = new PDO($dsn, credencial('DB_USER'), credencial('DB_PASS'), $opciones);
     } catch (PDOException $e) {
         http_response_code(500);
         header('Content-Type: application/json; charset=utf-8');

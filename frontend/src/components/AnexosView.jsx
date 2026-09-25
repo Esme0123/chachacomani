@@ -1,9 +1,72 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Coins, AlertCircle, Info, Filter, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Coins, Info, CheckCircle2, Gavel, Lock, FileSpreadsheet } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
+import { PERMISO_GESTIONAR_MULTAS } from '../services/permisosService.js';
+import * as multasService from '../services/multasService.js';
+import ModalMulta from './ModalMulta.jsx';
 
 export default function AnexosView({ anexos, searchTerm, fontSize }) {
   const [filterCategory, setFilterCategory] = useState('all');
+  const [panelContableAbierto, setPanelContableAbierto] = useState(false);
+  const [multaModalAbierto, setMultaModalAbierto] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState('all');
+  const [multasRegistradas, setMultasRegistradas] = useState([]);
+  const [cargandoMultas, setCargandoMultas] = useState(false);
+  const [socios, setSocios] = useState([]);
+  const [idEnProceso, setIdEnProceso] = useState(null);
+  const [avisoMultas, setAvisoMultas] = useState(null);
+
+  // Control de acceso: la interfaz de gestión de sanciones del Anexo I sólo se
+  // habilita para el Tesorero y el Administrador (permiso `multas:gestionar`).
+  // El rol Lectura y el rol Caja Chica sólo consultan.
+  const { puede } = useAuth();
+  const puedeGestionar = puede(PERMISO_GESTIONAR_MULTAS);
+
+  // El padrón de socios llega en la propia respuesta de `GET /api/multas`
+  // (sólo para quien puede gestionar multas), de modo que el Tesorero no
+  // necesita el permiso `usuarios:gestionar` del Administrador.
+  const cargarMultas = async (estado = filtroEstado) => {
+    setCargandoMultas(true);
+    try {
+      const json = await multasService.listarMultas(estado === 'all' ? {} : { estado });
+      setMultasRegistradas(json.multas || []);
+      if (Array.isArray(json.socios)) setSocios(json.socios);
+    } catch (error) {
+      console.error('No se pudieron cargar las multas:', error);
+      setMultasRegistradas([]);
+    } finally {
+      setCargandoMultas(false);
+    }
+  };
+
+  const alternarPanelContable = () => {
+    const abriendo = !panelContableAbierto;
+    setPanelContableAbierto(abriendo);
+    if (abriendo) cargarMultas();
+  };
+
+  const abrirFormularioMulta = () => setMultaModalAbierto(true);
+
+  /** Cierra la sanción: pagada (cobro efectivo) o anulada (resolución). */
+  const cambiarEstado = async (multa, estado) => {
+    setIdEnProceso(multa.id);
+    setAvisoMultas(null);
+    try {
+      const json = await multasService.cambiarEstadoMulta(multa.id, estado);
+      setAvisoMultas(json?.mensaje || `Multa de ${multa.socioNombre} actualizada.`);
+      cargarMultas();
+    } catch (error) {
+      setAvisoMultas(`No se pudo actualizar la multa: ${error?.message || 'error desconocido'}`);
+    } finally {
+      setIdEnProceso(null);
+    }
+  };
+
+  const cambiarFiltroEstado = (estado) => {
+    setFiltroEstado(estado);
+    cargarMultas(estado);
+  };
 
   return (
     <div className="space-y-10 pb-16">
@@ -45,6 +108,161 @@ export default function AnexosView({ anexos, searchTerm, fontSize }) {
         <div className="p-4 rounded-xl bg-cream-100 dark:bg-navy-950 border border-sand-300 dark:border-slate-800 text-xs text-ink-muted dark:text-slate-400 leading-relaxed">
           <span className="font-bold text-ink-soft dark:text-slate-200">Disposición Transitoria (Art. 100): </span>
           Mientras la Cooperativa no alcance producción regular, todas las sanciones pecuniarias se fijan y pagan en bolivianos (Bs.); una vez regularizada la producción, la Asamblea General podrá resolver su conversión equivalente a gramos de oro físico.
+        </div>
+
+        {/* Panel de Contaduría y Sanciones — exclusivo del Tesorero/Administrador.
+            El rol Lectura y el Caja Chica ven el Anexo I como norma de consulta. */}
+        <div className="rounded-2xl border border-sand-300 dark:border-slate-800 bg-cream-100 dark:bg-navy-950 overflow-hidden">
+          <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              {puedeGestionar ? (
+                <FileSpreadsheet className="w-5 h-5 text-amber-500 shrink-0" />
+              ) : (
+                <Lock className="w-4 h-4 text-ink-muted dark:text-slate-500 shrink-0" />
+              )}
+              <div>
+                <p className="text-xs font-bold text-ink dark:text-white">
+                  {puedeGestionar
+                    ? 'Interfaz de Contaduría y Sanciones'
+                    : 'Contaduría y Sanciones (sólo lectura)'}
+                </p>
+                <p className="font-mono text-[10px] text-ink-muted dark:text-slate-500">
+                  {puedeGestionar
+                    ? 'Impute multas del Cuadro N.º 2 y lleve el registro contable de sanciones.'
+                    : 'Requiere el rol Tesorero o Administrador del sistema.'}
+                </p>
+              </div>
+            </div>
+
+            {puedeGestionar && (
+              <button
+                onClick={alternarPanelContable}
+                aria-expanded={panelContableAbierto}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                {panelContableAbierto ? 'Ocultar Panel' : 'Abrir Panel'}
+              </button>
+            )}
+          </div>
+
+          {puedeGestionar && panelContableAbierto && (
+            <div className="px-5 pb-5 space-y-4 border-t border-sand-300 dark:border-slate-800 pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-1 bg-cream-200 dark:bg-slate-800 p-1 rounded-xl text-xs">
+                  {[
+                    { clave: 'all', etiqueta: 'Todas' },
+                    { clave: 'pendiente', etiqueta: 'Pendientes' },
+                    { clave: 'pagada', etiqueta: 'Pagadas' },
+                    { clave: 'anulada', etiqueta: 'Anuladas' },
+                  ].map((f) => (
+                    <button
+                      key={f.clave}
+                      onClick={() => cambiarFiltroEstado(f.clave)}
+                      className={`px-2.5 py-1 rounded-lg transition-all ${
+                        filtroEstado === f.clave
+                          ? 'bg-amber-500 text-navy-950 font-bold'
+                          : 'text-ink-muted dark:text-slate-400'
+                      }`}
+                    >
+                      {f.etiqueta}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={abrirFormularioMulta}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-transform hover:scale-[1.02]"
+                  style={{ background: 'linear-gradient(135deg,#E4A11B,#C0392B)' }}
+                >
+                  <Gavel className="w-3.5 h-3.5" />
+                  Llenar Formulario / Registrar Multa
+                </button>
+              </div>
+
+              {avisoMultas && (
+                <p
+                  role="status"
+                  className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/8 px-3 py-1.5 font-mono text-[11px] text-amber-600 dark:text-amber-400"
+                >
+                  {avisoMultas}
+                </p>
+              )}
+
+              {cargandoMultas ? (
+                <p className="font-mono text-[11px] text-ink-muted dark:text-slate-500 py-6 text-center">
+                  Cargando multas registradas…
+                </p>
+              ) : multasRegistradas.length === 0 ? (
+                <p className="font-mono text-[11px] text-ink-muted dark:text-slate-500 py-6 text-center">
+                  No hay multas registradas{filtroEstado !== 'all' ? ` con estado «${filtroEstado}»` : ''}.
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-sand-300 dark:border-slate-800">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-cream-200/70 dark:bg-slate-800/50 text-ink-muted dark:text-slate-400 uppercase font-semibold text-[10px]">
+                        <th className="p-2.5">Socio</th>
+                        <th className="p-2.5">Infracción</th>
+                        <th className="p-2.5">Fecha</th>
+                        <th className="p-2.5 text-right">Monto (Bs.)</th>
+                        <th className="p-2.5 text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-sand-200/70 dark:divide-slate-800 text-ink-soft dark:text-slate-300">
+                      {multasRegistradas.map((m) => (
+                        <tr key={m.id} className="hover:bg-amber-500/5 dark:hover:bg-slate-800/30">
+                          <td className="p-2.5 font-medium text-ink dark:text-slate-100 whitespace-nowrap">
+                            {m.socioNombre}
+                          </td>
+                          <td className="p-2.5">
+                            {m.infraccion}
+                            <span className="block font-mono text-[10px] text-ink-muted dark:text-slate-500">
+                              {m.articulo}
+                            </span>
+                          </td>
+                          <td className="p-2.5 font-mono text-ink-muted dark:text-slate-400 whitespace-nowrap">
+                            {String(m.fechaInfraccion || '').slice(0, 10)}
+                          </td>
+                          <td className="p-2.5 text-right font-bold text-ink dark:text-white whitespace-nowrap">
+                            {Number(m.monto).toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2.5 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                m.estado === 'pagada'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                  : m.estado === 'anulada'
+                                    ? 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                              }`}
+                            >
+                              {m.estado}
+                            </span>
+                            {/* Cierre de la sanción: el Tesorero cobra o anula
+                                por resolución del Tribunal de Honor. */}
+                            {puedeGestionar && m.estado === 'pendiente' && (
+                              <select
+                                value=""
+                                onChange={(e) => cambiarEstado(m, e.target.value)}
+                                disabled={idEnProceso === m.id}
+                                aria-label={`Cambiar estado de la multa de ${m.socioNombre}`}
+                                className="block mx-auto mt-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] bg-transparent text-ink-muted dark:text-slate-400 border border-sand-300 dark:border-slate-700 disabled:opacity-50"
+                              >
+                                <option value="" disabled>Marcar como…</option>
+                                <option value="pagada">Pagada</option>
+                                <option value="anulada">Anulada</option>
+                              </select>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cuadro N° 1: Clasificación General */}
@@ -239,6 +457,16 @@ export default function AnexosView({ anexos, searchTerm, fontSize }) {
           </div>
         </div>
       </section>
+
+      {/* Modal «Llenar Formulario / Registrar Multa» (Tesorero/Administrador) */}
+      {puedeGestionar && (
+        <ModalMulta
+          isOpen={multaModalAbierto}
+          onClose={() => setMultaModalAbierto(false)}
+          tema={anexos?.[0]}
+          socios={socios}
+        />
+      )}
 
     </div>
   );

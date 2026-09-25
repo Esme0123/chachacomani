@@ -1,15 +1,25 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { CARDS } from '../data/landingData.js'
+import PerfilMenu from './PerfilMenu.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import {
+  PERMISO_VER_CONTABILIDAD,
+  PERMISO_GESTIONAR_CAJA_CHICA,
+  PERMISO_GESTIONAR_USUARIOS,
+} from '../services/permisosService.js'
 
-export default function Header({ dark, onNavigate, onToggleTheme }) {
+export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil }) {
   const [bibliotecaAbierto, setBibliotecaAbierto] = useState(false)
   const [menuMovil, setMenuMovil] = useState(false)
   const [bibliotecaMovil, setBibliotecaMovil] = useState(false)
+  const [gestionAbierto, setGestionAbierto] = useState(false)
+  const { estaAutenticado, puede } = useAuth()
 
   const cerrarTodo = (dest) => {
     setMenuMovil(false)
     setBibliotecaAbierto(false)
     setBibliotecaMovil(false)
+    setGestionAbierto(false)
     onNavigate(dest)
   }
 
@@ -21,6 +31,33 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
         : 'en-desarrollo'
     cerrarTodo(destino)
   }
+
+  /**
+   * Paneles de gestión que le corresponden al socio según su rol. Se construyen
+   * aquí, y no en App, para que el Header sólo ofrezca lo que el usuario puede
+   * usar realmente (el backend vuelve a validarlo en cada petición).
+   */
+  const paneles = useMemo(() => {
+    if (!estaAutenticado) return []
+    const disponibles = []
+    if (puede(PERMISO_VER_CONTABILIDAD) || puede(PERMISO_GESTIONAR_CAJA_CHICA)) {
+      disponibles.push({
+        id: 'caja-chica',
+        etiqueta: 'Caja Chica',
+        descripcion: 'Ingresos y egresos menores',
+        icono: '💰',
+      })
+    }
+    if (puede(PERMISO_GESTIONAR_USUARIOS)) {
+      disponibles.push({
+        id: 'usuarios',
+        etiqueta: 'Usuarios y Roles',
+        descripcion: 'Socios, roles y cuentas',
+        icono: '🛡️',
+      })
+    }
+    return disponibles
+  }, [estaAutenticado, puede])
 
   return (
     <header className={`sticky top-0 z-40 ${dark
@@ -111,6 +148,61 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
             )}
           </div>
 
+          {/* Gestión: sólo aparece si el rol tiene algún panel asignado */}
+          {paneles.length > 0 && (
+            <div
+              className="relative"
+              onMouseEnter={() => setGestionAbierto(true)}
+              onMouseLeave={() => setGestionAbierto(false)}
+            >
+              <button
+                onClick={() => setGestionAbierto(o => !o)}
+                aria-expanded={gestionAbierto}
+                className={`flex items-center gap-1.5 font-display font-semibold text-sm tracking-wide px-3 py-1.5 rounded-md border transition-all ${dark
+                    ? 'border-[#7B4BC9]/70 text-[#C4A0F0] hover:bg-[#7B4BC9]/15'
+                    : 'border-[#7B4BC9]/45 text-[#7B4BC9] hover:bg-[#7B4BC9]/8'
+                  }`}
+              >
+                Gestión
+                <span className={`inline-block text-[10px] transition-transform duration-200 ${gestionAbierto ? 'rotate-180' : ''}`}>
+                  ▾
+                </span>
+              </button>
+
+              {gestionAbierto && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-72 rounded-2xl border p-2 shadow-2xl z-50 backdrop-blur-md"
+                  style={{
+                    background: dark ? 'rgba(13,11,97,0.97)' : 'rgba(255,255,255,0.97)',
+                    borderColor: dark ? '#294669' : 'rgba(41,70,105,0.2)',
+                    boxShadow: dark ? '0 24px 60px rgba(0,0,0,.55)' : '0 24px 60px rgba(13,11,97,.25)',
+                  }}
+                >
+                  <div className="px-3 py-2 font-mono text-[10px] tracking-widest text-[#7B4BC9]">
+                    PANELES DE SU ROL
+                  </div>
+                  {paneles.map(panel => (
+                    <button
+                      key={panel.id}
+                      onClick={() => cerrarTodo(panel.id)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-[#294669]/15"
+                    >
+                      <span className="text-base shrink-0">{panel.icono}</span>
+                      <span className="flex-1 min-w-0">
+                        <span className={`block font-display font-semibold text-sm leading-tight ${dark ? 'text-white' : 'text-[#0D0B61]'}`}>
+                          {panel.etiqueta}
+                        </span>
+                        <span className={`block font-mono text-[10px] leading-tight ${dark ? 'text-[#476EAE]' : 'text-[#294669]/70'}`}>
+                          {panel.descripcion}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Theme toggle */}
           <button
             onClick={onToggleTheme}
@@ -124,15 +216,21 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
             {dark ? '🌙' : '☀️'}
           </button>
 
-          <button
-            onClick={() => onNavigate('login')}
-            className={`font-display font-semibold text-sm tracking-wide px-4 py-1.5 rounded-md border transition-all ${dark
+          {/* Con sesión iniciada: bienvenida + menú de perfil.
+              Sin sesión: botón «Login». */}
+          {estaAutenticado ? (
+            <PerfilMenu dark={dark} onNavigate={onNavigate} onIrAPerfil={onIrAPerfil} />
+          ) : (
+            <button
+              onClick={() => onNavigate('login')}
+              className={`font-display font-semibold text-sm tracking-wide px-4 py-1.5 rounded-md border transition-all ${dark
                 ? 'border-[#48B3AF] text-[#48B3AF] hover:bg-[#48B3AF]/12'
                 : 'border-[#294669] text-[#294669] hover:bg-[#294669]/6'
-              }`}
-          >
-            Login
-          </button>
+                }`}
+            >
+              Login
+            </button>
+          )}
         </nav>
 
         {/* Burger (móvil) */}
@@ -200,12 +298,57 @@ export default function Header({ dark, onNavigate, onToggleTheme }) {
               <span className="text-base">{dark ? '🌙' : '☀️'}</span> Tema
             </button>
 
-            <button
-              onClick={() => cerrarTodo('login')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
-            >
-              <span className="text-base">🔐</span> Login
-            </button>
+            {/* Paneles de gestión del rol (sólo si el socio tiene alguno) */}
+            {paneles.length > 0 && (
+              <div className="space-y-1 pl-3">
+                {paneles.map(panel => (
+                  <button
+                    key={panel.id}
+                    onClick={() => cerrarTodo(panel.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-display text-sm text-left transition-colors ${dark ? 'text-slate-200 hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+                  >
+                    <span className="text-base">{panel.icono}</span>
+                    <span className="flex-1 min-w-0 leading-tight">{panel.etiqueta}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {estaAutenticado ? (
+              <div className="space-y-1">
+                <div
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm ${dark ? 'text-white' : 'text-[#0D0B61]'}`}
+                >
+                  <span className="text-base">👤</span> Bienvenido/a
+                </div>
+                <div className="pl-3 space-y-1">
+                  {[
+                    { etiqueta: 'Ver / Editar Datos de Perfil', destino: 'perfil' },
+                    { etiqueta: 'Cambiar Contraseña', destino: 'password' },
+                    { etiqueta: 'Revisar mis Multas', destino: 'multas' },
+                  ].map(item => (
+                    <button
+                      key={item.destino}
+                      onClick={() => {
+                        setMenuMovil(false)
+                        if (onIrAPerfil) onIrAPerfil(item.destino)
+                        else onNavigate('perfil')
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-display text-sm text-left transition-colors ${dark ? 'text-slate-200 hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+                    >
+                      <span className="text-base">›</span> {item.etiqueta}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => cerrarTodo('login')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-display font-semibold text-sm transition-colors ${dark ? 'text-white hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
+              >
+                <span className="text-base">🔐</span> Login
+              </button>
+            )}
           </div>
         </div>
       )}

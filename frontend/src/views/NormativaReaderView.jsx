@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 
 import { useDRM } from '../hooks/useDRM';
+import { useDRMEstado } from '../context/DRMContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { PERMISO_VER_ESTADISTICAS } from '../services/permisosService';
 import { useTTS } from '../hooks/useTTS';
 import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas';
 
@@ -57,16 +60,27 @@ export default function NormativaReaderView({ documento, onVolver }) {
 
     const tieneAnexos = Array.isArray(anexos) && anexos.length > 0;
 
-    // 1. DRM Hook
+    // 1. DRM: el estado Activo/Inactivo vive en el servidor (DRMContext) y sólo
+    //    el Administrador puede alternarlo. El hook sólo aporta los
+    //    interceptores de contenido y el toast de aviso.
     const {
         drmEnabled,
         toggleDRM,
-        marcarAdmin,
+        cargando: cargandoDrm,
+        cambiando: cambiandoDrm,
         toastMessage,
         toastVisible,
         hideToast,
         triggerDRMAlert
     } = useDRM();
+
+    // El estado real y la capacidad de gestionarlo vienen del contexto global.
+    const { puedeGestionar: puedeGestionarDrm } = useDRMEstado();
+
+    // El Dashboard de evaluación de artículos es una pantalla de administración:
+    // `estadisticas:ver` sólo lo tiene el Administrador (roles.php).
+    const { puede: puede } = useAuth();
+    const puedeVerEstadisticas = puede(PERMISO_VER_ESTADISTICAS);
 
     // 2. Estados de Interfaz
     const [showSplash, setShowSplash] = useState(true);
@@ -143,10 +157,11 @@ export default function NormativaReaderView({ documento, onVolver }) {
 
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Abre el Panel de Administrador y marca al usuario como admin (el DRM del
-    // próximo arranque inicia desactivado por defecto).
+    // Abre el Panel de Estadísticas. El DRM ya no se "marca" aquí: su estado
+    // es global y sólo el Administrador puede alterarlo (ver DRMContext).
+    // Se comprueba el permiso también en la UI: el backend valida por su lado.
     const abrirAdmin = () => {
-        marcarAdmin();
+        if (!puedeVerEstadisticas) return;
         setIsAdminOpen(true);
     };
 
@@ -371,8 +386,11 @@ export default function NormativaReaderView({ documento, onVolver }) {
                     selectedTab={selectedTab}
                     setSelectedTab={setSelectedTab}
                     onOpenAdmin={abrirAdmin}
+                    puedeVerEstadisticas={puedeVerEstadisticas}
                     drmEnabled={drmEnabled}
                     onToggleDRM={toggleDRM}
+                    puedeGestionarDrm={puedeGestionarDrm}
+                    cambiandoDrm={cambiandoDrm}
                     tema={tema}
                     strings={strings}
                     tieneAnexos={tieneAnexos}
@@ -396,8 +414,11 @@ export default function NormativaReaderView({ documento, onVolver }) {
                             setIsMobileMenuOpen(false);
                             abrirAdmin();
                         }}
+                        puedeVerEstadisticas={puedeVerEstadisticas}
                         drmEnabled={drmEnabled}
                         onToggleDRM={toggleDRM}
+                        puedeGestionarDrm={puedeGestionarDrm}
+                        cambiandoDrm={cambiandoDrm}
                         tema={tema}
                         strings={strings}
                         tieneAnexos={tieneAnexos}
@@ -652,18 +673,23 @@ export default function NormativaReaderView({ documento, onVolver }) {
                     formUrl={formUrl}
                 />
 
-                {/* Modal: Dashboard de Administrador (evaluación de artículos) */}
-                <AdminDashboard
-                    isOpen={isAdminOpen}
-                    onClose={() => setIsAdminOpen(false)}
-                    isDark={isDark}
-                    drmEnabled={drmEnabled}
-                    toggleDRM={toggleDRM}
-                    tema={tema}
-                    capitulos={capitulos}
-                    votos={votos}
-                    strings={strings}
-                />
+                {/* Modal: Dashboard de Administrador (evaluación de artículos).
+                    Sólo se monta si el rol tiene `estadisticas:ver`. */}
+                {puedeVerEstadisticas && (
+                    <AdminDashboard
+                        isOpen={isAdminOpen}
+                        onClose={() => setIsAdminOpen(false)}
+                        isDark={isDark}
+                        drmEnabled={drmEnabled}
+                        toggleDRM={toggleDRM}
+                        puedeGestionarDrm={puedeGestionarDrm}
+                        cambiandoDrm={cambiandoDrm}
+                        tema={tema}
+                        capitulos={capitulos}
+                        votos={votos}
+                        strings={strings}
+                    />
+                )}
 
                 {/* Footer Institucional */}
                 <footer className={`border-t py-8 text-xs transition-colors ${isDark ? 'border-slate-800/80 bg-navy-950 text-slate-500' : 'border-sand-300 bg-white text-ink-muted'}`}>
@@ -678,17 +704,19 @@ export default function NormativaReaderView({ documento, onVolver }) {
                             {strings.footerBadges.map((badge) => (
                                 <span key={badge}>{badge}</span>
                             ))}
-                            <button
-                                onClick={abrirAdmin}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border transition-colors ${isDark
-                                    ? 'border-slate-700 text-slate-500 hover:border-gold-500/50'
-                                    : 'border-sand-300 text-ink-muted hover:border-gold-500/50'
-                                    } ${tema.footerBadgeAcento}`}
-                                title="Dashboard de Administrador: estadísticas de evaluación de artículos"
-                            >
-                                <BarChart3 className="w-3 h-3" />
-                                Admin
-                            </button>
+                            {puedeVerEstadisticas && (
+                                <button
+                                    onClick={abrirAdmin}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border transition-colors ${isDark
+                                        ? 'border-slate-700 text-slate-500 hover:border-gold-500/50'
+                                        : 'border-sand-300 text-ink-muted hover:border-gold-500/50'
+                                        } ${tema.footerBadgeAcento}`}
+                                    title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+                                >
+                                    <BarChart3 className="w-3 h-3" />
+                                    Admin
+                                </button>
+                            )}
                         </div>
                     </div>
                 </footer>

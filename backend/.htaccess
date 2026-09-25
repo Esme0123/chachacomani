@@ -4,6 +4,26 @@
 # Evita listar directorios si no hay index
 Options -Indexes
 
+# ---------------------------------------------------------------------------
+# Rutas limpias del API (mod_rewrite)
+# ---------------------------------------------------------------------------
+# Permite consumir /api/auth/login, /api/auth/register, /api/drm, /api/multas…
+# sin extensión. Los archivos .php siguen funcionando por si el hosting no
+# soporta mod_rewrite (el frontend detecta el 404 y reintenta con .php).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Todo lo que no existe como archivo/directorio pasa por el enrutador,
+    #    preservando los query strings (?documento=estatuto&mes=2026-09).
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.*)$ api/index.php?ruta=$1 [QSA,L]
+
+    # 2. Sin reglas adicionales: el enrutador se invoca internamente desde la
+    #    regla 1 y no debe ser bloqueado (ver <FilesMatch> más abajo).
+</IfModule>
+
 # MIME de respuestas JSON (complementa el header de cada endpoint)
 AddType application/json .json
 
@@ -14,7 +34,9 @@ AddType application/json .json
 </IfModule>
 
 # Denegación de acceso a archivos sensibles dentro de backend/
-<FilesMatch "^(db\.php|helpers\.php|composer\.(json|lock))$">
+# (config/, librerías de auth y el script de migración NO son datos públicos).
+# `index.php` NO se bloquea: es el enrutador interno de las rutas limpias.
+<FilesMatch "^(db\.php|helpers\.php|roles\.php|auth_lib\.php|composer\.(json|lock)|migrar\.php)$">
     Require all denied
 </FilesMatch>
 

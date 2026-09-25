@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import NormativaReaderView from './NormativaReaderView';
 import { ESTATUTO_CAPITULOS, ESTATUTO_METADATA } from '../data/estatutoData';
-import * as votosService from '../services/frontendVotosService';
+import { crearVotosService } from '../services/votosService';
 import { temaEstatuto } from '../theme/lecturaTemas';
 
 const FORMULARIO_URL =
@@ -58,12 +59,16 @@ const strings = {
   adminEyebrow: 'Panel de Administración',
   adminTitle: 'Evaluación del Estatuto Orgánico',
   adminAprobacionLabel: 'Aprobación General del Estatuto',
-  adminErrorHint: 'Los votos del Estatuto se registran de forma local en este navegador.',
+  adminErrorHint: 'Compruebe que el backend PHP esté disponible.',
   adminFooter:
-    'Estadísticas del Estatuto Orgánico calculadas localmente (localStorage). Los votos no se envían a ningún servidor.',
+    'Estadísticas en tiempo real desde el backend PHP + MySQL (backend/). Los votos del Estatuto Orgánico se registran en la misma base de datos que los del Reglamento Interno y el voto único por socio lo garantiza el servidor.',
 };
 
 export default function EstatutoOrganicoView({ onVolver }) {
+  // Memorizado por la misma razón que en el Reglamento: la identidad del
+  // objeto `votos` es dependencia de los efectos del lector de normativa.
+  const votos = useMemo(() => crearVotosService('estatuto', ESTATUTO_CAPITULOS), []);
+
   return (
     <NormativaReaderView
       onVolver={onVolver}
@@ -73,7 +78,7 @@ export default function EstatutoOrganicoView({ onVolver }) {
         metadata: ESTATUTO_METADATA,
         capitulos: ESTATUTO_CAPITULOS,
         anexos: null,
-        votos: votosService,
+        votos,
         formUrl: FORMULARIO_URL,
         mostrarFormulario: true,
         strings,

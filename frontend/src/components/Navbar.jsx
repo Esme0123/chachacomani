@@ -26,8 +26,11 @@ export default function Navbar({
   selectedTab,
   setSelectedTab,
   onOpenAdmin,
+  puedeVerEstadisticas = false,
   drmEnabled,
   onToggleDRM,
+  puedeGestionarDrm = false,
+  cambiandoDrm = false,
   tema = temaReglamento,
   strings,
   tieneAnexos = true
@@ -164,37 +167,65 @@ export default function Navbar({
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </motion.button>
 
-            {/* Acceso al Dashboard de Estadísticas (Administrador) */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onOpenAdmin}
-              className="inline-flex items-center gap-1.5 px-2.5 py-2 text-ink-muted dark:text-gold-400 bg-cream-100 dark:bg-navy-800/80 hover:bg-cream-200 dark:hover:bg-navy-700/80 rounded-xl border border-sand-300 dark:border-slate-700/60 transition-colors"
-              title="Dashboard de Administrador: estadísticas de evaluación de artículos"
-              aria-label="Abrir estadísticas"
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline text-[11px] font-semibold">Estadísticas</span>
-            </motion.button>
+            {/* Acceso al Dashboard de Estadísticas.
+                `estadisticas:ver` sólo lo tiene el Administrador (roles.php),
+                así que el botón se oculta para los demás roles. */}
+            {puedeVerEstadisticas && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onOpenAdmin}
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 text-ink-muted dark:text-gold-400 bg-cream-100 dark:bg-navy-800/80 hover:bg-cream-200 dark:hover:bg-navy-700/80 rounded-xl border border-sand-300 dark:border-slate-700/60 transition-colors"
+                title="Dashboard de Administrador: estadísticas de evaluación de artículos"
+                aria-label="Abrir estadísticas"
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline text-[11px] font-semibold">Estadísticas</span>
+              </motion.button>
+            )}
 
-            {/* Toggle de Seguridad DRM */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onToggleDRM}
-              role="switch"
-              aria-checked={drmEnabled}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
-                drmEnabled
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15'
-              }`}
-              title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
-              aria-label={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
-            >
-              {drmEnabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{drmEnabled ? 'DRM Activo' : 'DRM Inactivo'}</span>
-            </motion.button>
+            {/* Seguridad DRM.
+                CONTROL EXCLUSIVO DEL ADMIN (especificación 3.d): sólo el rol
+                `admin` puede alternarlo (permiso `drm:gestionar`, validado
+                además por `api/drm.php`). Para Lectura, Tesorero y Caja Chica
+                el mismo indicador se muestra como ETIQUETA, sin clic. */}
+            {puedeGestionarDrm ? (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleDRM}
+                disabled={cambiandoDrm}
+                role="switch"
+                aria-checked={drmEnabled}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-60 ${
+                  drmEnabled
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15'
+                }`}
+                title={drmEnabled ? 'Desactivar Seguridad DRM (toda la plataforma)' : 'Activar Seguridad DRM (toda la plataforma)'}
+                aria-label={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
+              >
+                {drmEnabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">
+                  {cambiandoDrm ? 'Actualizando…' : drmEnabled ? 'DRM Activo' : 'DRM Inactivo'}
+                </span>
+              </motion.button>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold cursor-default select-none ${
+                  drmEnabled
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                }`}
+                title="Estado de la protección de contenido. Sólo el Administrador del sistema puede cambiarla."
+                aria-label={`Protección DRM ${drmEnabled ? 'activa' : 'inactiva'} (sólo lectura)`}
+              >
+                {drmEnabled ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldOff className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{drmEnabled ? 'DRM Activo' : 'DRM Inactivo'}</span>
+                <span className="hidden lg:inline opacity-50" aria-hidden="true">·</span>
+                <span className="hidden lg:inline text-[10px] font-normal opacity-70">sólo Admin</span>
+              </span>
+            )}
 
           </div>
         </div>

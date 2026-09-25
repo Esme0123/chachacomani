@@ -10,6 +10,8 @@ export default function AdminDashboard({
   isDark,
   drmEnabled,
   toggleDRM,
+  puedeGestionarDrm = false,
+  cambiandoDrm = false,
   tema = temaReglamento,
   capitulos = [],
   votos,
@@ -173,10 +175,15 @@ export default function AdminDashboard({
 
               <button
                 onClick={toggleDRM}
+                disabled={!puedeGestionarDrm || cambiandoDrm}
                 role="switch"
                 aria-checked={drmEnabled}
-                title={drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                title={
+                  puedeGestionarDrm
+                    ? drmEnabled ? 'Desactivar Seguridad DRM' : 'Activar Seguridad DRM'
+                    : 'Sólo el Administrador del sistema puede cambiar el DRM'
+                }
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   drmEnabled ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'
                 }`}
               >

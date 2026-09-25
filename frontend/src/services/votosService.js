@@ -1,49 +1,52 @@
 /**
  * ============================================================================
- *  SERVICIO DE EVALUACIÓN DE ARTÍCULOS — Capa de datos (SOLO API REAL)
+ *  SERVICIO DE EVALUACIÓN DE ARTÍCULOS — Reglamento Y Estatuto
  * ============================================================================
- *  Capa única de datos entre la UI React y el backend PHP + MySQL (backend/).
+ *  Capa ÚNICA de votación de la plataforma. Tanto el Reglamento Interno como el
+ *  Estatuto Orgánico consumen este servicio; lo que los distingue es el
+ *  parámetro `documento` ('reglamento' | 'estatuto') y el catálogo de capítulos
+ *  que se le inyecta para completar los artículos que aún no tienen votos.
  *
- *  ⚠️  NO existe fallback a localStorage: los votos y estadísticas provienen
- *      EXCLUSIVAMENTE de los endpoints PHP de la API MySQL, para que los votos
- *      sean globales entre dispositivos:
- *        · POST  /api/votar.php          -> registra el voto (tabla votos_articulos)
- *        · GET   /api/estadisticas.php   -> métricas globales / por capítulo / artículo
- *        · GET   /api/mis_votos.php      -> artículos ya votados por este voter_token
+ *  ⚠️ NO existe fallback a localStorage ni datos simulados: los votos, los
+ *      contadores y la verificación de voto único provienen EXCLUSIVAMENTE de
+ *      la base de datos del servidor, para que sean globales entre dispositivos.
+ *        · POST /api/votos      -> registra el voto (tabla `votos_articulos`)
+ *        · GET  /api/votos      -> artículos ya votados por este socio/navegador
+ *        · GET  /api/estadisticas -> métricas globales, por capítulo y artículo
  *
- *      Si el API falla (red caída, HTTP 500/404, credenciales DB erróneas) se
- *      lanza el error y la UI lo muestra en un toast; NADA se guarda en
- *      localStorage como "modo simulado".
+ *  La restricción UNIQUE (documento, articulo_id, voter_token) del servidor es
+ *  la que garantiza el voto único. Cuando el socio ha iniciado sesión, el token
+ *  de sesión viaja como `Authorization: Bearer` y el backend usa la identidad
+ *  `u:<id>`; si no hay sesión, se usa el UUID anónimo del navegador.
  *
- *  ▶ Ruta base: por defecto apunta a `/api` del dominio activo
- *    (`https://dominio/api/votar.php`). Para apuntar a otro lugar, defina
- *    VITE_API_BASE_URL en el build (p. ej. 'https://api.ejemplo.com/backend/api').
+ *  ▶ Ruta base: `VITE_API_BASE_URL` (o `VITE_API_URL`) en el build; por defecto
+ *    `/api` del dominio activo.
  * ============================================================================
  */
-import { CAPITULOS_DATA } from '../data/reglamentoData';
+import { peticion, leerToken } from './apiClient';
 
 const TOKEN_KEY = 'chachacomani_voter_token'; // identidad del navegador (anti-spam)
 
 /* -------------------------------------------------------------------------- */
-/* Ruta base del API                                                           */
+/* voter_token (identidad anónima del navegador)                                */
 /* -------------------------------------------------------------------------- */
 
-const RAIZ_API = (() => {
-  const configurada = import.meta.env.VITE_API_BASE_URL;
-  const base = configurada || `${window.location.origin}/api`;
-  return base.replace(/\/+$/, ''); // sin barra final, para concatenar /votar.php
-})();
-
-const endpoint = (nombre) => `${RAIZ_API}/${nombre}`;
-
-/* -------------------------------------------------------------------------- */
-/* voter_token (anti spam: identifica el navegador)                            */
-/* -------------------------------------------------------------------------- */
+function generarUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback para navegadores antiguos (v4 sin criptografía dura)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 /**
- * Devuelve (creándolo si hace falta) un UUID único por navegador, guardado en
- * localStorage. Este token es el que persiste la votación en MySQL y el que la
- * base de datos usa en la restricción UNIQUE (articulo_id, voter_token).
+ * Devuelve (creándolo si hace falta) un UUID único por navegador.
+ * Sólo se usa como identidad de voto cuando el visitante NO ha iniciado sesión:
+ * con sesión iniciada manda el `usuario_id` del socio.
  */
 export function getVoterToken() {
   try {
@@ -59,67 +62,68 @@ export function getVoterToken() {
   }
 }
 
-function generarUuid() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  // Fallback para navegadores antiguos (v4 sin criptografía dura)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 /**
  * Limpieza única: elimina las claves heredadas del antiguo "modo simulación"
  * (localStorage). Así los contadores y votos de la fase previa dejan de tener
- * influencia y todo se lee desde MySQL.
+ * influencia y todo se lee desde MySQL. También se borra el voto del Estatuto
+ * que se guardaba localmente antes de conectarlo al backend.
  */
 try {
   localStorage.removeItem('chachacomani_modo_api');
   localStorage.removeItem('chachacomani_votos_articulo_v2');
   localStorage.removeItem('chachacomani_voto_usuario_v2');
+  localStorage.removeItem('chachacomani_estatuto_votos_v1');
 } catch {
   /* localStorage no disponible */
 }
 
-/* Cache en memoria (no persistida) de articulo_id -> 'positivo' | 'negativo',
-   útil para la UI mientras el API anti-spam responde. */
-let userVotesCache = {};
+/**
+ * Cache en memoria (no persistida) de articulo_id -> 'positivo' | 'negativo',
+ * útil para la UI mientras el API responde.
+ */
+const cacheVotos = new Map();
+
+/* -------------------------------------------------------------------------- */
+/* Fábrica de servicios por documento                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Devuelve el objeto `votos` que inyecta `NormativaReaderView`.
+ *
+ * @param {'reglamento'|'estatuto'} documento
+ * @param {Array} capitulos  Catálogo del documento, para completar con ceros los
+ *                           artículos que aún no tienen votos registrados.
+ */
+export function crearVotosService(documento, capitulos) {
+  return {
+    documento,
+    obtenerMisVotos: () => obtenerMisVotos(documento),
+    obtenerEstadisticas: () => obtenerEstadisticas(documento, capitulos),
+    votarArticulo: (articuloId, tipoVoto, capituloId) =>
+      votarArticulo(documento, articuloId, tipoVoto, capituloId),
+  };
+}
 
 /* -------------------------------------------------------------------------- */
 /* Votos del usuario (anti-spam: botones bloqueados)                          */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Consulta al backend qué artículos ya votó este token. Se ejecuta al cargar
- * la app para deshabilitar los botones ya evaluados.
+ * Consulta al backend qué artículos ya votó este socio (o este navegador).
+ * @returns {Promise<Object<number, 'positivo'|'negativo'>>}
  */
-export async function obtenerMisVotos() {
-  const token = getVoterToken();
+export async function obtenerMisVotos(documento = 'reglamento') {
+  // `votos` es ambiguo en el router: GET devuelve las m��as, POST registra el
+  // voto. Para la consulta se usa la ruta explícita `mis-votos`.
+  const json = await peticion('mis-votos', {
+    params: { documento, voter_token: getVoterToken() },
+  });
 
-  let res;
-  try {
-    res = await fetch(endpoint(`mis_votos.php?voter_token=${encodeURIComponent(token)}`), {
-      headers: { Accept: 'application/json' },
-    });
-  } catch (error) {
-    console.error('Error backend:', error);
-    throw Object.assign(new Error('No se pudo consultar tus votos en la base de datos.'), { status: 0 });
-  }
-
-  if (!res.ok) {
-    console.error('Error backend:', `HTTP ${res.status} en ${endpoint('mis_votos.php')}`);
-    throw Object.assign(new Error(`No se pudieron obtener tus votos (HTTP ${res.status}).`), { status: res.status });
-  }
-
-  const json = await res.json();
   const mapa = {};
   (json.votos || []).forEach((v) => {
     mapa[v.articulo_id] = v.tipo_voto;
   });
-  userVotesCache = mapa;
+  cacheVotos.set(documento, mapa);
   return mapa;
 }
 
@@ -128,57 +132,38 @@ export async function obtenerMisVotos() {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Registra la evaluación ("positivo" | "negativo") del artículo en MySQL.
- * Lanza Error { status: 409 } si el token ya había votado ese artículo.
+ * Registra la evaluación ("positivo" | "negativo") de un artículo en MySQL.
+ * Lanza `ApiError { status: 409 }` si ese socio ya evaluó el artículo.
  *
- * @param {number} articuloId - article.id del Reglamento
+ * @param {'reglamento'|'estatuto'} documento
+ * @param {number} articuloId
  * @param {'positivo'|'negativo'} tipoVoto
- * @param {number} [capituloId] - capítulo al que pertenece (para el backend)
+ * @param {number} [capituloId]
  */
-export async function votarArticulo(articuloId, tipoVoto, capituloId) {
-  const token = getVoterToken();
-
+export async function votarArticulo(documento, articuloId, tipoVoto, capituloId) {
   if (tipoVoto !== 'positivo' && tipoVoto !== 'negativo') {
     throw new Error('tipo_voto debe ser "positivo" o "negativo"');
   }
 
-  let res;
-  try {
-    res = await fetch(endpoint('votar.php'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        articulo_id: articuloId,
-        capitulo_id: capituloId,
-        tipo_voto: tipoVoto,
-        voter_token: token,
-      }),
-    });
-  } catch (error) {
-    // Fallo de red / DNS / CORS: se expone el error, no se cae a localStorage.
-    console.error('Error backend:', error);
-    throw Object.assign(new Error('Error al registrar voto en la base de datos.'), { status: 0 });
-  }
+  const json = await peticion('votos', {
+    metodo: 'POST',
+    cuerpo: {
+      // El campo `documento` es lo que separa el Reglamento del Estatuto en la
+      // tabla `votos_articulos`; sin él ambos corpora se mezclarían.
+      documento,
+      articulo_id: articuloId,
+      capitulo_id: capituloId,
+      tipo_voto: tipoVoto,
+      voter_token: getVoterToken(),
+    },
+  });
 
-  if (!res.ok) {
-    let mensaje = 'Error al registrar voto en la base de datos.';
-    try {
-      const err = await res.json();
-      if (err && err.error) mensaje = err.error;
-    } catch {
-      /* cuerpo no JSON */
-    }
-    console.error('Error backend:', `HTTP ${res.status} en votar.php - ${mensaje}`);
-    throw Object.assign(new Error(mensaje), { status: res.status });
-  }
+  // Sólo se cachea la decisión EN MEMORIA (nada se persiste en localStorage).
+  const mapa = cacheVotos.get(documento) || {};
+  cacheVotos.set(documento, { ...mapa, [articuloId]: tipoVoto });
 
-  // Solo se cachea la decisión del usuario EN MEMORIA (nada se persiste local).
-  userVotesCache = { ...userVotesCache, [articuloId]: tipoVoto };
   return {
-    userVote: tipoVoto,
+    userVote: json.tipo_voto || tipoVoto,
     likes: 0,
     dislikes: 0,
     total: 0,
@@ -187,16 +172,16 @@ export async function votarArticulo(articuloId, tipoVoto, capituloId) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Estadísticas (Dashboard de Administración)                                 */
+/* Estadísticas                                                               */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Completa la respuesta del API `estadisticas.php` con el catálogo oficial
- * del Reglamento (CAPITULOS_DATA). El backend solo devuelve los artículos que
- * YA tienen votos; aquí se rellenan los que no tienen registro con contadores
- * en 0 (no se inventan números).
+ * Completa la respuesta de `estadisticas.php` con el catálogo oficial del
+ * documento. El backend sólo devuelve los artículos que YA tienen votos; aquí se
+ * rellenan los que no tienen registro con contadores en 0 (no se inventan
+ * números).
  */
-function completarConCatalogo(json) {
+function completarConCatalogo(json, documento, capitulos) {
   const porArticulo = {};
   (json.capitulos || []).forEach((c) => {
     (c.articulos || []).forEach((a) => {
@@ -209,7 +194,9 @@ function completarConCatalogo(json) {
     });
   });
 
-  const capitulos = CAPITULOS_DATA.map((cap) => {
+  const misVotos = cacheVotos.get(documento) || {};
+
+  const capitulosCompletos = capitulos.map((cap) => {
     const articulos = cap.articulos.map((art) => {
       const real = porArticulo[art.id] || { likes: 0, dislikes: 0, total: 0, aprobacion: null };
       return {
@@ -220,7 +207,7 @@ function completarConCatalogo(json) {
         dislikes: real.dislikes,
         total: real.total,
         aprobacion: real.aprobacion,
-        userVote: userVotesCache[art.id] || null,
+        userVote: misVotos[art.id] || null,
       };
     });
 
@@ -240,41 +227,27 @@ function completarConCatalogo(json) {
     };
   });
 
-  const totalVotos = capitulos.reduce((acc, c) => acc + c.totalVotos, 0);
-  const totalLikes = capitulos.reduce((acc, c) => acc + c.likes, 0);
+  const totalVotos = capitulosCompletos.reduce((acc, c) => acc + c.totalVotos, 0);
+  const totalLikes = capitulosCompletos.reduce((acc, c) => acc + c.likes, 0);
 
   return {
+    documento,
     totalVotos,
     aprobacionGeneral: totalVotos > 0 ? Math.round((totalLikes / totalVotos) * 100) : null,
-    capitulos,
+    capitulos: capitulosCompletos,
   };
 }
 
 /**
- * Devuelve las estadísticas desde `api/estadisticas.php` (MySQL).
+ * Devuelve las estadísticas del documento desde `api/estadisticas.php` (MySQL).
  * No existe modo simulación: si el API falla, lanza un error visible.
  */
-export async function obtenerEstadisticas() {
-  const token = getVoterToken();
+export async function obtenerEstadisticas(documento = 'reglamento', capitulos = []) {
+  const json = await peticion('estadisticas', { params: { documento } });
+  return completarConCatalogo(json, documento, capitulos);
+}
 
-  let res;
-  try {
-    res = await fetch(endpoint('estadisticas.php'), {
-      headers: {
-        Accept: 'application/json',
-        'X-Voter-Token': token,
-      },
-    });
-  } catch (error) {
-    console.error('Error backend:', error);
-    throw new Error('No se pudieron obtener las estadísticas desde la base de datos.');
-  }
-
-  if (!res.ok) {
-    console.error('Error backend:', `HTTP ${res.status} en ${endpoint('estadisticas.php')}`);
-    throw new Error(`No se pudieron obtener las estadísticas (HTTP ${res.status}).`);
-  }
-
-  const json = await res.json();
-  return completarConCatalogo(json);
+/** ¿Hay sesión iniciada? Lo consulta la interfaz para el aviso de voto único. */
+export function haySesion() {
+  return Boolean(leerToken());
 }
