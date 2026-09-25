@@ -1,49 +1,41 @@
-# Optimización del API para hosting GoDaddy (Apache / cPanel)
-# Coloque este archivo en la carpeta donde estén los endpoints PHP (backend/).
-
-# Evita listar directorios si no hay index
+# Evita listar carpetas si no hay un index
 Options -Indexes
 
 # ---------------------------------------------------------------------------
-# Rutas limpias del API (mod_rewrite)
+# Enrutamiento (API + React Frontend)
 # ---------------------------------------------------------------------------
-# Permite consumir /api/auth/login, /api/auth/register, /api/drm, /api/multas…
-# sin extensión. Los archivos .php siguen funcionando por si el hosting no
-# soporta mod_rewrite (el frontend detecta el 404 y reintenta con .php).
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
 
-    # 1. Todo lo que no existe como archivo/directorio pasa por el enrutador,
-    #    preservando los query strings (?documento=estatuto&mes=2026-09).
+    # 1. Rutas del API PHP (/api/...)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/(.*)$ api/index.php?ruta=$1 [QSA,L]
 
-    # 2. Sin reglas adicionales: el enrutador se invoca internamente desde la
-    #    regla 1 y no debe ser bloqueado (ver <FilesMatch> más abajo).
+    # 2. Rutas del Frontend React (Evita Error 404 al recargar /perfil, /caja-chica, etc.)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
 </IfModule>
 
-# MIME de respuestas JSON (complementa el header de cada endpoint)
+# MIME de respuestas JSON
 AddType application/json .json
 
-# Cache de las respuestas estáticas de la API (opcional en producción)
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType application/json "access plus 1 minute"
 </IfModule>
 
-# Denegación de acceso a archivos sensibles dentro de backend/
-# (config/, librerías de auth y el script de migración NO son datos públicos).
-# `index.php` NO se bloquea: es el enrutador interno de las rutas limpias.
-<FilesMatch "^(db\.php|helpers\.php|roles\.php|auth_lib\.php|composer\.(json|lock)|migrar\.php)$">
+# Denegación de acceso directo a archivos sensibles de configuración/librerías
+<FilesMatch "^(db\.php|helpers\.php|roles\.php|auth_lib\.php|composer\.(json|lock))$">
     Require all denied
 </FilesMatch>
 
-# PHP correcto: si el host soporta php8, usar el handler moderno
+# Ocultar errores en pantalla en producción
 <IfModule mod_php8.c>
     php_flag display_errors Off
 </IfModule>
 
-# Evita que se vean backups/temporales de código en navegación web
-RedirectMatch 404 ^/backend/.*\.(sql|log|bak|old|sh)$
+# Bloquear descargas de archivos SQL, logs o respaldos en cualquier carpeta
+RedirectMatch 404 ^/.*\.(sql|log|bak|old|sh)$
