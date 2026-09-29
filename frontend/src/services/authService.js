@@ -24,27 +24,55 @@ import { peticion, guardarToken, borrarToken } from './apiClient';
 /* Política de contraseñas (espejo de auth_lib.php::validarContrasena)         */
 /* -------------------------------------------------------------------------- */
 
+/** Longitud mínima y máxima que exige el backend. */
+export const CONTRASENA_MIN = 8;
+export const CONTRASENA_MAX = 72;
+
 /**
  * Valida la contraseña en el cliente para dar respuesta inmediata.
- * Devuelve `null` si es correcta o el mensaje de error si no lo es.
+ * Devuelve `null` si es correcta o un mensaje específico de lo que falla.
+ * El orden de las comprobaciones va de lo más básico a lo más específico para
+ * que el socio reciba siempre la causa exacta y no un bloqueo genérico.
  */
 export function validarContrasena(contrasena) {
-  if (typeof contrasena !== 'string' || contrasena.trim() === '') {
+  if (typeof contrasena !== 'string' || contrasena === '') {
     return 'La contraseña es obligatoria.';
   }
-  if (contrasena.length < 8) {
-    return 'La contraseña debe tener al menos 8 caracteres.';
+  if (/\s/.test(contrasena)) {
+    return 'La contraseña no debe contener espacios en blanco.';
   }
-  if (contrasena.length > 72) {
-    return 'La contraseña no puede superar los 72 caracteres.';
+  if (contrasena.length < CONTRASENA_MIN) {
+    return `La contraseña debe tener al menos ${CONTRASENA_MIN} caracteres (le faltan ${CONTRASENA_MIN - contrasena.length}).`;
+  }
+  if (contrasena.length > CONTRASENA_MAX) {
+    return `La contraseña no puede superar los ${CONTRASENA_MAX} caracteres (tiene ${contrasena.length}).`;
   }
   if (!/^[A-Za-z0-9]+$/.test(contrasena)) {
-    return 'La contraseña debe ser alfanumérica (sólo letras y números, sin espacios).';
+    const especiales = [...new Set(contrasena.match(/[^A-Za-z0-9]/g) || [])].join(' ');
+    return `La contraseña sólo admite letras y números, sin caracteres especiales (se detectó: «${especiales}»).`;
   }
-  if (!/[A-Za-z]/.test(contrasena) || !/\d/.test(contrasena)) {
-    return 'La contraseña debe combinar al menos una letra y un número.';
+  if (!/[A-Za-z]/.test(contrasena)) {
+    return 'La contraseña debe incluir al menos una letra.';
+  }
+  if (!/\d/.test(contrasena)) {
+    return 'La contraseña debe incluir al menos un número.';
   }
   return null;
+}
+
+/**
+ * Desglose de la política de contraseñas para mostrarla como lista de
+ * requisitos en tiempo real (✓ / ✗) mientras el socio escribe.
+ * @returns {{id: string, etiqueta: string, cumple: boolean}[]}
+ */
+export function requisitosContrasena(contrasena = '') {
+  return [
+    { id: 'longitud', etiqueta: `Mínimo ${CONTRASENA_MIN} caracteres`, cumple: contrasena.length >= CONTRASENA_MIN && contrasena.length <= CONTRASENA_MAX },
+    { id: 'sin-espacios', etiqueta: 'Sin espacios en blanco', cumple: contrasena.length > 0 && !/\s/.test(contrasena) },
+    { id: 'alfanumerica', etiqueta: 'Sólo letras y números', cumple: contrasena.length > 0 && /^[A-Za-z0-9]+$/.test(contrasena) },
+    { id: 'letra', etiqueta: 'Al menos una letra', cumple: /[A-Za-z]/.test(contrasena) },
+    { id: 'numero', etiqueta: 'Al menos un número', cumple: /\d/.test(contrasena) },
+  ];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -53,15 +81,19 @@ export function validarContrasena(contrasena) {
 
 /**
  * Inicia sesión con correo y contraseña.
+ * @param {string} correo
+ * @param {string} contrasena
+ * @param {boolean} [recordar=true] Si es false, la sesión sólo dura mientras
+ *   el navegador esté abierto (sessionStorage) en vez de persistir 30 días.
  * @returns {Promise<{token: string, usuario: object}>}
  */
-export async function login(correo, contrasena) {
+export async function login(correo, contrasena, recordar = true) {
   const json = await peticion('auth/login', {
     metodo: 'POST',
     cuerpo: { correo, contrasena },
     token: null,
   });
-  guardarToken(json.token);
+  guardarToken(json.token, recordar);
   return json;
 }
 
@@ -70,13 +102,13 @@ export async function login(correo, contrasena) {
  * los roles superiores los concede un Administrador.
  * @returns {Promise<{token: string, usuario: object}>}
  */
-export async function registro(nombre, correo, contrasena) {
+export async function registro(nombre, correo, contrasena, recordar = true) {
   const json = await peticion('auth/register', {
     metodo: 'POST',
     cuerpo: { nombre, correo, contrasena },
     token: null,
   });
-  guardarToken(json.token);
+  guardarToken(json.token, recordar);
   return json;
 }
 

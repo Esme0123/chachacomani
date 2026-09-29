@@ -24,30 +24,74 @@
 
 export const TOKEN_KEY = 'chachacomani_token';
 
-/** Devuelve el token de sesión guardado, o null si no hay sesión iniciada. */
+/**
+ * Devuelve el token de sesión guardado, o null si no hay sesión iniciada.
+ * Se consulta primero localStorage (sesión persistente, "Recordarme") y luego
+ * sessionStorage (sesión que sólo dura lo que el navegador esté abierto).
+ */
 export function leerToken() {
+  for (const almacen of [almacenLocal(), almacenSesion()]) {
+    if (!almacen) continue;
+    try {
+      const token = almacen.getItem(TOKEN_KEY);
+      if (token) return token;
+    } catch {
+      /* almacén no disponible */
+    }
+  }
+  return null;
+}
+
+/**
+ * Guarda el token de sesión (lo devuelve el login y el registro).
+ * @param {string} token
+ * @param {boolean} [recordar=true] true -> localStorage (persiste al cerrar el
+ *   navegador); false -> sessionStorage (se descarta al cerrar el navegador).
+ */
+export function guardarToken(token, recordar = true) {
+  const persistente = recordar ? almacenLocal() : almacenSesion();
+  const temporal = recordar ? almacenSesion() : almacenLocal();
+
+  // Se limpia el almacén contrario para no dejar un token viejo que pueda
+  // ganarle la lectura al recién guardado.
   try {
-    return localStorage.getItem(TOKEN_KEY) || null;
+    temporal?.removeItem(TOKEN_KEY);
+  } catch {
+    /* almacén no disponible */
+  }
+  try {
+    persistente?.setItem(TOKEN_KEY, token);
+  } catch {
+    /* almacén no disponible: la sesión durará lo que dure la recarga */
+  }
+}
+
+/** Descarta el token de sesión (cierre de sesión), en ambos almacenes. */
+export function borrarToken() {
+  for (const almacen of [almacenLocal(), almacenSesion()]) {
+    try {
+      almacen?.removeItem(TOKEN_KEY);
+    } catch {
+      /* almacén no disponible */
+    }
+  }
+}
+
+/** Acceso seguro a localStorage (puede lanzar en modo privado o sandbox). */
+function almacenLocal() {
+  try {
+    return window.localStorage;
   } catch {
     return null;
   }
 }
 
-/** Guarda el token de sesión (lo devuelve el login y el registro). */
-export function guardarToken(token) {
+/** Acceso seguro a sessionStorage. */
+function almacenSesion() {
   try {
-    localStorage.setItem(TOKEN_KEY, token);
+    return window.sessionStorage;
   } catch {
-    /* localStorage no disponible: la sesión durará lo que dure la recarga */
-  }
-}
-
-/** Descarta el token de sesión (cierre de sesión). */
-export function borrarToken() {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    /* localStorage no disponible */
+    return null;
   }
 }
 

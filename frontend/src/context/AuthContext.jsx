@@ -44,14 +44,14 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = useCallback(async (correo, contrasena) => {
-    const json = await authService.login(correo, contrasena);
+  const login = useCallback(async (correo, contrasena, recordar = true) => {
+    const json = await authService.login(correo, contrasena, recordar);
     setUsuario(json.usuario);
     return json.usuario;
   }, []);
 
-  const registro = useCallback(async (nombre, correo, contrasena) => {
-    const json = await authService.registro(nombre, correo, contrasena);
+  const registro = useCallback(async (nombre, correo, contrasena, recordar = true) => {
+    const json = await authService.registro(nombre, correo, contrasena, recordar);
     setUsuario(json.usuario);
     return json.usuario;
   }, []);

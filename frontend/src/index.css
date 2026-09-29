@@ -335,3 +335,70 @@
 .card-lift:hover {
   transform: translateY(-5px) scale(1.015);
 }
+
+/* === ESFERAS DECORATIVAS FLOTANTES (fondo de autenticación) === */
+/* Degradados verde/dorado de la identidad de la cooperativa, desenfoque suave
+   y deriva flotante. Son puramente decorativas: nunca capturan el cursor ni
+   se montan por encima del formulario (`pointer-events: none` + z-index 0). */
+
+@keyframes orbDeriva {
+
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate3d(18px, -26px, 0) scale(1.07);
+  }
+
+  66% {
+    transform: translate3d(-16px, 20px, 0) scale(.95);
+  }
+}
+
+@keyframes orbOrbita {
+  0% {
+    transform: rotate(0deg) translateX(var(--orb-radio, 26px)) rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg) translateX(var(--orb-radio, 26px)) rotate(-360deg);
+  }
+}
+
+.auth-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(38px);
+  opacity: var(--orb-opacidad, .5);
+  will-change: transform;
+  animation: orbDeriva var(--orb-duracion, 14s) ease-in-out infinite var(--orb-retraso, 0s);
+}
+
+/* Movimiento orbital continuo, para las esferas grandes del fondo. */
+.auth-orb--orbita {
+  animation: orbOrbita var(--orb-duracion, 30s) linear infinite var(--orb-retraso, 0s);
+}
+
+/* En pantallas pequeñas el desenfoque y el tamaño se reducen para no borrar el
+   contraste del formulario, y se retiran las esferas más pequeñas. */
+@media (max-width: 640px) {
+  .auth-orb {
+    filter: blur(26px);
+    opacity: calc(var(--orb-opacidad, .5) * .7);
+  }
+
+  .auth-orb--pequena {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .auth-orb,
+  .auth-orb--orbita {
+    animation: none;
+  }
+}
