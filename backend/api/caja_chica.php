@@ -36,7 +36,21 @@ if (!in_array($metodo, ['GET', 'POST'], true)) {
     jsonError('Método no permitido. Use GET o POST.', 405);
 }
 
-const CATEGORIAS_CAJA = ['Otros', 'Transporte', 'Alimentación', 'Material de oficina', 'Combustible', 'Mantenimiento', 'Aportes', 'Multas / Sanciones', 'Retiros'];
+const CATEGORIAS_CAJA = [
+    'Otros',
+    'Transporte',
+    'Alimentación',
+    'Material de oficina',
+    'Combustible',
+    'Mantenimiento',
+    // Ingresos del Anexo II - Escala de Aportes al Fondo de Accidentes.
+    'Aportes / Fondos',
+    // Cobros de sanciones del Anexo I (individuales o por carrito).
+    'Multas / Sanciones',
+    // Cobro grupal que mezcla multas del Anexo I y aportes del Anexo II.
+    'Cobros Anexo I y II',
+    'Retiros',
+];
 
 /** Proyecta un movimiento de caja chica al JSON que consume el frontend. */
 function movimientoPublico(array $fila): array
@@ -53,7 +67,14 @@ function movimientoPublico(array $fila): array
         'registradoPorNombre' => (string) ($fila['registrador_nombre'] ?? ''),
         // Vínculo con el Anexo I: presente cuando este ingreso es el cobro
         // automático de una multa pagada (ver backend/api/multas.php, PUT).
-        'origenMulta' => isset($fila['multa_id']) ? (int) $fila['multa_id'] : null,
+        'origenMulta' => isset($fila['multa_id']) && $fila['multa_id'] !== null
+            ? (int) $fila['multa_id']
+            : null,
+        // Desglose de un cobro grupal del carrito (multas + aportes): se
+        // devuelve ya decodificado para que la tabla lo pueda mostrar.
+        'detalle' => isset($fila['detalle']) && $fila['detalle'] !== null && $fila['detalle'] !== ''
+            ? json_decode((string) $fila['detalle'], true)
+            : null,
         'creadoEn' => $fila['creado_en'] ?? null,
     ];
 }

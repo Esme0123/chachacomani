@@ -134,6 +134,7 @@ const ALIAS_PHP = {
   multas: 'multas.php',
   'caja-chica': 'caja_chica.php',
   caja_chica: 'caja_chica.php',
+  cobros: 'cobros.php',
   votos: 'votar.php',
   votar: 'votar.php',
   'mis-votos': 'mis_votos.php',

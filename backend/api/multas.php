@@ -79,6 +79,21 @@ const CATEGORIA_COBRO_MULTA = 'Multas / Sanciones';
 /** Proyecta una fila de `multas` (con los nombres del socio y del registrador). */
 function multaPublica(array $fila): array
 {
+    // Trazabilidad con Caja Chica: un cobro puede haberse asentado como un
+    // movimiento individual (`caja_chica_movimientos`.`multa_id`) o formando
+    // parte de un cobro grupal (carrito de multas/aportes, que enlaza por
+    // `multas`.`caja_chica_movimiento_id`). Se informa el que exista para no
+    // ofrecer registrar el cobro dos veces.
+    $idCobro = null;
+    $fechaCobro = null;
+    if (isset($fila['cobro_id']) && $fila['cobro_id'] !== null) {
+        $idCobro = (int) $fila['cobro_id'];
+        $fechaCobro = $fila['cobro_fecha'] ?? null;
+    } elseif (isset($fila['caja_chica_movimiento_id']) && $fila['caja_chica_movimiento_id'] !== null) {
+        $idCobro = (int) $fila['caja_chica_movimiento_id'];
+        $fechaCobro = $fila['cobro_grupo_fecha'] ?? null;
+    }
+
     return [
         'id' => (int) $fila['id'],
         'socioId' => (int) $fila['socio_id'],
@@ -94,12 +109,8 @@ function multaPublica(array $fila): array
         'observaciones' => $fila['observaciones'] ?? null,
         'registradoPor' => (int) $fila['registrado_por'],
         'registradoPorNombre' => (string) ($fila['registrador_nombre'] ?? ''),
-        // Trazabilidad con Caja Chica: si el cobro ya está asentado, se informa
-        // el movimiento generado para no ofrecer registrarlo dos veces.
-        'cobroCajaId' => isset($fila['cobro_id']) && $fila['cobro_id'] !== null
-            ? (int) $fila['cobro_id']
-            : null,
-        'cobroCajaFecha' => $fila['cobro_fecha'] ?? null,
+        'cobroCajaId' => $idCobro,
+        'cobroCajaFecha' => $fechaCobro,
         'creadoEn' => $fila['creado_en'] ?? null,
         'actualizadoEn' => $fila['actualizado_en'] ?? null,
     ];
@@ -107,28 +118,41 @@ function multaPublica(array $fila): array
 
 /**
  * `SELECT` base de una multa con los nombres del socio y del registrador.
- * Cuando la base ya tiene la columna `caja_chica_movimientos`.`multa_id`
- * (migración aplicada), se añade el LEFT JOIN que permite saber si el cobro
- * ya fue asentado. En bases sin migrar, la consulta sigue siendo válida.
+ * Los LEFT JOIN con `caja_chica_movimientos` se añaden sólo si la base tiene
+ * las columnas del vínculo (migración aplicada): `multa_id` (cobro individual)
+ * y `multas`.`caja_chica_movimiento_id` (cobro grupal del carrito). En bases
+ * sin migrar la consulta sigue siendo válida.
  */
 function sqlMulta(): string
 {
-    $sql = 'SELECT m.*,
+    $select = 'SELECT m.*,
                    s.nombre AS socio_nombre, s.correo AS socio_correo,
                    r.nombre AS registrador_nombre';
 
-    if (tablaTieneColumna('caja_chica_movimientos', 'multa_id')) {
-        $sql .= ",
-                   c.id AS cobro_id, c.fecha AS cobro_fecha
+    $tieneVinculoIndividual = tablaTieneColumna('caja_chica_movimientos', 'multa_id');
+    $tieneVinculoGrupal = tablaTieneColumna('multas', 'caja_chica_movimiento_id');
+
+    if ($tieneVinculoIndividual) {
+        $select .= ',
+                   c.id AS cobro_id, c.fecha AS cobro_fecha';
+    }
+    if ($tieneVinculoGrupal) {
+        $select .= ',
+                   g.fecha AS cobro_grupo_fecha';
+    }
+
+    $sql = $select . '
               FROM `multas` m
               JOIN `usuarios` s ON s.id = m.socio_id
-              JOIN `usuarios` r ON r.id = m.registrado_por
-         LEFT JOIN `caja_chica_movimientos` c ON c.multa_id = m.id";
-    } else {
-        $sql .= "
-              FROM `multas` m
-              JOIN `usuarios` s ON s.id = m.socio_id
-              JOIN `usuarios` r ON r.id = m.registrado_por";
+              JOIN `usuarios` r ON r.id = m.registrado_por';
+
+    if ($tieneVinculoIndividual) {
+        $sql .= '
+         LEFT JOIN `caja_chica_movimientos` c ON c.multa_id = m.id';
+    }
+    if ($tieneVinculoGrupal) {
+        $sql .= '
+         LEFT JOIN `caja_chica_movimientos` g ON g.id = m.caja_chica_movimiento_id';
     }
 
     return $sql;
@@ -141,6 +165,11 @@ function sqlMulta(): string
 if ($metodo === 'GET') {
     $usuario = exigirPermiso(PERMISO_VER_MULTAS_PROPIAS);
     $puedeVerTodas = rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_MULTAS);
+    // El padrón de socios se comparte con quien registra movimientos de Caja
+    // Chica (aporta el Anexo II): necesita seleccionar al socio igual que el
+    // Tesorero, aunque no tenga `multas:gestionar`.
+    $puedeListarSocios = $puedeVerTodas
+        || rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_CAJA_CHICA);
 
     $where = [];
     $valores = [];
@@ -203,12 +232,12 @@ if ($metodo === 'GET') {
     $totales['montoPendiente'] = round($totales['montoPendiente'], 2);
     $totales['montoPagado'] = round($totales['montoPagado'], 2);
 
-    // El Tesorero necesita un padrón de socios para imputar multas, pero no
-    // tiene `usuarios:gestionar` (exclusivo del Admin). Se le devuelve aquí
-    // únicamente la lista de socios activos (id, nombre y correo), que es
-    // justo lo que el formulario «Registrar Multa» necesita, y nada más.
+    // El Tesorero (multas) y el rol Caja Chica (aportes) necesitan un padrón de
+    // socios para imputar movimientos, pero ninguno tiene `usuarios:gestionar`
+    // (exclusivo del Admin). Se les devuelve aquí únicamente la lista de socios
+    // activos (id, nombre y correo), que es justo lo que el formulario necesita.
     $socios = [];
-    if ($puedeVerTodas) {
+    if ($puedeListarSocios) {
         try {
             $stmt = db()->query(
                 'SELECT `id`, `nombre`, `correo`, `rol`
@@ -489,6 +518,38 @@ function sincronizarCobroEnCajaChica(
     string $concepto = ''
 ): array {
     $nada = ['accion' => 'nada', 'movimientoId' => null, 'concepto' => null, 'monto' => null, 'aviso' => ''];
+
+    // Cobro grupal (carrito de multas/aportes): la multa se pagó dentro de un
+    // movimiento que agrupa varias sanciones y aportes. Ese ingreso es
+    // compartido, así que aquí NO se borra: reabrir o anular sólo desliga la
+    // multa y se avisa para que el ajuste se haga a mano en Caja Chica.
+    if (tablaTieneColumna('multas', 'caja_chica_movimiento_id')) {
+        $stmt = $pdo->prepare('SELECT `caja_chica_movimiento_id` FROM `multas` WHERE `id` = :id');
+        $stmt->execute([':id' => $multaId]);
+        $enlaceGrupal = $stmt->fetchColumn();
+
+        if ($enlaceGrupal !== false && $enlaceGrupal !== null) {
+            if ($estado === 'pagada') {
+                return [
+                    'accion' => 'ya-registrado',
+                    'movimientoId' => (int) $enlaceGrupal,
+                    'concepto' => null,
+                    'monto' => null,
+                    'aviso' => '',
+                ];
+            }
+            $pdo->prepare('UPDATE `multas` SET `caja_chica_movimiento_id` = NULL WHERE `id` = :id')
+                ->execute([':id' => $multaId]);
+            return [
+                'accion' => 'omitido',
+                'movimientoId' => (int) $enlaceGrupal,
+                'concepto' => null,
+                'monto' => null,
+                'aviso' => 'Esta multa formaba parte de un cobro grupal (movimiento #' . (int) $enlaceGrupal
+                    . ' de Caja Chica). Ajuste ese movimiento a mano si corresponde retirar el importe.',
+            ];
+        }
+    }
 
     // Base instalada antes de la migración: la multa se actualiza igual, pero
     // se avisa de que falta el vínculo para no perder el cobro en silencio.

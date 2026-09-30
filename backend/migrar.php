@@ -261,12 +261,61 @@ function ejecutarMigracion(array $argumentos): array
         $log('No hay movimientos con la categoría anterior «Multas cobradas».');
     }
 
+    // 4.c Cobro grupal desde el carrito de Caja Chica (multas + aportes en un
+    //     único movimiento): desglose del movimiento y vínculo inverso de la
+    //     multa hacia el movimiento que la saldó.
+    if (columnaExiste($pdo, 'caja_chica_movimientos', 'detalle')) {
+        $log('Columna `caja_chica_movimientos`.`detalle` ya existe.');
+    } else {
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD COLUMN `detalle` TEXT NULL AFTER `multa_id`',
+            'agregar la columna `detalle` a `caja_chica_movimientos`',
+            $log
+        );
+    }
+
+    if (columnaExiste($pdo, 'multas', 'caja_chica_movimiento_id')) {
+        $log('Columna `multas`.`caja_chica_movimiento_id` ya existe.');
+    } else {
+        $dll(
+            $pdo,
+            'ALTER TABLE `multas` ADD COLUMN `caja_chica_movimiento_id` INT NULL DEFAULT NULL AFTER `registrado_por`',
+            'agregar la columna `caja_chica_movimiento_id` a `multas`',
+            $log
+        );
+        $dll(
+            $pdo,
+            'ALTER TABLE `multas` ADD KEY `idx_multas_cobro_caja` (`caja_chica_movimiento_id`)',
+            'crear el índice `idx_multas_cobro_caja`',
+            $log
+        );
+    }
+
+    // 4.d Categoría de los aportes del Anexo II: el panel de Caja Chica la llama
+    //     «Aportes / Fondos»; se renombran los asientos ya registrados para que
+    //     el resumen por categoría no quedara partido en dos nombres.
+    $renombradasAportes = $pdo->prepare(
+        'UPDATE `caja_chica_movimientos` SET `categoria` = :nuevo WHERE `categoria` = :anterior'
+    );
+    $renombradasAportes->execute([':nuevo' => 'Aportes / Fondos', ':anterior' => 'Aportes']);
+    if ($renombradasAportes->rowCount() > 0) {
+        $log(
+            'Categorías de aportes renombradas a «Aportes / Fondos»: '
+            . $renombradasAportes->rowCount() . ' movimiento(s).',
+            'ok'
+        );
+    } else {
+        $log('No hay movimientos con la categoría anterior «Aportes».');
+    }
+
     // 5. Índices de apoyo ---------------------------------------------
     $indices = [
         ['votos_articulos', 'idx_votos_capitulo', 'ADD KEY `idx_votos_capitulo` (`documento`, `capitulo_id`)'],
         ['votos_articulos', 'idx_votos_usuario', 'ADD KEY `idx_votos_usuario` (`usuario_id`)'],
         ['votos_articulos', 'idx_votos_tipo', 'ADD KEY `idx_votos_tipo` (`tipo_voto`)'],
         ['multas', 'idx_multas_socio', 'ADD KEY `idx_multas_socio` (`socio_id`, `fecha_infraccion`)'],
+        ['multas', 'idx_multas_cobro_caja', 'ADD KEY `idx_multas_cobro_caja` (`caja_chica_movimiento_id`)'],
         ['caja_chica_movimientos', 'idx_caja_tipo_fecha', 'ADD KEY `idx_caja_tipo_fecha` (`tipo`, `fecha`)'],
     ];
     foreach ($indices as list($tabla, $nombre, $sql)) {

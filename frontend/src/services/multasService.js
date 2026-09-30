@@ -88,7 +88,7 @@ export function normalizarCategoria(categoria, monto = null) {
   if (coincide) return coincide;
   if (texto.toLowerCase().includes('muy grave')) return 'Muy grave';
   if (texto.toLowerCase().includes('consejero')) {
-    // Inasistencia de CONSEjeros Bs. 150 -> Leve; de munculnya Bs. 300 -> Grave.
+    // Inasistencia de consejeros: Bs. 150 -> Leve; Bs. 300 -> Grave.
     return Number(monto) > 150 ? 'Grave' : 'Leve';
   }
   if (texto.toLowerCase().includes('grave')) return 'Grave';
@@ -103,7 +103,7 @@ export function normalizarCategoria(categoria, monto = null) {
  * Resumen corto de cada infracción tipificada del Cuadro N.º 2, en el orden en
  * que aparece en el Anexo I. Sirve para dos cosas: la etiqueta legible del
  * desplegable y el concepto del cobro, que debe caber en una línea.
- * Si el reglamento cambiara y estos resúmenes dejaran de quadrar con las filas,
+ * Si el reglamento cambiara y estos resúmenes dejaran de cuadrar con las filas,
  * `descripcionResumida()` entra en juego como respaldo automático.
  */
 const RESUMEN_CUADRO_2 = [

@@ -24,8 +24,12 @@ export const CATEGORIAS_CAJA = [
   'Material de oficina',
   'Combustible',
   'Mantenimiento',
-  'Aportes',
+  // Ingresos del Anexo II - Escala de Aportes al Fondo de Accidentes.
+  'Aportes / Fondos',
+  // Cobros de sanciones del Anexo I (individuales o por carrito).
   'Multas / Sanciones',
+  // Cobro grupal que mezcla multas del Anexo I y aportes del Anexo II.
+  'Cobros Anexo I y II',
   'Retiros',
 ];
 
@@ -34,6 +38,12 @@ export const CATEGORIAS_CAJA = [
  * (la inyecta `backend/api/multas.php` al marcar la sanción como pagada).
  */
 export const CATEGORIA_COBRO_MULTA = 'Multas / Sanciones';
+
+/** Categoría de los aportes del Anexo II - Escala de Aportes. */
+export const CATEGORIA_COBRO_APORTE = 'Aportes / Fondos';
+
+/** Categoría de un cobro grupal mixto (multas y aportes a la vez). */
+export const CATEGORIA_COBRO_MIXTO = 'Cobros Anexo I y II';
 
 /**
  * Consulta los movimientos de caja chica de un periodo (`YYYY-MM`).

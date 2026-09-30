@@ -99,12 +99,18 @@ CREATE TABLE IF NOT EXISTS `multas` (
   `medida_complementaria` VARCHAR(255) NULL,
   `observaciones` TEXT NULL,
   `registrado_por` INT NOT NULL,
+  -- Vínculo con el cobro GRUPAL de Caja Chica (carrito de multas/aportes): un
+  -- mismo movimiento puede saldar varias multas, de modo que el enlace no cabe
+  -- en `caja_chica_movimientos`.`multa_id` (que es UNIQUE). NULL = la multa no
+  -- se ha cobrado dentro de un carrito (individual, pendiente o anulada).
+  `caja_chica_movimiento_id` INT NULL,
   `creado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `actualizado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_multas_socio` (`socio_id`, `fecha_infraccion`),
   KEY `idx_multas_estado` (`estado`),
   KEY `idx_multas_registrador` (`registrado_por`),
+  KEY `idx_multas_cobro_caja` (`caja_chica_movimiento_id`),
   CONSTRAINT `fk_multas_socio` FOREIGN KEY (`socio_id`)
     REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_multas_registrador` FOREIGN KEY (`registrado_por`)
@@ -128,6 +134,10 @@ CREATE TABLE IF NOT EXISTS `caja_chica_movimientos` (
   `observaciones` TEXT NULL,
   `registrado_por` INT NOT NULL,
   `multa_id` INT NULL,
+  -- Desglose JSON de un cobro grupal (carrito de multas/aportes): permite
+  -- auditar qué sanciones y aportes componen el importe total del movimiento.
+  -- NULL en los movimientos manuales y en los cobros de una sola multa.
+  `detalle` TEXT NULL,
   `creado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_caja_multa` (`multa_id`),

@@ -71,6 +71,8 @@ const RUTAS_API = [
     'multas'                => ['GET' => 'multas.php', 'POST' => 'multas.php', 'PUT' => 'multas.php'],
     'caja-chica'            => ['GET' => 'caja_chica.php', 'POST' => 'caja_chica.php'],
     'caja_chica'            => ['GET' => 'caja_chica.php', 'POST' => 'caja_chica.php'],
+    // Cobro grupal del carrito (multas del Anexo I + aportes del Anexo II).
+    'cobros'                => ['POST' => 'cobros.php'],
 
     // Votación de artículos
     'votos'                 => ['GET' => 'mis_votos.php', 'POST' => 'votar.php'],
