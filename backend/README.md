@@ -48,13 +48,21 @@ backend/
 
 - `api/multas.php` — `GET` devuelve las multas visibles para el rol (el socio con
   rol `lectura` sólo ve las suyas; el Tesorero/Admin obtienen además el padrón
-  `socios`), `POST` imputa una sanción del Cuadro N.º 2 y `PUT` la cierra.
+  `socios`), `POST` imputa una sanción y `PUT` la cierra.
 - Al marcar una multa como **PAGADA**, `PUT` asienta el cobro como **ingreso**
   en `caja_chica_movimientos` (categoría «Multas cobradas», concepto
   «Cobro de Multa: socio - infracción (artículo)», monto cobrado). El vínculo es
   la columna `multa_id` (UNIQUE), por lo que el asiento es idempotente; anular
   o reabrir la sanción retira el ingreso. Para asentar el cobro a mano, envía
   `"registrar_caja_chica": false` en el `PUT`.
+- **Cobro desde el panel de Caja Chica** (conmutador «Registrar Multa a Socio»):
+  el `POST` acepta `"cobrar": true` y entonces la sanción nace **PAGADA** y su
+  ingreso entra en caja chica en la **misma transacción**, con el concepto que
+  arma el panel (`"concepto_cobro"`, opcional; por defecto el del `PUT`) y la
+  fecha de cobro en `"fecha_cobro"`. Así el Tesorero —que tiene
+  `multas:gestionar` pero no `caja_chica:gestionar`— cobra sin saltar al
+  Anexo I y sin poder duplicar el asiento. Una sanción con monto 0 no se puede
+  cobrar: el endpoint la rechaza y deja registrarla como pendiente.
 - Esa columna la crea `migrar.php` (paso 4). Si todavía no se ha ejecutado, el
   endpoint responde con un aviso en el mensaje y no rompe la actualización:
 

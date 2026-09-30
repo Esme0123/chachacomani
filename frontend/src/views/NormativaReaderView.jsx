@@ -45,7 +45,7 @@ import AdminDashboard from '../components/AdminDashboard';
  *     strings: { ...todas las cadenas visibles del documento }
  *   }
  */
-export default function NormativaReaderView({ documento, onVolver }) {
+export default function NormativaReaderView({ documento, onVolver, onCobrarMulta }) {
     const {
         tipo,
         tema,
@@ -575,7 +575,7 @@ export default function NormativaReaderView({ documento, onVolver }) {
                                 )}
                             </div>
                         ) : (
-                            <AnexosView anexos={anexos} searchTerm={searchTerm} fontSize={fontSize} />
+                            <AnexosView anexos={anexos} searchTerm={searchTerm} fontSize={fontSize} onCobrarMulta={onCobrarMulta} />
                         )}
 
                         {/* CTA Formulario de Observaciones (tras Disposiciones Finales) */}

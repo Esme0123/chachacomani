@@ -21,6 +21,12 @@
  *                "monto": 150, "fecha_infraccion": "2026-09-25",
  *                "medida_complementaria": "…", "observaciones": "…" }
  *
+ *        Con "cobrar": true la sanción nace YA PAGADA y su ingreso se asienta
+ *        en la MISMA transacción (flujo del conmutador «Registrar Multa a
+ *        Socio» del panel de Caja Chica, que evita volver al Anexo I):
+ *        { …, "cobrar": true, "fecha_cobro": "2026-09-30",
+ *          "concepto_cobro": "Multa Art. 28.I.a): Inasistencia… - Juan Pérez" }
+ *
  *   PUT  /backend/api/multas.php        (permiso `multas:gestionar`)
  *        Body: { "id": 12, "estado": "pagada" }  -> cierra la sanción y
  *              REGISTRA AUTOMÁTICAMENTE el ingreso en caja chica
@@ -29,11 +35,14 @@
  *
  *  Integración con Caja Chica
  *  --------------------------
- *  Cuando el Tesorero marca una multa como «pagada», el cobro se asienta
- *  como un movimiento de INGRESO en `caja_chica_movimientos`:
+ *  Cuando el Tesorero marca una multa como «pagada» —con el PUT o naciéndola
+ *  cobrada con el POST— el cobro se asienta como un movimiento de INGRESO en
+ *  `caja_chica_movimientos`:
  *     · tipo     -> ingreso
  *     · categoría-> "Multas cobradas"
- *     · concepto -> "Cobro de Multa: <socio> - <infracción> (<artículo>)"
+ *     · concepto -> "Cobro de Multa: <socio> - <infracción> (<artículo>)", o el
+ *                   que envíe el cliente en `concepto_cobro` (formato del panel
+ *                   de Caja Chica: "Multa <artículo>: <infracción> - <socio>")
  *     · monto    -> el valor efectivamente cobrado
  *  El vínculo se guarda en `caja_chica_movimientos`.`multa_id`, declarado
  *  UNIQUE: re-marcar la misma multa como pagada, reabrirla o anularla nunca
@@ -241,6 +250,13 @@ if ($metodo === 'POST') {
     $medida = textoLimpio($body['medida_complementaria'] ?? ($body['medida'] ?? ''), 255);
     $observaciones = textoLimpio($body['observaciones'] ?? '', 2000);
 
+    // `cobrar: true` es el atajo que usa el panel de Caja Chica: la sanción
+    // nace YA PAGADA y su ingreso se asienta en la misma transacción, de modo
+    // que el Tesorero cobra sin volver al Anexo I.
+    $cobrar = entradaBooleana($body['cobrar'] ?? false) === true;
+    $fechaCobro = trim((string) ($body['fecha_cobro'] ?? ''));
+    $conceptoCobro = textoLimpio($body['concepto_cobro'] ?? '', 255);
+
     if ($socioId <= 0) {
         jsonError('Debe seleccionar el socio (miembro) al que se imputa la multa.', 400);
     }
@@ -259,6 +275,12 @@ if ($metodo === 'POST') {
     if (!validarFechaIso($fecha)) {
         jsonError('La fecha de infracción debe tener el formato AAAA-MM-DD.', 400);
     }
+    if ($cobrar && $monto <= 0) {
+        jsonError('Una sanción sin multa pecunaria no se puede cobrar: regístrela como pendiente.', 400);
+    }
+    if ($fechaCobro !== '' && !validarFechaIso($fechaCobro)) {
+        jsonError('La fecha de cobro debe tener el formato AAAA-MM-DD.', 400);
+    }
 
     // El socio debe existir (FK) — mensaje claro en vez de un error 500.
     $stmt = db()->prepare('SELECT `id` FROM `usuarios` WHERE `id` = :id');
@@ -267,14 +289,19 @@ if ($metodo === 'POST') {
         jsonError('El socio seleccionado no existe.', 404);
     }
 
+    // La sanción y (si se cobra) su ingreso se escriben juntos: o entra la multa
+    // con su asiento en Caja Chica, o no entra ninguna de las dos cosas.
+    $pdo = db();
     try {
-        $stmt = db()->prepare(
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare(
             'INSERT INTO `multas`
                 (`socio_id`, `infraccion`, `articulo_referencia`, `categoria`, `monto`,
                  `fecha_infraccion`, `estado`, `medida_complementaria`, `observaciones`, `registrado_por`)
              VALUES
                 (:socio_id, :infraccion, :articulo, :categoria, :monto,
-                 :fecha, \'pendiente\`, :medida, :observaciones, :registrado_por)'
+                 :fecha, :estado, :medida, :observaciones, :registrado_por)'
         );
         $stmt->execute([
             ':socio_id'       => $socioId,
@@ -283,23 +310,51 @@ if ($metodo === 'POST') {
             ':categoria'      => $categoria,
             ':monto'          => $monto,
             ':fecha'          => $fecha,
+            ':estado'         => $cobrar ? 'pagada' : 'pendiente',
             ':medida'         => $medida !== '' ? $medida : null,
             ':observaciones'  => $observaciones !== '' ? $observaciones : null,
             ':registrado_por' => (int) $usuario['id'],
         ]);
-    } catch (PDOException $e) {
+
+        $multaId = (int) $pdo->lastInsertId();
+
+        $cobro = ['accion' => 'nada', 'movimientoId' => null, 'concepto' => null, 'monto' => null, 'aviso' => ''];
+        if ($cobrar) {
+            $cobro = sincronizarCobroEnCajaChica(
+                $pdo,
+                $multaId,
+                'pagada',
+                (int) $usuario['id'],
+                true,
+                $fechaCobro !== '' ? $fechaCobro : $fecha,
+                $conceptoCobro
+            );
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('multas POST: ' . $e->getMessage());
         jsonError('No se pudo registrar la multa.', 500);
     }
 
-    $multaId = (int) db()->lastInsertId();
     $stmt = db()->prepare(sqlMulta() . ' WHERE m.id = :id');
     $stmt->execute([':id' => $multaId]);
+
+    $aviso = '';
+    if ($cobro['accion'] === 'registrado') {
+        $aviso = ' Cobro asentado en Caja Chica: «' . $cobro['concepto'] . '».';
+    } elseif ($cobro['accion'] === 'omitido' && $cobro['aviso'] !== '') {
+        $aviso = ' ' . $cobro['aviso'];
+    }
 
     jsonResponse([
         'ok'      => true,
         'multa'   => multaPublica($stmt->fetch() ?: []),
-        'mensaje' => 'Multa registrada correctamente.',
+        'cobro'   => $cobro,
+        'mensaje' => ($cobrar ? 'Multa registrada y cobrada correctamente.' : 'Multa registrada correctamente.') . $aviso,
     ], 201);
 }
 
@@ -420,6 +475,9 @@ jsonResponse([
  *   movimientoId: int|null, concepto: string|null, monto: float|null,
  *   aviso: string
  * }
+ * @param string $fechaCobro Fecha del ingreso; vacía = hoy.
+ * @param string $concepto   Concepto propuesto por el cliente (panel de Caja
+ *   Chica); vacío = el que se compone aquí.
  */
 function sincronizarCobroEnCajaChica(
     PDO $pdo,
@@ -427,7 +485,8 @@ function sincronizarCobroEnCajaChica(
     string $estado,
     int $usuarioId,
     bool $registrar,
-    string $fechaCobro
+    string $fechaCobro,
+    string $concepto = ''
 ): array {
     $nada = ['accion' => 'nada', 'movimientoId' => null, 'concepto' => null, 'monto' => null, 'aviso' => ''];
 
@@ -504,8 +563,13 @@ function sincronizarCobroEnCajaChica(
         ];
     }
 
-    $concepto = 'Cobro de Multa: ' . $multa['socio_nombre'] . ' - ' . $multa['infraccion']
-        . ' (' . $multa['articulo_referencia'] . ')';
+    $concepto = $concepto !== ''
+        ? textoLimpio($concepto, 255)
+        : textoLimpio(
+            'Cobro de Multa: ' . $multa['socio_nombre'] . ' - ' . $multa['infraccion']
+            . ' (' . $multa['articulo_referencia'] . ')',
+            255
+        );
 
     $pdo->prepare(
         'INSERT INTO `caja_chica_movimientos`
@@ -513,7 +577,7 @@ function sincronizarCobroEnCajaChica(
          VALUES
             (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones, :registrado_por, :multa_id)'
     )->execute([
-        ':concepto' => textoLimpio($concepto, 255),
+        ':concepto' => $concepto,
         ':categoria' => CATEGORIA_COBRO_MULTA,
         ':monto' => $monto,
         ':fecha' => $fechaCobro !== '' ? $fechaCobro : date('Y-m-d'),

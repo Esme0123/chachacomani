@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Coins, Info, Gavel, FileSpreadsheet, Wallet } from 'lucide-react';
+import { ShieldAlert, Coins, Info, Gavel, FileSpreadsheet, Wallet, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PERMISO_GESTIONAR_MULTAS } from '../services/permisosService.js';
 import * as multasService from '../services/multasService.js';
 import ModalMulta from './ModalMulta.jsx';
 
-export default function AnexosView({ anexos, searchTerm, fontSize }) {
+export default function AnexosView({ anexos, searchTerm, fontSize, onCobrarMulta }) {
   const [filterCategory, setFilterCategory] = useState('all');
   const [panelContableAbierto, setPanelContableAbierto] = useState(false);
   const [multaModalAbierto, setMultaModalAbierto] = useState(false);
@@ -165,14 +165,25 @@ export default function AnexosView({ anexos, searchTerm, fontSize }) {
                     ))}
                   </div>
 
-                  <button
-                    onClick={abrirFormularioMulta}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg,#E4A11B,#C0392B)' }}
-                  >
-                    <Gavel className="w-3.5 h-3.5" />
-                    Llenar Formulario / Registrar Multa
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={abrirFormularioMulta}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-transform hover:scale-[1.02]"
+                      style={{ background: 'linear-gradient(135deg,#E4A11B,#C0392B)' }}
+                    >
+                      <Gavel className="w-3.5 h-3.5" />
+                      Llenar Formulario / Registrar Multa
+                    </button>
+                    {/* Atajo a Caja Chica: cobrar aquí o desde el panel, sin
+                        navegar de un lado a otro. */}
+                    <button
+                      onClick={() => onCobrarMulta?.()}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border border-[#294669]/25 dark:border-[#476EAE]/55 text-[#294669] dark:text-[#48B3AF] hover:bg-[#294669]/8"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Ir a Caja Chica / Cobrar Multa
+                    </button>
+                  </div>
                 </div>
 
                 {avisoMultas && (
@@ -245,17 +256,34 @@ export default function AnexosView({ anexos, searchTerm, fontSize }) {
                               {/* Cierre de la sanción: el Tesorero cobra o anula
                                   por resolución del Tribunal de Honor. */}
                               {puedeGestionar && m.estado === 'pendiente' && (
-                                <select
-                                  value=""
-                                  onChange={(e) => cambiarEstado(m, e.target.value)}
-                                  disabled={idEnProceso === m.id}
-                                  aria-label={`Cambiar estado de la multa de ${m.socioNombre}`}
-                                  className="block mx-auto mt-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] bg-transparent text-ink-muted dark:text-slate-400 border border-sand-300 dark:border-slate-700 disabled:opacity-50"
-                                >
-                                  <option value="" disabled>Marcar como…</option>
-                                  <option value="pagada">Pagada</option>
-                                  <option value="anulada">Anulada</option>
-                                </select>
+                                <>
+                                  {/* Atajo con la infracción ya preseleccionada: salta
+                                      al panel de Caja Chica para cobrar. */}
+                                  <button
+                                    onClick={() => onCobrarMulta?.({
+                                      socioId: m.socioId,
+                                      socioNombre: m.socioNombre,
+                                      infraccion: m.infraccion,
+                                      articulo: m.articulo,
+                                      categoria: m.categoria,
+                                      monto: m.monto,
+                                    })}
+                                    className="block mx-auto mt-1 px-2 py-0.5 rounded-md font-mono text-[10px] border border-[#294669]/30 dark:border-[#476EAE]/55 text-[#294669] dark:text-[#48B3AF] hover:bg-[#294669]/8"
+                                  >
+                                    Cobrar en Caja Chica
+                                  </button>
+                                  <select
+                                    value=""
+                                    onChange={(e) => cambiarEstado(m, e.target.value)}
+                                    disabled={idEnProceso === m.id}
+                                    aria-label={`Cambiar estado de la multa de ${m.socioNombre}`}
+                                    className="block mx-auto mt-1 rounded-md px-1.5 py-0.5 font-mono text-[10px] bg-transparent text-ink-muted dark:text-slate-400 border border-sand-300 dark:border-slate-700 disabled:opacity-50"
+                                  >
+                                    <option value="" disabled>Marcar como…</option>
+                                    <option value="pagada">Pagada</option>
+                                    <option value="anulada">Anulada</option>
+                                  </select>
+                                </>
                               )}
                             </td>
                           </tr>

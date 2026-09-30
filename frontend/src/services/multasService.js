@@ -2,12 +2,18 @@
  * ============================================================================
  *  SERVICIO DE MULTAS — Anexo I del Reglamento Interno
  * ============================================================================
- *  Cliente de `backend/api/multas.php`. Vincula las infracciones tipificadas del
- *  Cuadro N.º 2 (Art. 28.I.a, Art. 10.c, Art. 41, Art. 18.a/b…) con los socios.
+ *  Cliente de `backend/api/multas.php`. Vincula las faltas del Anexo I (la
+ *  escala general del Cuadro N.º 1 y las infracciones tipificadas del Cuadro
+ *  N.º 2) con los socios.
+ *
+ *  Además del cliente HTTP expone el catálogo normalizado del Anexo I
+ *  (`catalogoInfracciones`, `montoDeOpcion`, `conceptoCobroMulta`), que
+ *  comparten la pantalla del Anexo I y el panel de Caja Chica.
  *
  *  Permisos (los valida el servidor en cada llamada):
  *   · `multas:ver_propias`  -> GET devuelve SÓLO las multas del socio solicitante.
- *   · `multas:gestionar`    -> POST registra multas; PUT cambia el estado de pago.
+ *   · `multas:gestionar`    -> POST registra multas (también cobradas, con
+ *                              `cobrar: true`); PUT cambia el estado de pago.
  *
  *  Rutas: GET|POST|PUT /api/multas
  * ============================================================================
@@ -90,6 +96,119 @@ export function normalizarCategoria(categoria, monto = null) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Catálogo del Anexo I (compartido por el modal y por Caja Chica)              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Construye el catálogo unificado de faltas del Anexo I a partir de las tablas
+ * del propio documento (`tema.tablas`), con la misma forma para ambos cuadros:
+ *
+ *   · Cuadro N.º 1 — categorías de falta con su ESCALA GENERAL. El monto depende
+ *     de la reincidencia, así que `niveles` trae los tramos y `monto` es null.
+ *   · Cuadro N.º 2 — infracciones tipificadas con monto propio: `niveles` vacío
+ *     y `monto` ya resuelto desde el texto del cuadro.
+ *
+ * Lo consumen `ModalMulta` (Anexo I) y el conmutador «Registrar Multa a Socio»
+ * de Caja Chica, para que ambas pantallas ofrezcan exactamente la misma lista.
+ *
+ * @param {{tablas?: {id:string, filas?: object[]}[]}} tema Anexo I del documento
+ * @returns {object[]} Opciones con {clave, grupo, origen, infraccion, articulo,
+ *   categoria, niveles, monto, montoTexto, medida, tituloCorto}
+ */
+export function catalogoInfracciones(tema) {
+  const tabla = (id) => tema?.tablas?.find((t) => t.id === id);
+
+  const categorias = (tabla('cuadro-1')?.filas || [])
+    // «Reincidencia general» no es una falta sino la regla de repetir el monto
+    // máximo de la categoría ya sancionada (Art. 72 / 75): se cubre eligiendo esa
+    // misma categoría en su nivel máximo, así que no es una opción propia.
+    .filter((fila) => !/reincidencia/i.test(fila.categoria || ''))
+    .map((fila) => {
+      const categoria = normalizarCategoria(fila.categoria);
+      return {
+        clave: `c1:${fila.categoria}`,
+        grupo: 'Cuadro N.º 1 · Categorías y escala general',
+        origen: 1,
+        infraccion: fila.descripcion,
+        // El alcance del Cuadro N.º 1 es un párrafo largo: para el concepto del
+        // cobro se usa la categoría, que es la descripción corta de la falta.
+        tituloCorto: fila.categoria,
+        articulo: fila.referencia,
+        categoria,
+        niveles: ESCALA_MULTAS[categoria] || [],
+        monto: null,
+        montoTexto: fila.multa,
+        medida: '',
+      };
+    });
+
+  const tipificadas = (tabla('cuadro-2')?.filas || []).map((fila, i) => {
+    const montoFila = extraerMonto(fila.multa);
+    return {
+      clave: `c2:${i}`,
+      grupo: 'Cuadro N.º 2 · Infracciones tipificadas',
+      origen: 2,
+      infraccion: fila.infraccion,
+      tituloCorto: fila.infraccion,
+      articulo: fila.articulo,
+      categoria: normalizarCategoria(fila.categoria, montoFila),
+      niveles: [],
+      monto: montoFila === null ? 0 : montoFila,
+      montoTexto: fila.multa,
+      medida: fila.medida && fila.medida !== '—' ? fila.medida : '',
+    };
+  });
+
+  return [...categorias, ...tipificadas];
+}
+
+/**
+ * Agrupa las opciones del catálogo por cuadro, conservando el orden.
+ * @param {object[]} opciones
+ * @returns {{nombre: string, items: object[]}[]}
+ */
+export function agruparPorCuadro(opciones) {
+  const bloques = new Map();
+  opciones.forEach((item) => {
+    if (!bloques.has(item.grupo)) bloques.set(item.grupo, []);
+    bloques.get(item.grupo).push(item);
+  });
+  return [...bloques.entries()].map(([nombre, items]) => ({ nombre, items }));
+}
+
+/**
+ * Monto que corresponde a una opción del catálogo: el propio de la fila cuando
+ * existe (Cuadro N.º 2) o el del tramo elegido de la escala (Cuadro N.º 1).
+ * @param {object} item Opción de `catalogoInfracciones`
+ * @param {{veces:number, monto:number}|null} [nivel] Tramo de la escala
+ * @returns {number} Monto en Bs.
+ */
+export function montoDeOpcion(item, nivel = null) {
+  if (!item) return 0;
+  if (item.origen === 1) {
+    if (nivel) return Number(nivel.monto);
+    return Number(item.niveles?.[0]?.monto ?? 0);
+  }
+  return Number(item.monto ?? 0);
+}
+
+/**
+ * Concepto del ingreso con el formato pedido por la Tesorería:
+ *   "Multa [Artículo]: [Descripción corta de la infracción] - [Nombre del Socio]"
+ * La descripción corta es la infracción tipificada (Cuadro N.º 2) o la categoría
+ * de la falta (Cuadro N.º 1), para que el concepto nunca sea un párrafo.
+ * @param {object} item Opción de `catalogoInfracciones`
+ * @param {string} nombreSocio
+ * @returns {string}
+ */
+export function conceptoCobroMulta(item, nombreSocio) {
+  if (!item) return '';
+  const referencia = item.articulo || item.categoria || '';
+  const descripcion = item.tituloCorto || item.infraccion || '';
+  return `Multa ${referencia}: ${descripcion} - ${String(nombreSocio || '').trim()}`.trim();
+}
+
+/* -------------------------------------------------------------------------- */
 /* Consultas                                                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -126,10 +245,17 @@ export async function misMultas() {
 
 /**
  * Imputa una multa a un socio.
+ *
+ * Con `cobrar: true` la sanción nace PAGADA y el backend asienta el ingreso en
+ * Caja Chica en la misma transacción: es el flujo que usa el conmutador
+ * «Registrar Multa a Socio» del panel de Caja Chica, para que el Tesorero no
+ * tenga que ir y venir entre el Anexo I y la caja.
+ *
  * @param {{socioId:number, infraccion:string, articulo:string, categoria:string,
  *          monto:number, fechaInfraccion:string, medida?:string,
- *          observaciones?:string}} datos
- * @returns {Promise<{multa: object, mensaje: string}>}
+ *          observaciones?:string, cobrar?:boolean, fechaCobro?:string,
+ *          conceptoCobro?:string}} datos
+ * @returns {Promise<{multa: object, cobro: object, mensaje: string}>}
  */
 export async function registrarMulta(datos) {
   return peticion('multas', {
@@ -143,6 +269,9 @@ export async function registrarMulta(datos) {
       fecha_infraccion: datos.fechaInfraccion,
       medida_complementaria: datos.medida || null,
       observaciones: datos.observaciones || null,
+      cobrar: datos.cobrar === true,
+      fecha_cobro: datos.cobrar && datos.fechaCobro ? datos.fechaCobro : undefined,
+      concepto_cobro: datos.cobrar && datos.conceptoCobro ? datos.conceptoCobro : undefined,
     },
   });
 }

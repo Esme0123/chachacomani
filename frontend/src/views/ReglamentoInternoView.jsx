@@ -63,7 +63,7 @@ const strings = {
     'Estadísticas en tiempo real desde el backend PHP + MySQL (backend/). No existe modo simulación: si el API falla, el error se muestra y nada se guarda en localStorage.',
 };
 
-export default function ReglamentoInternoView({ onVolver }) {
+export default function ReglamentoInternoView({ onVolver, onCobrarMulta }) {
   // El servicio se memoriza: `NormativaReaderView` usa la identidad del objeto
   // `votos` como dependencia de sus efectos, así que debe ser estable entre
   // renders o la carga de votos se dispararía en bucle.
@@ -72,6 +72,7 @@ export default function ReglamentoInternoView({ onVolver }) {
   return (
     <NormativaReaderView
       onVolver={onVolver}
+      onCobrarMulta={onCobrarMulta}
       documento={{
         tipo: 'reglamento',
         tema: temaReglamento,

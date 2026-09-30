@@ -33,6 +33,18 @@ function AppShell() {
   const [seccionPerfil, setSeccionPerfil] = useState('perfil')
   const toggleTheme = () => setDark(d => !d)
 
+  /**
+   * Cobro de multa que viaja del Anexo I a Caja Chica («Ir a Caja Chica / Cobrar
+   * Multa»). Guarda los datos preseleccionados y salta al panel de caja, que
+   * los consume una sola vez y los limpia.
+   */
+  const [cobroPendiente, setCobroPendiente] = useState(null)
+  const irACobrarMulta = useCallback((cobro = null) => {
+    setCobroPendiente(cobro)
+    setVista('caja-chica')
+  }, [])
+  const cerrarCobroPendiente = useCallback(() => setCobroPendiente(null), [])
+
   const { usuario, cargando, puede } = useAuth()
 
   /**
@@ -98,7 +110,7 @@ function AppShell() {
       <CursorRippleOverlay />
 
       {vista === 'reglamento' && (
-        <ReglamentoInternoView onVolver={() => setVista('home')} />
+        <ReglamentoInternoView onVolver={() => setVista('home')} onCobrarMulta={irACobrarMulta} />
       )}
 
       {vista === 'estatuto' && (
@@ -121,7 +133,13 @@ function AppShell() {
       )}
 
       {vista === 'caja-chica' && usuario && accesoPermitido && (
-        <CajaChicaView dark={dark} onNavigate={setVista} onToggleTheme={toggleTheme} />
+        <CajaChicaView
+          dark={dark}
+          onNavigate={setVista}
+          onToggleTheme={toggleTheme}
+          cobroInicial={cobroPendiente}
+          onCobroConsumido={cerrarCobroPendiente}
+        />
       )}
 
       {vista === 'usuarios' && usuario && accesoPermitido && (

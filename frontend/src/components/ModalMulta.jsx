@@ -40,56 +40,14 @@ export default function ModalMulta({ isOpen, onClose, tema, isDark, socios = [] 
   const [guardando, setGuardando] = useState(false);
 
   /**
-   * Catálogo unificado de infracciones del Anexo I (Cuadros N.º 1 y 2) con la
-   * misma forma para ambas tablas, de modo que el formulario itere una sola
-   * lista. `niveles` viene vacío cuando el monto ya es propio de la fila
-   * (Cuadro N.º 2) y con la escala de la categoría cuando el monto depende de
-   * la reincidencia (Cuadro N.º 1).
+   * Catálogo unificado de infracciones del Anexo I (Cuadros N.º 1 y 2), que
+   * comparte con el panel de Caja Chica a través de `multasService`.
    */
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
     setExito(null);
-
-    const tabla = (id) => tema?.tablas?.find((t) => t.id === id);
-    const categorias = (tabla('cuadro-1')?.filas || [])
-      // «Reincidencia general» no es una falta sino la regla de repetir el monto
-      // máximo de la categoría ya sancionada (Art. 72 / 75); se cubre eligiendo
-      // esa misma categoría en su nivel máximo, así que no es una opción propia.
-      .filter((fila) => !/reincidencia/i.test(fila.categoria || ''))
-      .map((fila) => {
-        const categoria = multasService.normalizarCategoria(fila.categoria);
-        return {
-          clave: `c1:${fila.categoria}`,
-          grupo: 'Cuadro N.º 1 · Categorías y escala general',
-          origen: 1,
-          infraccion: fila.descripcion,
-          articulo: fila.referencia,
-          categoria,
-          niveles: multasService.ESCALA_MULTAS[categoria] || [],
-          monto: null,
-          montoTexto: fila.multa,
-          medida: '',
-        };
-      });
-
-    const tipificadas = (tabla('cuadro-2')?.filas || []).map((fila, i) => {
-      const montoFila = multasService.extraerMonto(fila.multa);
-      return {
-        clave: `c2:${i}`,
-        grupo: 'Cuadro N.º 2 · Infracciones tipificadas',
-        origen: 2,
-        infraccion: fila.infraccion,
-        articulo: fila.articulo,
-        categoria: multasService.normalizarCategoria(fila.categoria, montoFila),
-        niveles: [],
-        monto: montoFila === null ? 0 : montoFila,
-        montoTexto: fila.multa,
-        medida: fila.medida && fila.medida !== '—' ? fila.medida : '',
-      };
-    });
-
-    setInfracciones([...categorias, ...tipificadas]);
+    setInfracciones(multasService.catalogoInfracciones(tema));
   }, [isOpen, tema]);
 
   const filtradas = useMemo(() => {
@@ -104,14 +62,10 @@ export default function ModalMulta({ isOpen, onClose, tema, isDark, socios = [] 
   }, [filtro, infracciones]);
 
   /** Agrupa las coincidencias por cuadro para poder rotular cada bloque. */
-  const grupos = useMemo(() => {
-    const bloques = new Map();
-    filtradas.forEach((item) => {
-      if (!bloques.has(item.grupo)) bloques.set(item.grupo, []);
-      bloques.get(item.grupo).push(item);
-    });
-    return [...bloques.entries()].map(([nombre, items]) => ({ nombre, items }));
-  }, [filtradas]);
+  const grupos = useMemo(
+    () => multasService.agruparPorCuadro(filtradas),
+    [filtradas]
+  );
 
   /** Socios que coinciden con el buscador del formulario. */
   const sociosFiltrados = useMemo(() => {
@@ -144,7 +98,7 @@ export default function ModalMulta({ isOpen, onClose, tema, isDark, socios = [] 
     setForm((f) => ({
       ...f,
       categoria: item.categoria,
-      monto: String(conEscala ? nivelInicial.monto : item.monto),
+      monto: String(multasService.montoDeOpcion(item, nivelInicial)),
       medida: item.medida,
     }));
   };
@@ -173,7 +127,6 @@ export default function ModalMulta({ isOpen, onClose, tema, isDark, socios = [] 
           : multasService.ESCALA_MULTAS[seleccion.categoria] || [],
     };
   }, [seleccion]);
-
   const guardar = async (e) => {
     e.preventDefault();
     if (guardando) return;
