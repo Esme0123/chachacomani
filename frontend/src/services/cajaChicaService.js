@@ -25,7 +25,7 @@ export const CATEGORIAS_CAJA = [
   'Combustible',
   'Mantenimiento',
   'Aportes',
-  'Multas cobradas',
+  'Multas / Sanciones',
   'Retiros',
 ];
 
@@ -33,7 +33,7 @@ export const CATEGORIAS_CAJA = [
  * Categoría con la que el Anexo I asienta el cobro de una multa pagada
  * (la inyecta `backend/api/multas.php` al marcar la sanción como pagada).
  */
-export const CATEGORIA_COBRO_MULTA = 'Multas cobradas';
+export const CATEGORIA_COBRO_MULTA = 'Multas / Sanciones';
 
 /**
  * Consulta los movimientos de caja chica de un periodo (`YYYY-MM`).

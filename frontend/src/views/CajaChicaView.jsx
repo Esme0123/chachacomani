@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Gavel, Search, X } from 'lucide-react'
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Sparkles } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -35,14 +35,22 @@ const ANEXO_I = ANEXOS_DATA.find((anexo) => anexo?.tablas?.some((t) => t.id === 
  *    en modo lectura: ve los movimientos y los saldos, pero el formulario de
  *    registro le aparece bloqueado.
  *
- *  COBRO DE MULTAS DENTRO DE LA CAJA (flujo del Tesorero)
- *  ------------------------------------------------------
- *  El Tesorero no tiene `caja_chica:gestionar`, pero sí `multas:gestionar`, así
- *  que desde aquí activa el conmutador «Registrar Multa a Socio» y cobra sin
- *  saltar al Anexo I: elige socio e infracción (Cuadros N.º 1 y 2), el monto y el
- *  concepto se autocompletan, y al guardar `POST /api/multas` con
- *  `cobrar: true` crea la sanción YA PAGADA y su ingreso en caja chica en la
- *  misma transacción.
+ *  FLUJO GUIADO DE REGISTRO (dos pestañas)
+ *  --------------------------------------
+ *  El formulario arranca en dos pestañas: «💸 Gastos / Egresos Generales» (el
+ *  formulario tradicional: tipo, categoría, concepto libre, monto y fecha) y
+ *  «⚖️ Registrar Multa / Cobro a Socio».
+ *
+ *  En la pestaña de multas no se elige ni tipo ni categoría: quedan fijados en
+ *  «ingreso» y «Multas / Sanciones», y aparecen dos cajas obligatorias —1. el
+ *  socio, en lista buscable, y 2. la infracción del Anexo I con los Cuadros N.º 1
+ *  y 2 agrupados— más el monto y el concepto autocompletados. Al guardar,
+ *  `POST /api/multas` con `cobrar: true` crea la sanción YA PAGADA y su ingreso en
+ *  caja chica en la misma transacción.
+ *
+ *  El Tesorero no tiene `caja_chica:gestionar`, pero sí `multas:gestionar`: su
+ *  pestaña de gastos aparece bloqueada y el formulario trabaja siempre en modo
+ *  sanción.
  *
  * @param {object}  [props.cobroInicial] Cobro preseleccionado al llegar desde
  *   el Anexo I («Ir a Caja Chica / Cobrar Multa»).
@@ -51,15 +59,15 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
   const { usuario, logout, puede } = useAuth();
   const puedeRegistrarMovimientos = puede(PERMISO_GESTIONAR_CAJA_CHICA);
   const puedeCobrarMultas = puede(PERMISO_GESTIONAR_MULTAS);
-  // El Tesorero entra sólo para cobrar multas: sin `caja_chica:gestionar` el
-  // conmutador no se ofrece y el formulario trabaja siempre en modo sanción.
+  // El Tesorero entra sólo para cobrar multas: sin `caja_chica:gestionar` su
+  // pestaña de gastos queda bloqueada y el formulario trabaja en modo sanción.
   const soloMultas = !puedeRegistrarMovimientos && puedeCobrarMultas;
 
   const [mes, setMes] = useState(mesActual());
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  const [formAbierto, setFormAbierto] = useState(false);
+  const [formAbierto, setFormAbierto] = useState(true);
   const [form, setForm] = useState({
     tipo: 'egreso',
     concepto: '',
@@ -196,15 +204,49 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     setForm((f) => ({ ...f, monto: String(multasService.montoDeOpcion(infraccionSel, nivel)) }));
   };
 
+  /**
+   * Etiqueta de una opción del desplegable de infracciones: artículo, resumen
+   * corto y monto, para que el Tesorero ubique la falta sin abrir el reglamento.
+   * En el Cuadro N.º 1 el monto depende de la reincidencia, así que se muestra
+   * la escala completa; en el N.º 2, el monto propio de la infracción.
+   */
+  const etiquetaInfraccion = (item) => {
+    if (item.origen === 1) {
+      const escala = item.niveles.map((n) => n.monto).join(' / ');
+      return `${item.tituloCorto} · ${item.articulo} · escala ${escala} Bs.`;
+    }
+    const monto = item.monto > 0 ? `${item.monto} Bs.` : 'sin multa pecuniaria';
+    return `${item.articulo} · ${item.tituloCorto} · ${monto}`;
+  };
+
+  /** Limpia los datos de sanción para no arrastrarlos al modo de gastos. */
+  const limpiarCamposMulta = () => {
+    setInfraccionSel(null);
+    setNivelSel(null);
+    setConceptoManual(false);
+    setFiltroSocio('');
+    setFiltroInfraccion('');
+    setForm((f) => ({ ...f, concepto: '', monto: '', socioId: '' }));
+  };
+
   const activarModoMulta = () => {
     setModoMulta(true);
+    limpiarCamposMulta();
     setForm((f) => ({ ...f, tipo: 'ingreso', categoria: cajaChicaService.CATEGORIA_COBRO_MULTA }));
     setFormAbierto(true);
   };
 
+  /** Vuelve a la pestaña de gastos: tipo, categoría y concepto libres. */
+  const irAGastos = () => {
+    if (!puedeRegistrarMovimientos) return;
+    setModoMulta(false);
+    limpiarCamposMulta();
+    setForm((f) => ({ ...f, tipo: 'egreso', categoria: 'Otros' }));
+  };
+
   const cambiarTipo = (valor) => {
     // Al salir del flujo de multa la categoría vuelve a «Otros»: si se dejara
-    // «Multas cobradas», un movimiento corriente se asentaría bajo la categoría
+    // «Multas / Sanciones», un movimiento corriente se asentaría bajo la categoría
     // de las multas y falsearía el resumen de cobros.
     setForm((f) => {
       const mantieneMulta = valor === 'ingreso' && f.categoria === cajaChicaService.CATEGORIA_COBRO_MULTA;
@@ -263,25 +305,39 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     setExito(null);
     setError(null);
 
+    // Validación guiada: primero las cajas obligatorias del flujo de multa y
+    // después los datos del movimiento. El formulario usa `noValidate` para que
+    // estos mensajes (en español y señalando la caja que falta) reemplazen a los
+    // del navegador.
+    if (cobrarMultas) {
+      if (!form.socioId) {
+        setError('Caja 1 · Seleccione el socio al que se cobra la multa.');
+        return;
+      }
+      if (!infraccionSel) {
+        setError('Caja 2 · Seleccione la infracción del Anexo I (Cuadro N.º 1 o N.º 2).');
+        return;
+      }
+      if (!form.fechaInfraccion) {
+        setError('Indique la fecha en que ocurrió la infracción.');
+        return;
+      }
+    }
     if (!form.concepto.trim()) {
-      setError('Indique el concepto del movimiento.');
+      setError(
+        cobrarMultas
+          ? 'El concepto se genera solo al elegir la infracción y el socio; también puede escribirlo.'
+          : 'Indique el concepto del movimiento.'
+      );
       return;
     }
     if (form.monto === '' || Number(form.monto) <= 0) {
       setError('El monto debe ser mayor que cero.');
       return;
     }
-
-    // El flujo de multa necesita, además, a quién se imputa y por qué concepto.
-    if (cobrarMultas) {
-      if (!form.socioId) {
-        setError('Seleccione el socio al que se cobra la multa.');
-        return;
-      }
-      if (!infraccionSel) {
-        setError('Seleccione la infracción del Anexo I (Cuadro N.º 1 o N.º 2).');
-        return;
-      }
+    if (!form.fecha) {
+      setError(cobrarMultas ? 'Indique la fecha de cobro.' : 'Indique la fecha del movimiento.');
+      return;
     }
 
     setGuardando(true);
@@ -337,7 +393,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
   // `caja_chica:gestionar`, así que el único envío posible es el del Anexo I.
   const cobrarMultas = soloMultas || modoMulta;
 
-  // Los cobros de multas del Anexo I entran solos en la categoría «Multas cobradas»
+  // Los cobros de multas del Anexo I entran solos en la categoría «Multas / Sanciones»
   // cuando el Tesorero marca la sanción como pagada (ver backend/api/multas.php).
   const totalMultas = movimientos
     .filter((m) => m.origenMulta)
@@ -478,31 +534,56 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                 </span>
               </button>
 
-              {/* Conmutador rápido del Tesorero: cobrar una multa del Anexo I sin
-                  salir de la caja. Fija Tipo = Ingreso y Categoría = Multas
-                  cobradas, y el backend enlaza ambos asientos en una transacción. */}
-              {puedeCobrarMultas && !soloMultas && (
+              {/* Pestañas de modo de registro. El Tesorero sólo puede cobrar
+                  multas, así que su pestaña de gastos aparece bloqueada. */}
+              <div role="tablist" aria-label="Modo de registro" className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => (modoMulta ? setModoMulta(false) : activarModoMulta())}
-                  aria-pressed={modoMulta}
-                  className={`mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-display font-semibold text-xs border transition-colors ${
-                    modoMulta
-                      ? 'border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                      : 'border-[#294669]/25 dark:border-[#476EAE]/55 text-[#294669] dark:text-[#48B3AF] hover:bg-[#294669]/5'
+                  role="tab"
+                  aria-selected={!cobrarMultas}
+                  disabled={!puedeRegistrarMovimientos}
+                  onClick={irAGastos}
+                  className={`text-left rounded-xl border-2 px-3 py-2.5 transition-colors disabled:opacity-55 disabled:cursor-not-allowed ${
+                    !cobrarMultas
+                      ? 'border-[#294669]/45 bg-[#294669]/10 dark:border-[#48B3AF]/45 dark:bg-[#294669]/35'
+                      : 'border-[#294669]/15 dark:border-[#476EAE]/35 hover:bg-[#294669]/5'
                   }`}
                 >
-                  <Gavel className="w-4 h-4" />
-                  Registrar Multa a Socio (Anexo I)
-                  <span className="font-mono text-[10px] opacity-70">
-                    {cobrarMultas ? 'activo' : 'cobro directo'}
+                  <span className="flex items-center gap-2 font-display font-bold text-xs text-[#0D0B61] dark:text-white">
+                    <TrendingDown className="w-4 h-4 text-[#294669] dark:text-[#48B3AF]" />
+                    💸 Gastos / Egresos Generales
+                  </span>
+                  <span className="mt-0.5 block font-mono text-[10px] text-[#294669]/75 dark:text-[#476EAE]">
+                    {puedeRegistrarMovimientos
+                      ? 'Tipo, categoría, concepto libre y monto'
+                      : 'Su rol no habilita el registro de gastos'}
                   </span>
                 </button>
-              )}
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={cobrarMultas}
+                  onClick={activarModoMulta}
+                  className={`text-left rounded-xl border-2 px-3 py-2.5 transition-colors ${
+                    cobrarMultas
+                      ? 'border-amber-500/60 bg-amber-500/15'
+                      : 'border-amber-500/25 dark:border-amber-500/30 hover:bg-amber-500/8'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-display font-bold text-xs text-[#0D0B61] dark:text-white">
+                    <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    ⚖️ Registrar Multa / Cobro a Socio
+                  </span>
+                  <span className="mt-0.5 block font-mono text-[10px] text-amber-700/85 dark:text-amber-300/85">
+                    Socio + infracción del Anexo I, cobro en un solo paso
+                  </span>
+                </button>
+              </div>
 
               {formAbierto && (
-                <form onSubmit={registrar} className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {!soloMultas && (
+                <form onSubmit={registrar} noValidate className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {!cobrarMultas && (
                     <div>
                       <label htmlFor="caja-tipo" className={label}>TIPO</label>
                       <select
@@ -516,7 +597,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                       </select>
                     </div>
                   )}
-                  {!soloMultas && (
+                  {!cobrarMultas && (
                     <div>
                       <label htmlFor="caja-categoria" className={label}>CATEGORÍA</label>
                       <select
@@ -535,13 +616,25 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                   {cobrarMultas && (
                     <>
                       <div className="sm:col-span-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2 font-mono text-[11px] text-amber-700 dark:text-amber-300">
-                        Ingreso por cobro de multa del Anexo I: se guardará la sanción como{' '}
-                        <strong>PAGADA</strong> y este movimiento a la vez, vinculados entre sí.
+                        Cobro del Anexo I: el tipo queda en <strong>Ingreso</strong> y la categoría en{' '}
+                        <strong>{cajaChicaService.CATEGORIA_COBRO_MULTA}</strong>. Al guardar, la
+                        sanción queda <strong>PAGADA</strong> y este ingreso entra en Caja Chica en la
+                        misma transacción.
                       </div>
 
-                      {/* (a) Socio sancionado */}
-                      <div className="sm:col-span-2">
-                        <label htmlFor="caja-socio-filtro" className={label}>SOCIO SANCIONADO</label>
+                      {/* Caja 1 — Socio (obligatorio) */}
+                      <div className="sm:col-span-2 rounded-2xl border-2 border-amber-500/35 bg-amber-500/5 p-4">
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 font-mono text-[11px] font-bold text-white">
+                            1
+                          </span>
+                          <label htmlFor="caja-socio-filtro" className={label}>
+                            SELECCIONAR SOCIO
+                          </label>
+                          <span className="font-mono text-[10px] text-amber-700 dark:text-amber-300">
+                            obligatorio
+                          </span>
+                        </div>
                         {cargandoSocios ? (
                           <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
                             Cargando socios…
@@ -562,22 +655,56 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                                 placeholder="Buscar socio por nombre o correo…"
                                 className={`${input} pl-9`}
                               />
+                              {filtroSocio !== '' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setFiltroSocio('')}
+                                  aria-label="Limpiar búsqueda de socios"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#294669]/60 dark:text-slate-400 hover:bg-[#294669]/10"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
-                            <select
-                              id="caja-socio"
-                              value={form.socioId}
-                              onChange={(e) => elegirSocio(e.target.value)}
-                              className={`${input} mt-2`}
-                              required
-                            >
-                              <option value="">— Seleccione un socio —</option>
-                              {sociosFiltrados.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                  {s.nombre} ({s.correo}){s.rol ? ` · ${s.rol}` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            {filtroSocio.trim() !== '' && sociosFiltrados.length === 0 && (
+
+                            {socioElegido ? (
+                              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/45 bg-emerald-500/10 px-3 py-2">
+                                <p className="font-mono text-[11px] text-emerald-700 dark:text-emerald-300">
+                                  <Check className="mr-1 inline h-3.5 w-3.5" />
+                                  <strong>{socioElegido.nombre}</strong>
+                                  {socioElegido.correo ? ` · ${socioElegido.correo}` : ''}
+                                  {socioElegido.rol ? ` · ${socioElegido.rol}` : ''}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => elegirSocio('')}
+                                  className="font-mono text-[10px] text-[#294669] underline dark:text-[#48B3AF]"
+                                >
+                                  Cambiar socio
+                                </button>
+                              </div>
+                            ) : (
+                              <ul className="mt-2 grid max-h-56 gap-1 overflow-y-auto pr-1">
+                                {sociosFiltrados.map((s) => (
+                                  <li key={s.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() => elegirSocio(String(s.id))}
+                                      className="flex w-full items-baseline justify-between gap-3 rounded-lg border border-[#294669]/15 bg-white/70 px-3 py-2 text-left hover:border-amber-500/50 hover:bg-amber-500/8 dark:border-[#476EAE]/35 dark:bg-[#0D0B61]/60"
+                                    >
+                                      <span className="font-display text-xs font-semibold text-[#0D0B61] dark:text-white">
+                                        {s.nombre}
+                                      </span>
+                                      <span className="truncate font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                                        {s.correo}
+                                        {s.rol ? ` · ${s.rol}` : ''}
+                                      </span>
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {!socioElegido && filtroSocio.trim() !== '' && sociosFiltrados.length === 0 && (
                               <p className="mt-1 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
                                 Ningún socio coincide con «{filtroSocio.trim()}».
                               </p>
@@ -586,9 +713,19 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         )}
                       </div>
 
-                      {/* (b) Asistente de infracción: Cuadro N.º 1 y Cuadro N.º 2 */}
-                      <div className="sm:col-span-2">
-                        <label htmlFor="caja-infraccion-filtro" className={label}>INFRACCIÓN DEL ANEXO I</label>
+                      {/* Caja 2 — Infracción del Anexo I (obligatorio) */}
+                      <div className="sm:col-span-2 rounded-2xl border-2 border-amber-500/35 bg-amber-500/5 p-4">
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 font-mono text-[11px] font-bold text-white">
+                            2
+                          </span>
+                          <label htmlFor="caja-infraccion" className={label}>
+                            SELECCIONAR INFRACCIÓN (ANEXO I — CUADROS 1 Y 2)
+                          </label>
+                          <span className="font-mono text-[10px] text-amber-700 dark:text-amber-300">
+                            obligatorio
+                          </span>
+                        </div>
                         <div className="relative">
                           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#294669]/50 dark:text-[#476EAE]" />
                           <input
@@ -596,7 +733,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             type="text"
                             value={filtroInfraccion}
                             onChange={(e) => setFiltroInfraccion(e.target.value)}
-                            placeholder="Buscar por infracción, artículo o categoría (ej. inasistencia, Art. 41, grave)…"
+                            placeholder="Buscar por infracción, artículo o categoría (ej. inasistencia, Art. 41, EPP, ebriedad)…"
                             className={`${input} pl-9`}
                           />
                           {filtroInfraccion !== '' && (
@@ -623,8 +760,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             <optgroup key={grupo.nombre} label={grupo.nombre}>
                               {grupo.items.map((item) => (
                                 <option key={item.clave} value={item.clave}>
-                                  {item.infraccion} · {item.articulo} · {item.montoTexto}
-                                  {item.origen === 1 ? ` · ${item.categoria}` : ''}
+                                  {etiquetaInfraccion(item)}
                                 </option>
                               ))}
                             </optgroup>
@@ -638,29 +774,71 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
                         {/* Escala general (Cuadro N.º 1): el monto sale del tramo. */}
                         {infraccionSel?.origen === 1 && infraccionSel.niveles.length > 0 && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className="inline-block px-2 py-0.5 rounded-lg font-display font-semibold text-[10px] uppercase bg-[#294669]/10 text-[#294669] dark:bg-[#294669]/45 dark:text-[#48B3AF] border border-[#294669]/20 dark:border-[#476EAE]/45">
-                              {infraccionSel.categoria}
-                            </span>
-                            {infraccionSel.niveles.map((n) => (
-                              <button
-                                key={n.veces}
-                                type="button"
-                                onClick={() => elegirNivel(n)}
-                                aria-pressed={nivelSel?.veces === n.veces}
-                                className={`px-2.5 py-1 rounded-lg font-mono text-[10px] transition-colors border ${
-                                  nivelSel?.veces === n.veces
-                                    ? 'border-amber-500/50 bg-amber-500/15 text-[#0D0B61] dark:text-amber-300'
-                                    : 'bg-slate-100 dark:bg-[#294669]/30 text-[#294669]/80 dark:text-slate-300 border-transparent hover:border-[#294669]/20'
-                                }`}
-                              >
-                                {n.etiqueta}
-                              </button>
-                            ))}
+                          <div className="mt-3">
+                            <p className="mb-1 font-mono text-[10px] text-amber-700 dark:text-amber-300">
+                              <strong>{infraccionSel.tituloCorto}</strong> ·{' '}
+                              {infraccionSel.articulo} — elija la reincidencia y el monto se ajusta:
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-block px-2 py-0.5 rounded-lg font-display font-semibold text-[10px] uppercase bg-[#294669]/10 text-[#294669] dark:bg-[#294669]/45 dark:text-[#48B3AF] border border-[#294669]/20 dark:border-[#476EAE]/45">
+                                {infraccionSel.categoria}
+                              </span>
+                              {infraccionSel.niveles.map((n) => (
+                                <button
+                                  key={n.veces}
+                                  type="button"
+                                  onClick={() => elegirNivel(n)}
+                                  aria-pressed={nivelSel?.veces === n.veces}
+                                  className={`rounded-lg border px-2.5 py-1 font-mono text-[10px] transition-colors ${
+                                    nivelSel?.veces === n.veces
+                                      ? 'border-amber-500/60 bg-amber-500/20 text-[#0D0B61] dark:text-amber-300'
+                                      : 'bg-slate-100 text-[#294669]/80 border-transparent hover:border-[#294669]/25 dark:bg-[#294669]/30 dark:text-slate-300'
+                                  }`}
+                                >
+                                  {n.etiqueta}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
                     </>
+                  )}
+
+                  {/* Autocompletado: al elegir la infracción, monto y fecha de cobro */}
+                  {cobrarMultas && (
+                    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-[#294669]/20 dark:border-[#476EAE]/45 bg-[#294669]/5 dark:bg-[#294669]/20 px-3 py-3">
+                      <div>
+                        <label htmlFor="caja-monto" className={label}>MONTO (Bs.)</label>
+                        <input
+                          id="caja-monto"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={form.monto}
+                          onChange={(e) => setForm(f => ({ ...f, monto: e.target.value }))}
+                          className={input}
+                          required
+                        />
+                        {infraccionSel?.origen === 1 && (
+                          <p className="mt-1 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                            Autocompletado con el monto del cuadro; puede editarlo si la resolución
+                            modifica la sanción.
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label htmlFor="caja-fecha" className={label}>FECHA DE COBRO</label>
+                        <input
+                          id="caja-fecha"
+                          type="date"
+                          value={form.fecha}
+                          onChange={(e) => setForm(f => ({ ...f, fecha: e.target.value }))}
+                          className={input}
+                          required
+                        />
+                      </div>
+                    </div>
                   )}
 
                   <div className="sm:col-span-2">
@@ -676,7 +854,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         }}
                         placeholder={
                           cobrarMultas
-                            ? 'Se genera solo: Multa [Artículo]: [Infracción] - [Socio]'
+                            ? 'Se genera solo: Multa Art. 41 (Inasistencia Asamblea) - Socio: Juan Pérez'
                             : 'Ej. Compra de combustible para la perforación'
                         }
                         className={input}
@@ -696,7 +874,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                           title="Regenerar el concepto"
                           className="shrink-0 p-2 rounded-lg border border-[#294669]/25 dark:border-[#476EAE]/55 text-[#294669] dark:text-[#48B3AF] hover:bg-[#294669]/10"
                         >
-                          <Gavel className="w-4 h-4" />
+                          <Sparkles className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -706,32 +884,34 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                       </p>
                     )}
                   </div>
-                  <div>
-                    <label htmlFor="caja-monto" className={label}>MONTO (Bs.)</label>
-                    <input
-                      id="caja-monto"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={form.monto}
-                      onChange={(e) => setForm(f => ({ ...f, monto: e.target.value }))}
-                      className={input}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="caja-fecha" className={label}>
-                      {cobrarMultas ? 'FECHA DE COBRO' : 'FECHA'}
-                    </label>
-                    <input
-                      id="caja-fecha"
-                      type="date"
-                      value={form.fecha}
-                      onChange={(e) => setForm(f => ({ ...f, fecha: e.target.value }))}
-                      className={input}
-                      required
-                    />
-                  </div>
+                  {!cobrarMultas && (
+                    <>
+                      <div>
+                        <label htmlFor="caja-monto" className={label}>MONTO (Bs.)</label>
+                        <input
+                          id="caja-monto"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={form.monto}
+                          onChange={(e) => setForm(f => ({ ...f, monto: e.target.value }))}
+                          className={input}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="caja-fecha" className={label}>FECHA</label>
+                        <input
+                          id="caja-fecha"
+                          type="date"
+                          value={form.fecha}
+                          onChange={(e) => setForm(f => ({ ...f, fecha: e.target.value }))}
+                          className={input}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
                   {cobrarMultas && (
                     <div className="sm:col-span-2">
                       <label htmlFor="caja-fecha-infraccion" className={label}>

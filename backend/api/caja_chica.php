@@ -36,7 +36,7 @@ if (!in_array($metodo, ['GET', 'POST'], true)) {
     jsonError('Método no permitido. Use GET o POST.', 405);
 }
 
-const CATEGORIAS_CAJA = ['Otros', 'Transporte', 'Alimentación', 'Material de oficina', 'Combustible', 'Mantenimiento', 'Aportes', 'Multas cobradas', 'Retiros'];
+const CATEGORIAS_CAJA = ['Otros', 'Transporte', 'Alimentación', 'Material de oficina', 'Combustible', 'Mantenimiento', 'Aportes', 'Multas / Sanciones', 'Retiros'];
 
 /** Proyecta un movimiento de caja chica al JSON que consume el frontend. */
 function movimientoPublico(array $fila): array

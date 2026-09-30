@@ -39,7 +39,7 @@
  *  cobrada con el POST— el cobro se asienta como un movimiento de INGRESO en
  *  `caja_chica_movimientos`:
  *     · tipo     -> ingreso
- *     · categoría-> "Multas cobradas"
+ *     · categoría-> "Multas / Sanciones"
  *     · concepto -> "Cobro de Multa: <socio> - <infracción> (<artículo>)", o el
  *                   que envíe el cliente en `concepto_cobro` (formato del panel
  *                   de Caja Chica: "Multa <artículo>: <infracción> - <socio>")
@@ -74,7 +74,7 @@ const CATEGORIAS_MULTA = ['Leve', 'Grave', 'Muy grave', 'Falta gravísima'];
 const ESTADOS_MULTA = ['pendiente', 'pagada', 'anulada'];
 
 /** Categoría de caja chica con la que se asientan los cobros de multas. */
-const CATEGORIA_COBRO_MULTA = 'Multas cobradas';
+const CATEGORIA_COBRO_MULTA = 'Multas / Sanciones';
 
 /** Proyecta una fila de `multas` (con los nombres del socio y del registrador). */
 function multaPublica(array $fila): array

@@ -100,6 +100,53 @@ export function normalizarCategoria(categoria, monto = null) {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Resumen corto de cada infracción tipificada del Cuadro N.º 2, en el orden en
+ * que aparece en el Anexo I. Sirve para dos cosas: la etiqueta legible del
+ * desplegable y el concepto del cobro, que debe caber en una línea.
+ * Si el reglamento cambiara y estos resúmenes dejaran de quadrar con las filas,
+ * `descripcionResumida()` entra en juego como respaldo automático.
+ */
+const RESUMEN_CUADRO_2 = [
+  'Inasistencia al trabajo',
+  'Tres atrasos en un mes',
+  'Inasistencia Asamblea Ordinaria',
+  'Inasistencia Asamblea Extraordinaria',
+  'Inasistencia a reunión de Consejo',
+  'Inasistencia de Consejo a Asamblea',
+  'Negativa a aceptar un cargo',
+  'Incumplimiento de comisión',
+  'Incumplimiento de seguridad industrial',
+  'Ingreso sin EPP',
+  'Ebriedad o bajo sustancias',
+  'Explosivos o maquinaria sin autorización',
+  'Daño a maquinaria o bienes',
+  'Escándalo o insulto grave (1.ª vez)',
+  'Escándalo o insulto grave (2.ª vez)',
+  'Escándalo o insulto grave (3.ª vez)',
+  'Agresión verbal (1.ª vez)',
+  'Agresión verbal reincidente',
+  'Agresión física',
+  'Divulgación de información confidencial',
+  'Uso indebido de activos digitales',
+  'Negativa a entregar bienes o documentos',
+  'Robo, hurto o apropiación',
+  'Malversación o desfalco',
+  'Falsificación de documentos',
+  'Daños a la imagen institucional',
+];
+
+/**
+ * Resumen de emergencia: quita el paréntesis explicativo del final y recorta,
+ * para que un texto largo nunca termine en el concepto del movimiento.
+ * @param {string} infraccion
+ * @returns {string}
+ */
+function descripcionResumida(infraccion) {
+  const texto = String(infraccion || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+  return texto.length > 48 ? `${texto.slice(0, 48).trim()}…` : texto;
+}
+
+/**
  * Construye el catálogo unificado de faltas del Anexo I a partir de las tablas
  * del propio documento (`tema.tablas`), con la misma forma para ambos cuadros:
  *
@@ -132,7 +179,7 @@ export function catalogoInfracciones(tema) {
         infraccion: fila.descripcion,
         // El alcance del Cuadro N.º 1 es un párrafo largo: para el concepto del
         // cobro se usa la categoría, que es la descripción corta de la falta.
-        tituloCorto: fila.categoria,
+        tituloCorto: `Falta ${categoria.replace(/\b\w/g, (c) => c.toUpperCase())}`,
         articulo: fila.referencia,
         categoria,
         niveles: ESCALA_MULTAS[categoria] || [],
@@ -149,7 +196,7 @@ export function catalogoInfracciones(tema) {
       grupo: 'Cuadro N.º 2 · Infracciones tipificadas',
       origen: 2,
       infraccion: fila.infraccion,
-      tituloCorto: fila.infraccion,
+      tituloCorto: RESUMEN_CUADRO_2[i] || descripcionResumida(fila.infraccion),
       articulo: fila.articulo,
       categoria: normalizarCategoria(fila.categoria, montoFila),
       niveles: [],
@@ -194,9 +241,9 @@ export function montoDeOpcion(item, nivel = null) {
 
 /**
  * Concepto del ingreso con el formato pedido por la Tesorería:
- *   "Multa [Artículo]: [Descripción corta de la infracción] - [Nombre del Socio]"
- * La descripción corta es la infracción tipificada (Cuadro N.º 2) o la categoría
- * de la falta (Cuadro N.º 1), para que el concepto nunca sea un párrafo.
+ *   "Multa [Artículo] ([Descripción corta]) - Socio: [Nombre]"
+ * La descripción corta es el resumen del Cuadro N.º 2 o la categoría de la
+ * falta (Cuadro N.º 1), para que el concepto nunca sea un párrafo.
  * @param {object} item Opción de `catalogoInfracciones`
  * @param {string} nombreSocio
  * @returns {string}
@@ -204,8 +251,9 @@ export function montoDeOpcion(item, nivel = null) {
 export function conceptoCobroMulta(item, nombreSocio) {
   if (!item) return '';
   const referencia = item.articulo || item.categoria || '';
-  const descripcion = item.tituloCorto || item.infraccion || '';
-  return `Multa ${referencia}: ${descripcion} - ${String(nombreSocio || '').trim()}`.trim();
+  const descripcion = item.tituloCorto || descripcionResumida(item.infraccion);
+  const socio = String(nombreSocio || '').trim();
+  return `Multa ${referencia} (${descripcion})${socio ? ` - Socio: ${socio}` : ''}`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -280,7 +328,7 @@ export async function registrarMulta(datos) {
  * Cambia el estado de pago de una multa (pendiente / pagada / anulada).
  *
  * Al pasar a «pagada» el backend asienta automáticamente el cobro como
- * INGRESO en Caja Chica (`tipo: ingreso`, `categoria: "Multas cobradas"`,
+ * INGRESO en Caja Chica (`tipo: ingreso`, `categoria: "Multas / Sanciones"`,
  * concepto «Cobro de Multa: <socio> - <infracción> (<artículo>)», monto
  * cobrado). El asiento es idempotente porque queda enlazado por `multa_id`.
  * Quien asienta el cobro a mano en el panel de Caja Chica puede desactivar ese

@@ -244,6 +244,23 @@ function ejecutarMigracion(array $argumentos): array
         );
     }
 
+    // 4.b Categoría de los cobros de multas: el panel de Caja Chica la llama
+    //     «Multas / Sanciones»; se renombran los asientos ya registrados para
+    //     que el resumen por categoría no quedara partido en dos nombres.
+    $renombradas = $pdo->prepare(
+        'UPDATE `caja_chica_movimientos` SET `categoria` = :nuevo WHERE `categoria` = :anterior'
+    );
+    $renombradas->execute([':nuevo' => 'Multas / Sanciones', ':anterior' => 'Multas cobradas']);
+    if ($renombradas->rowCount() > 0) {
+        $log(
+            'Categorías de multa renombradas a «Multas / Sanciones»: '
+            . $renombradas->rowCount() . ' movimiento(s).',
+            'ok'
+        );
+    } else {
+        $log('No hay movimientos con la categoría anterior «Multas cobradas».');
+    }
+
     // 5. Índices de apoyo ---------------------------------------------
     $indices = [
         ['votos_articulos', 'idx_votos_capitulo', 'ADD KEY `idx_votos_capitulo` (`documento`, `capitulo_id`)'],

@@ -50,21 +50,29 @@ backend/
   rol `lectura` sólo ve las suyas; el Tesorero/Admin obtienen además el padrón
   `socios`), `POST` imputa una sanción y `PUT` la cierra.
 - Al marcar una multa como **PAGADA**, `PUT` asienta el cobro como **ingreso**
-  en `caja_chica_movimientos` (categoría «Multas cobradas», concepto
+  en `caja_chica_movimientos` (categoría «Multas / Sanciones», concepto
   «Cobro de Multa: socio - infracción (artículo)», monto cobrado). El vínculo es
   la columna `multa_id` (UNIQUE), por lo que el asiento es idempotente; anular
   o reabrir la sanción retira el ingreso. Para asentar el cobro a mano, envía
   `"registrar_caja_chica": false` en el `PUT`.
-- **Cobro desde el panel de Caja Chica** (conmutador «Registrar Multa a Socio»):
-  el `POST` acepta `"cobrar": true` y entonces la sanción nace **PAGADA** y su
-  ingreso entra en caja chica en la **misma transacción**, con el concepto que
-  arma el panel (`"concepto_cobro"`, opcional; por defecto el del `PUT`) y la
+- **Cobro desde el panel de Caja Chica** (pestaña «⚖️ Registrar Multa / Cobro a
+  Socio»): el formulario guía el cobro en tres pasos —1. socio (lista
+  buscable), 2. infracción del Anexo I con los Cuadros N.º 1 y 2 agrupados
+  (29 faltas, con su monto), 3. monto y concepto autocompletados— y fija tipo
+  «ingreso» y categoría «Multas / Sanciones» sin que el Tesorero las elija. Al
+  guardar, el `POST` acepta `"cobrar": true` y entonces la sanción nace **PAGADA**
+  y su ingreso entra en caja chica en la **misma transacción**, con el concepto
+  que arma el panel (`"concepto_cobro"`, opcional; por defecto el del `PUT`) y la
   fecha de cobro en `"fecha_cobro"`. Así el Tesorero —que tiene
   `multas:gestionar` pero no `caja_chica:gestionar`— cobra sin saltar al
-  Anexo I y sin poder duplicar el asiento. Una sanción con monto 0 no se puede
-  cobrar: el endpoint la rechaza y deja registrarla como pendiente.
-- Esa columna la crea `migrar.php` (paso 4). Si todavía no se ha ejecutado, el
-  endpoint responde con un aviso en el mensaje y no rompe la actualización:
+  Anexo I, su pestaña de gastos aparece bloqueada y no puede duplicar el
+  asiento. Una sanción con monto 0 no se puede cobrar: el endpoint la rechaza y
+  deja registrarla como pendiente.
+- La categoría se llama **«Multas / Sanciones»** en `CATEGORIAS_CAJA`
+  (`api/caja_chica.php`); `migrar.php` (paso 4.b) renombra en la base los
+  asientos que quedaron como «Multas cobradas». Esa columna la crea
+  `migrar.php` (paso 4). Si todavía no se ha ejecutado, el endpoint responde con
+  un aviso en el mensaje y no rompe la actualización:
 
   ```bash
   cd /home/USUARIO/public_html/backend
