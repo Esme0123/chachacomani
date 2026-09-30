@@ -83,6 +83,41 @@ function leerBodyJson(): array
     return $datos;
 }
 
+/**
+ * ¿La tabla tiene esa columna?
+ * Sirve para que el código funcione sobre bases instaladas antes de una
+ * migración: si la columna aún no existe, se degrada con comportamiento
+ * razonable en vez de romper el endpoint con un error 500.
+ * @param string $tabla
+ * @param string $columna
+ */
+function tablaTieneColumna(string $tabla, string $columna): bool
+{
+    static $cache = [];
+
+    $clave = $tabla . '.' . $columna;
+    if (isset($cache[$clave])) {
+        return $cache[$clave];
+    }
+
+    try {
+        $stmt = db()->prepare(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = :tabla
+                AND COLUMN_NAME = :columna'
+        );
+        $stmt->execute([':tabla' => $tabla, ':columna' => $columna]);
+        $existe = ((int) $stmt->fetchColumn()) > 0;
+    } catch (PDOException $e) {
+        error_log('helpers (columna): ' . $e->getMessage());
+        $existe = false;
+    }
+
+    $cache[$clave] = $existe;
+    return $existe;
+}
+
 /** Devuelve el método HTTP de la petición en mayúsculas. */
 function metodoHttp(): string
 {

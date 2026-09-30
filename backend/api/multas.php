@@ -22,8 +22,24 @@
  *                "medida_complementaria": "…", "observaciones": "…" }
  *
  *   PUT  /backend/api/multas.php        (permiso `multas:gestionar`)
- *        Body: { "id": 12, "estado": "pagada" }  -> cierra la sanción
- *              { "id": 12, "estado": "anulada" } -> anula por resolución
+ *        Body: { "id": 12, "estado": "pagada" }  -> cierra la sanción y
+ *              REGISTRA AUTOMÁTICAMENTE el ingreso en caja chica
+ *              { "id": 12, "estado": "anulada" } -> anula por resolución y
+ *              retira el ingreso de caja chica si se había generado
+ *
+ *  Integración con Caja Chica
+ *  --------------------------
+ *  Cuando el Tesorero marca una multa como «pagada», el cobro se asienta
+ *  como un movimiento de INGRESO en `caja_chica_movimientos`:
+ *     · tipo     -> ingreso
+ *     · categoría-> "Multas cobradas"
+ *     · concepto -> "Cobro de Multa: <socio> - <infracción> (<artículo>)"
+ *     · monto    -> el valor efectivamente cobrado
+ *  El vínculo se guarda en `caja_chica_movimientos`.`multa_id`, declarado
+ *  UNIQUE: re-marcar la misma multa como pagada, reabrirla o anularla nunca
+ *  duplica ni deja huérfano el ingreso. Opcionalmente el cliente puede pedir
+ *  `registrar_caja_chica: false` para asentar el cobro a mano en el panel de
+ *  caja chica en lugar de dejarlo automático.
  *
  *  Escala oficial (Cuadro N.º 1 y Cuadro N.º 2): Leve Bs. 100/150,
  *  Grave Bs. 300, Muy Grave según arancel. El monto y la categoría se
@@ -48,6 +64,9 @@ if (!in_array($metodo, ['GET', 'POST', 'PUT'], true)) {
 const CATEGORIAS_MULTA = ['Leve', 'Grave', 'Muy grave', 'Falta gravísima'];
 const ESTADOS_MULTA = ['pendiente', 'pagada', 'anulada'];
 
+/** Categoría de caja chica con la que se asientan los cobros de multas. */
+const CATEGORIA_COBRO_MULTA = 'Multas cobradas';
+
 /** Proyecta una fila de `multas` (con los nombres del socio y del registrador). */
 function multaPublica(array $fila): array
 {
@@ -66,17 +85,45 @@ function multaPublica(array $fila): array
         'observaciones' => $fila['observaciones'] ?? null,
         'registradoPor' => (int) $fila['registrado_por'],
         'registradoPorNombre' => (string) ($fila['registrador_nombre'] ?? ''),
+        // Trazabilidad con Caja Chica: si el cobro ya está asentado, se informa
+        // el movimiento generado para no ofrecer registrarlo dos veces.
+        'cobroCajaId' => isset($fila['cobro_id']) && $fila['cobro_id'] !== null
+            ? (int) $fila['cobro_id']
+            : null,
+        'cobroCajaFecha' => $fila['cobro_fecha'] ?? null,
         'creadoEn' => $fila['creado_en'] ?? null,
         'actualizadoEn' => $fila['actualizado_en'] ?? null,
     ];
 }
 
-const SELECT_MULTA = 'SELECT m.*,
-                             s.nombre AS socio_nombre, s.correo AS socio_correo,
-                             r.nombre AS registrador_nombre
-                        FROM `multas` m
-                        JOIN `usuarios` s ON s.id = m.socio_id
-                        JOIN `usuarios` r ON r.id = m.registrado_por';
+/**
+ * `SELECT` base de una multa con los nombres del socio y del registrador.
+ * Cuando la base ya tiene la columna `caja_chica_movimientos`.`multa_id`
+ * (migración aplicada), se añade el LEFT JOIN que permite saber si el cobro
+ * ya fue asentado. En bases sin migrar, la consulta sigue siendo válida.
+ */
+function sqlMulta(): string
+{
+    $sql = 'SELECT m.*,
+                   s.nombre AS socio_nombre, s.correo AS socio_correo,
+                   r.nombre AS registrador_nombre';
+
+    if (tablaTieneColumna('caja_chica_movimientos', 'multa_id')) {
+        $sql .= ",
+                   c.id AS cobro_id, c.fecha AS cobro_fecha
+              FROM `multas` m
+              JOIN `usuarios` s ON s.id = m.socio_id
+              JOIN `usuarios` r ON r.id = m.registrado_por
+         LEFT JOIN `caja_chica_movimientos` c ON c.multa_id = m.id";
+    } else {
+        $sql .= "
+              FROM `multas` m
+              JOIN `usuarios` s ON s.id = m.socio_id
+              JOIN `usuarios` r ON r.id = m.registrado_por";
+    }
+
+    return $sql;
+}
 
 /* -------------------------------------------------------------------------- */
 /* GET: consulta de multas                                                     */
@@ -110,7 +157,7 @@ if ($metodo === 'GET') {
         $valores[':estado'] = $estado;
     }
 
-    $sql = SELECT_MULTA
+    $sql = sqlMulta()
         . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
         . ' ORDER BY m.fecha_infraccion DESC, m.id DESC';
 
@@ -155,10 +202,10 @@ if ($metodo === 'GET') {
     if ($puedeVerTodas) {
         try {
             $stmt = db()->query(
-                'SELECT `id`, `nombre`, `correo`
+                'SELECT `id`, `nombre`, `correo`, `rol`
                    FROM `usuarios`
                   WHERE `activo` = 1
-                  ORDER BY `nombre` ASC'
+               ORDER BY (`rol` = \'lectura\') DESC, `nombre` ASC'
             );
             $socios = $stmt->fetchAll();
         } catch (PDOException $e) {
@@ -246,7 +293,7 @@ if ($metodo === 'POST') {
     }
 
     $multaId = (int) db()->lastInsertId();
-    $stmt = db()->prepare(SELECT_MULTA . ' WHERE m.id = :id');
+    $stmt = db()->prepare(sqlMulta() . ' WHERE m.id = :id');
     $stmt->execute([':id' => $multaId]);
 
     jsonResponse([
@@ -266,6 +313,20 @@ $body = leerBodyJson();
 $multaId = (int) ($body['id'] ?? 0);
 $estado = strtolower(trim((string) ($body['estado'] ?? '')));
 
+// El asiento en Caja Chica es automático; el Tesorero puede desactivarlo
+// (`registrar_caja_chica: false`) si prefiere asentarlo a mano en el panel.
+$crudoCaja = $body['registrar_caja_chica'] ?? true;
+$registrarCaja = !in_array(
+    strtolower(trim((string) (is_bool($crudoCaja) ? ($crudoCaja ? 'true' : 'false') : $crudoCaja))),
+    ['false', '0', 'no', 'off'],
+    true
+);
+
+$fechaCobro = trim((string) ($body['fecha_cobro'] ?? ''));
+if ($fechaCobro !== '' && !validarFechaIso($fechaCobro)) {
+    jsonError('La fecha de cobro debe tener el formato AAAA-MM-DD.', 400);
+}
+
 if ($multaId <= 0) {
     jsonError('Debe indicar el `id` de la multa.', 400);
 }
@@ -281,23 +342,194 @@ if (!$actual) {
     jsonError('La multa indicada no existe.', 404);
 }
 
-$stmt = db()->prepare('UPDATE `multas` SET `estado` = :estado WHERE `id` = :id');
-$stmt->execute([':estado' => $estado, ':id' => $multaId]);
+// El cambio de estado y el asiento contable van en la MISMA transacción: o se
+// guardan ambos, o ninguno. Así la caja chica nunca refleja un cobro de una
+// sanción que no llegó a marcarse como pagada.
+$pdo = db();
+try {
+    $pdo->beginTransaction();
 
-$stmt = db()->prepare(SELECT_MULTA . ' WHERE m.id = :id');
+    $stmt = $pdo->prepare('UPDATE `multas` SET `estado` = :estado WHERE `id` = :id');
+    $stmt->execute([':estado' => $estado, ':id' => $multaId]);
+
+    $cobro = sincronizarCobroEnCajaChica(
+        $pdo,
+        $multaId,
+        $estado,
+        (int) $usuario['id'],
+        $registrarCaja,
+        $fechaCobro
+    );
+
+    $pdo->commit();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log('multas PUT: ' . $e->getMessage());
+    jsonError('No se pudo actualizar la multa.', 500);
+}
+
+$stmt = db()->prepare(sqlMulta() . ' WHERE m.id = :id');
 $stmt->execute([':id' => $multaId]);
+$multa = multaPublica($stmt->fetch() ?: []);
+
+$mensajes = [
+    'pagada' => 'Multa marcada como pagada.',
+    'anulada' => 'Multa anulada.',
+    'pendiente' => 'Multa reabierta como pendiente.',
+];
+
+$aviso = '';
+switch ($cobro['accion']) {
+    case 'registrado':
+        $aviso = ' Ingreso registrado en Caja Chica: «' . $cobro['concepto'] . '».';
+        break;
+    case 'ya-registrado':
+        $aviso = ' El cobro ya constaba en Caja Chica (movimiento #' . $cobro['movimientoId'] . ').';
+        break;
+    case 'revertido':
+        $aviso = ' Se retiró de Caja Chica el ingreso asociado a esta multa.';
+        break;
+    case 'omitido':
+        $aviso = $cobro['aviso'] !== '' ? ' ' . $cobro['aviso'] : '';
+        break;
+}
 
 jsonResponse([
     'ok'      => true,
-    'multa'   => multaPublica($stmt->fetch() ?: []),
-    'mensaje' => $estado === 'pagada'
-        ? 'Multa marcada como pagada.'
-        : ($estado === 'anulada' ? 'Multa anulada.' : 'Multa reabierta como pendiente.'),
+    'multa'   => $multa,
+    'cobro'   => $cobro,
+    'mensaje' => ($mensajes[$estado] ?? 'Multa actualizada.') . $aviso,
 ]);
 
 /* -------------------------------------------------------------------------- */
 /* Utilidades                                                                  */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Mantiene sincronizado el cobro de una multa con la Caja Chica.
+ *
+ * El vínculo es `caja_chica_movimientos`.`multa_id` (UNIQUE), así que el
+ * asiento es idempotente: re-marcar la misma multa como pagada no duplica el
+ * ingreso, y anular o reabrir una multa ya cobrada retira el ingreso para que
+ * el saldo de caja refleje la realidad.
+ *
+ * @return array{
+ *   accion: 'registrado'|'ya-registrado'|'revertido'|'omitido'|'nada',
+ *   movimientoId: int|null, concepto: string|null, monto: float|null,
+ *   aviso: string
+ * }
+ */
+function sincronizarCobroEnCajaChica(
+    PDO $pdo,
+    int $multaId,
+    string $estado,
+    int $usuarioId,
+    bool $registrar,
+    string $fechaCobro
+): array {
+    $nada = ['accion' => 'nada', 'movimientoId' => null, 'concepto' => null, 'monto' => null, 'aviso' => ''];
+
+    // Base instalada antes de la migración: la multa se actualiza igual, pero
+    // se avisa de que falta el vínculo para no perder el cobro en silencio.
+    if (!tablaTieneColumna('caja_chica_movimientos', 'multa_id')) {
+        return [
+            'accion' => 'omitido',
+            'movimientoId' => null,
+            'concepto' => null,
+            'monto' => null,
+            'aviso' => 'No se asentó el ingreso en Caja Chica: ejecute backend/migrar.php para activar el vínculo con el Anexo I.',
+        ];
+    }
+
+    $stmt = $pdo->prepare('SELECT `id`, `monto`, `fecha` FROM `caja_chica_movimientos` WHERE `multa_id` = :multa_id');
+    $stmt->execute([':multa_id' => $multaId]);
+    $existente = $stmt->fetch();
+
+    // La sanción deja de estar cobrada (anulada por resolución o reabierta):
+    // se retira el ingreso para no deixar dinero cobrado por una multa sin vigor.
+    if ($estado !== 'pagada') {
+        if (!$existente) {
+            return $nada;
+        }
+        $pdo->prepare('DELETE FROM `caja_chica_movimientos` WHERE `id` = :id')
+            ->execute([':id' => (int) $existente['id']]);
+        return [
+            'accion' => 'revertido',
+            'movimientoId' => null,
+            'concepto' => null,
+            'monto' => null,
+            'aviso' => '',
+        ];
+    }
+
+    if ($existente) {
+        return [
+            'accion' => 'ya-registrado',
+            'movimientoId' => (int) $existente['id'],
+            'concepto' => null,
+            'monto' => null,
+            'aviso' => '',
+        ];
+    }
+
+    // El Tesorero decidió asentar el cobro a mano en el panel de caja chica.
+    if (!$registrar) {
+        return [
+            'accion' => 'omitido',
+            'movimientoId' => null,
+            'concepto' => null,
+            'monto' => null,
+            'aviso' => 'No se generó el ingreso en Caja Chica (debe registrarlo a mano).',
+        ];
+    }
+
+    $stmt = $pdo->prepare(sqlMulta() . ' WHERE m.id = :id');
+    $stmt->execute([':id' => $multaId]);
+    $multa = $stmt->fetch();
+
+    if (!$multa) {
+        return $nada;
+    }
+
+    $monto = round((float) $multa['monto'], 2);
+    if ($monto <= 0) {
+        return [
+            'accion' => 'omitido',
+            'movimientoId' => null,
+            'concepto' => null,
+            'monto' => null,
+            'aviso' => 'La sanción no es pecuniaria: no se asienta ningún ingreso en Caja Chica.',
+        ];
+    }
+
+    $concepto = 'Cobro de Multa: ' . $multa['socio_nombre'] . ' - ' . $multa['infraccion']
+        . ' (' . $multa['articulo_referencia'] . ')';
+
+    $pdo->prepare(
+        'INSERT INTO `caja_chica_movimientos`
+            (`tipo`, `concepto`, `categoria`, `monto`, `fecha`, `observaciones`, `registrado_por`, `multa_id`)
+         VALUES
+            (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones, :registrado_por, :multa_id)'
+    )->execute([
+        ':concepto' => textoLimpio($concepto, 255),
+        ':categoria' => CATEGORIA_COBRO_MULTA,
+        ':monto' => $monto,
+        ':fecha' => $fechaCobro !== '' ? $fechaCobro : date('Y-m-d'),
+        ':observaciones' => 'Ingreso automático por el cobro de la multa #' . $multaId . ' (Anexo I).',
+        ':registrado_por' => $usuarioId,
+        ':multa_id' => $multaId,
+    ]);
+
+    return [
+        'accion' => 'registrado',
+        'movimientoId' => (int) $pdo->lastInsertId(),
+        'concepto' => $concepto,
+        'monto' => $monto,
+        'aviso' => '',
+    ];
+}
 
 /** Valida una fecha `AAAA-MM-DD` que exista en el calendario. */
 function validarFechaIso(string $fecha): bool

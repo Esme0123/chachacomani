@@ -14,6 +14,11 @@
  *   POST /backend/api/caja_chica.php      (permiso `caja_chica:gestionar`)
  *        Body: { "tipo": "ingreso|egreso", "concepto": "…", "categoria": "…",
  *                 "monto": 45.50, "fecha": "2026-09-25", "observaciones": "…" }
+ *
+ *  La columna `multa_id` NO se acepta desde este endpoint: la reserva el
+ *  backend/api/multas.php para registrar el ingreso cuando el Tesorero marca
+ *  una multa como «PAGADA», de modo que el cobro de una sanción entre a caja
+ *  chica una sola vez y con trazabilidad al Anexo I.
  * ============================================================================
  */
 declare(strict_types=1);
@@ -46,6 +51,9 @@ function movimientoPublico(array $fila): array
         'observaciones' => $fila['observaciones'] ?? null,
         'registradoPor' => (int) $fila['registrado_por'],
         'registradoPorNombre' => (string) ($fila['registrador_nombre'] ?? ''),
+        // Vínculo con el Anexo I: presente cuando este ingreso es el cobro
+        // automático de una multa pagada (ver backend/api/multas.php, PUT).
+        'origenMulta' => isset($fila['multa_id']) ? (int) $fila['multa_id'] : null,
         'creadoEn' => $fila['creado_en'] ?? null,
     ];
 }

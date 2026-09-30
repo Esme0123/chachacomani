@@ -114,6 +114,10 @@ CREATE TABLE IF NOT EXISTS `multas` (
 -- ------------------------------------------------------------
 -- 4. CAJA CHICA (ingresos y egresos menores)
 -- ------------------------------------------------------------
+-- `multa_id` enlaza el movimiento con la sanción del Anexo I que lo originó.
+-- Es UNIQUE (y admite NULL) para que el cobro de una multa jamás genere dos
+-- ingresos en caja chica, aunque el Tesorero vuelva a marcar la multa como
+-- pagada o la reabra. NULL = movimiento registrado a mano por el rol Caja Chica.
 CREATE TABLE IF NOT EXISTS `caja_chica_movimientos` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `tipo` ENUM('ingreso', 'egreso') NOT NULL,
@@ -123,12 +127,16 @@ CREATE TABLE IF NOT EXISTS `caja_chica_movimientos` (
   `fecha` DATE NOT NULL,
   `observaciones` TEXT NULL,
   `registrado_por` INT NOT NULL,
+  `multa_id` INT NULL,
   `creado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_caja_multa` (`multa_id`),
   KEY `idx_caja_tipo_fecha` (`tipo`, `fecha`),
   KEY `idx_caja_registrador` (`registrado_por`),
   CONSTRAINT `fk_caja_registrador` FOREIGN KEY (`registrado_por`)
-    REFERENCES `usuarios` (`id`) ON DELETE RESTRICT
+    REFERENCES `usuarios` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_caja_multa` FOREIGN KEY (`multa_id`)
+    REFERENCES `multas` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Movimientos de ingresos y egresos menores de caja chica';
 
 -- ------------------------------------------------------------

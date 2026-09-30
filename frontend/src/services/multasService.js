@@ -149,11 +149,27 @@ export async function registrarMulta(datos) {
 
 /**
  * Cambia el estado de pago de una multa (pendiente / pagada / anulada).
- * @returns {Promise<{multa: object, mensaje: string}>}
+ *
+ * Al pasar a «pagada» el backend asienta automáticamente el cobro como
+ * INGRESO en Caja Chica (`tipo: ingreso`, `categoria: "Multas cobradas"`,
+ * concepto «Cobro de Multa: <socio> - <infracción> (<artículo>)», monto
+ * cobrado). El asiento es idempotente porque queda enlazado por `multa_id`.
+ * Quien asienta el cobro a mano en el panel de Caja Chica puede desactivar ese
+ * comportamiento con `registrarCajaChica: false`.
+ *
+ * @param {number} id
+ * @param {'pendiente'|'pagada'|'anulada'} estado
+ * @param {{registrarCajaChica?: boolean, fechaCobro?: string}} [opciones]
+ * @returns {Promise<{multa: object, cobro: object, mensaje: string}>}
  */
-export async function cambiarEstadoMulta(id, estado) {
+export async function cambiarEstadoMulta(id, estado, opciones = {}) {
   return peticion('multas', {
     metodo: 'PUT',
-    cuerpo: { id, estado },
+    cuerpo: {
+      id,
+      estado,
+      registrar_caja_chica: opciones.registrarCajaChica !== false,
+      fecha_cobro: opciones.fechaCobro || undefined,
+    },
   });
 }

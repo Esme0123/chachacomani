@@ -44,6 +44,28 @@ backend/
    ```
    Sublica el contenido de `frontend/dist/` a `public_html/`.
 
+## Anexo I (multas) ↔ Caja Chica
+
+- `api/multas.php` — `GET` devuelve las multas visibles para el rol (el socio con
+  rol `lectura` sólo ve las suyas; el Tesorero/Admin obtienen además el padrón
+  `socios`), `POST` imputa una sanción del Cuadro N.º 2 y `PUT` la cierra.
+- Al marcar una multa como **PAGADA**, `PUT` asienta el cobro como **ingreso**
+  en `caja_chica_movimientos` (categoría «Multas cobradas», concepto
+  «Cobro de Multa: socio - infracción (artículo)», monto cobrado). El vínculo es
+  la columna `multa_id` (UNIQUE), por lo que el asiento es idempotente; anular
+  o reabrir la sanción retira el ingreso. Para asentar el cobro a mano, envía
+  `"registrar_caja_chica": false` en el `PUT`.
+- Esa columna la crea `migrar.php` (paso 4). Si todavía no se ha ejecutado, el
+  endpoint responde con un aviso en el mensaje y no rompe la actualización:
+
+  ```bash
+  cd /home/USUARIO/public_html/backend
+  php migrar.php
+  ```
+
+- El rol `lectura` (socio) no ve nada de esto: consulta sus sanciones en
+  **Perfil → Revisar mis Multas**, sin formulario ni controles del Tesorero.
+
 ## Anti-spam
 
 La contra votación se garantiza en dos capas:

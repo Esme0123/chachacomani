@@ -102,6 +102,12 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme }) {
   const totales = datos?.totales;
   const movimientos = datos?.movimientos || [];
 
+  // Los cobros de multas del Anexo I entran solos en la categoría «Multas cobradas»
+  // cuando el Tesorero marca la sanción como pagada (ver backend/api/multas.php).
+  const totalMultas = movimientos
+    .filter((m) => m.origenMulta)
+    .reduce((suma, m) => suma + Number(m.monto || 0), 0);
+
   const input =
     'w-full rounded-lg px-3 py-2.5 font-mono text-sm text-[#0D0B61] dark:text-white bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55 focus:outline-none focus:border-[#48B3AF]';
   const label =
@@ -333,10 +339,15 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme }) {
 
           {/* Movimientos */}
           <section className="rounded-2xl border border-[#294669]/15 dark:border-[#294669]/40 bg-white/92 dark:bg-[#0D0B61]/85 overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-[#294669]/15 dark:border-[#294669]/35">
+            <div className="px-5 py-3.5 border-b border-[#294669]/15 dark:border-[#294669]/35 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display font-bold text-sm text-[#0D0B61] dark:text-white">
                 Movimientos del periodo
               </h2>
+              {totalMultas > 0 && (
+                <span className="font-mono text-[10px] px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/8 text-amber-600 dark:text-amber-400">
+                  Incluye Bs. {formatearMonto(totalMultas)} por cobros de multas (Anexo I)
+                </span>
+              )}
             </div>
 
             {cargando ? (
@@ -384,7 +395,14 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme }) {
                             </span>
                           )}
                         </td>
-                        <td className="p-3.5 text-[#294669]/80 dark:text-slate-400">{m.categoria}</td>
+                        <td className="p-3.5 text-[#294669]/80 dark:text-slate-400">
+                          {m.categoria}
+                          {m.origenMulta && (
+                            <span className="block mt-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-400">
+                              Anexo I · multa #{m.origenMulta}
+                            </span>
+                          )}
+                        </td>
                         <td
                           className={`p-3.5 text-right font-bold whitespace-nowrap ${
                             m.tipo === 'ingreso'

@@ -218,7 +218,33 @@ function ejecutarMigracion(array $argumentos): array
         );
     }
 
-    // 4. Índices de apoyo ---------------------------------------------
+    // 4. Caja chica: vínculo con la multa del Anexo I que origina el ingreso
+    //    (`multa_id` UNIQUE y admite NULL: un cobro nunca duplica el ingreso,
+    //    y los movimientos manuales siguen siendo NULL).
+    if (columnaExiste($pdo, 'caja_chica_movimientos', 'multa_id')) {
+        $log('Columna `caja_chica_movimientos`.`multa_id` ya existe.');
+    } else {
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD COLUMN `multa_id` INT NULL DEFAULT NULL AFTER `registrado_por`',
+            'agregar la columna `multa_id` a `caja_chica_movimientos`',
+            $log
+        );
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD UNIQUE KEY `uq_caja_multa` (`multa_id`)',
+            'crear la clave única `uq_caja_multa` (un ingreso por multa)',
+            $log
+        );
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD CONSTRAINT `fk_caja_multa` FOREIGN KEY (`multa_id`) REFERENCES `multas` (`id`) ON DELETE CASCADE',
+            'enlazar `caja_chica_movimientos`.`multa_id` con `multas`.`id`',
+            $log
+        );
+    }
+
+    // 5. Índices de apoyo ---------------------------------------------
     $indices = [
         ['votos_articulos', 'idx_votos_capitulo', 'ADD KEY `idx_votos_capitulo` (`documento`, `capitulo_id`)'],
         ['votos_articulos', 'idx_votos_usuario', 'ADD KEY `idx_votos_usuario` (`usuario_id`)'],
@@ -233,7 +259,7 @@ function ejecutarMigracion(array $argumentos): array
         $dll($pdo, 'ALTER TABLE `' . $tabla . '` ' . $sql, 'crear el índice `' . $nombre . '`', $log);
     }
 
-    // 5. Estado inicial del DRM ---------------------------------------
+    // 6. Estado inicial del DRM ---------------------------------------
     $stmt = $pdo->prepare('SELECT `valor` FROM `configuraciones` WHERE `clave` = :clave');
     $stmt->execute([':clave' => 'drm_activo']);
     if ($stmt->fetchColumn() === false) {
@@ -244,7 +270,7 @@ function ejecutarMigracion(array $argumentos): array
         $log('El estado del DRM ya está configurado en `configuraciones` (se conserva).');
     }
 
-    // 6. Administrador inicial ----------------------------------------
+    // 7. Administrador inicial ----------------------------------------
     if (!in_array('--crear-admin', $argumentos, true)) {
         return $registro;
     }

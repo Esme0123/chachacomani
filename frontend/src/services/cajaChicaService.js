@@ -30,6 +30,12 @@ export const CATEGORIAS_CAJA = [
 ];
 
 /**
+ * Categoría con la que el Anexo I asienta el cobro de una multa pagada
+ * (la inyecta `backend/api/multas.php` al marcar la sanción como pagada).
+ */
+export const CATEGORIA_COBRO_MULTA = 'Multas cobradas';
+
+/**
  * Consulta los movimientos de caja chica de un periodo (`YYYY-MM`).
  * @param {{mes?: string}} [filtros] Periodo; por defecto el mes en curso.
  * @returns {Promise<{periodo: string|null, movimientos: object[], totales: object, puedeRegistrar: boolean}>}
