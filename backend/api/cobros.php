@@ -17,11 +17,12 @@
  *
  *  Permisos POR ÍTEM
  *  -----------------
- *    · ítem `multa`  -> exige `multas:gestionar`      (Tesorero / Admin)
- *    · ítem `aporte` -> exige `caja_chica:gestionar`  (Caja Chica / Admin)
+ *    · ítem `multa`  -> `multas:gestionar` o `caja_chica:gestionar`
+ *    · ítem `aporte` -> `multas:gestionar` o `caja_chica:gestionar`
  *
- *  Así el Tesorero puede enviar sólo multas, el rol Caja Chica sólo aportes, y
- *  un cobro mixto queda reservado al Administrador (tiene ambos permisos).
+ *  Tanto el Tesorero como el rol Caja Chica pueden cobrar multas del Anexo I y
+ *  aportes del Anexo II desde el carrito, sin bloqueos entre pestañas. Un cobro
+ *  mixto también queda permitido para ambos roles.
  *
  *  Body
  *  ----
@@ -234,10 +235,16 @@ $total = round($total, 2);
 /* Permisos por tipo de ítem                                                   */
 /* -------------------------------------------------------------------------- */
 
-if ($hayMultas && !rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_MULTAS)) {
+// Tesorero y Caja Chica pueden cobrar ambos anexos desde este carrito. El
+// Administrador conserva ambos permisos.
+$puedeCobrarAnexos =
+    rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_MULTAS)
+    || rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_CAJA_CHICA);
+
+if ($hayMultas && !$puedeCobrarAnexos) {
     jsonError('Su rol (' . nombreRol($usuario['rol']) . ') no puede cobrar multas del Anexo I.', 403);
 }
-if ($hayAportes && !rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_CAJA_CHICA)) {
+if ($hayAportes && !$puedeCobrarAnexos) {
     jsonError('Su rol (' . nombreRol($usuario['rol']) . ') no puede registrar aportes del Anexo II.', 403);
 }
 

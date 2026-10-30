@@ -6,20 +6,19 @@ import {
   PERMISO_VER_CONTABILIDAD,
   PERMISO_GESTIONAR_CAJA_CHICA,
   PERMISO_GESTIONAR_USUARIOS,
+  ROL_TESORERO,
 } from '../services/permisosService.js'
 
 export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil }) {
   const [bibliotecaAbierto, setBibliotecaAbierto] = useState(false)
   const [menuMovil, setMenuMovil] = useState(false)
   const [bibliotecaMovil, setBibliotecaMovil] = useState(false)
-  const [gestionAbierto, setGestionAbierto] = useState(false)
-  const { estaAutenticado, puede } = useAuth()
+  const { estaAutenticado, puede, usuario } = useAuth()
 
   const cerrarTodo = (dest) => {
     setMenuMovil(false)
     setBibliotecaAbierto(false)
     setBibliotecaMovil(false)
-    setGestionAbierto(false)
     onNavigate(dest)
   }
 
@@ -44,20 +43,22 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
       disponibles.push({
         id: 'caja-chica',
         etiqueta: 'Caja Chica',
+        boton: usuario?.rol === ROL_TESORERO ? 'Tesorería' : 'Panel Caja Chica',
         descripcion: 'Ingresos y egresos menores',
-        icono: '💰',
+        icono: '💼',
       })
     }
     if (puede(PERMISO_GESTIONAR_USUARIOS)) {
       disponibles.push({
         id: 'usuarios',
         etiqueta: 'Usuarios y Roles',
+        boton: 'Usuarios y Roles',
         descripcion: 'Socios, roles y cuentas',
         icono: '🛡️',
       })
     }
     return disponibles
-  }, [estaAutenticado, puede])
+  }, [estaAutenticado, puede, usuario?.rol])
 
   return (
     <header className={`sticky top-0 z-40 ${dark
@@ -148,60 +149,21 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
             )}
           </div>
 
-          {/* Gestión: sólo aparece si el rol tiene algún panel asignado */}
-          {paneles.length > 0 && (
-            <div
-              className="relative"
-              onMouseEnter={() => setGestionAbierto(true)}
-              onMouseLeave={() => setGestionAbierto(false)}
+          {/* Acceso directo a los paneles del rol, sin menús desplegables */}
+          {paneles.map((panel) => (
+            <button
+              key={panel.id}
+              onClick={() => cerrarTodo(panel.id)}
+              title={panel.descripcion}
+              className={`flex items-center gap-1.5 font-display font-semibold text-sm tracking-wide px-3 py-1.5 rounded-md border transition-all ${dark
+                  ? 'border-[#7B4BC9]/70 text-[#C4A0F0] hover:bg-[#7B4BC9]/15'
+                  : 'border-[#7B4BC9]/45 text-[#7B4BC9] hover:bg-[#7B4BC9]/8'
+                }`}
             >
-              <button
-                onClick={() => setGestionAbierto(o => !o)}
-                aria-expanded={gestionAbierto}
-                className={`flex items-center gap-1.5 font-display font-semibold text-sm tracking-wide px-3 py-1.5 rounded-md border transition-all ${dark
-                    ? 'border-[#7B4BC9]/70 text-[#C4A0F0] hover:bg-[#7B4BC9]/15'
-                    : 'border-[#7B4BC9]/45 text-[#7B4BC9] hover:bg-[#7B4BC9]/8'
-                  }`}
-              >
-                Gestión
-                <span className={`inline-block text-[10px] transition-transform duration-200 ${gestionAbierto ? 'rotate-180' : ''}`}>
-                  ▾
-                </span>
-              </button>
-
-              {gestionAbierto && (
-                <div
-                  className="absolute left-0 top-full mt-2 w-72 rounded-2xl border p-2 shadow-2xl z-50 backdrop-blur-md"
-                  style={{
-                    background: dark ? 'rgba(13,11,97,0.97)' : 'rgba(255,255,255,0.97)',
-                    borderColor: dark ? '#294669' : 'rgba(41,70,105,0.2)',
-                    boxShadow: dark ? '0 24px 60px rgba(0,0,0,.55)' : '0 24px 60px rgba(13,11,97,.25)',
-                  }}
-                >
-                  <div className="px-3 py-2 font-mono text-[10px] tracking-widest text-[#7B4BC9]">
-                    PANELES DE SU ROL
-                  </div>
-                  {paneles.map(panel => (
-                    <button
-                      key={panel.id}
-                      onClick={() => cerrarTodo(panel.id)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-[#294669]/15"
-                    >
-                      <span className="text-base shrink-0">{panel.icono}</span>
-                      <span className="flex-1 min-w-0">
-                        <span className={`block font-display font-semibold text-sm leading-tight ${dark ? 'text-white' : 'text-[#0D0B61]'}`}>
-                          {panel.etiqueta}
-                        </span>
-                        <span className={`block font-mono text-[10px] leading-tight ${dark ? 'text-[#476EAE]' : 'text-[#294669]/70'}`}>
-                          {panel.descripcion}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+              <span aria-hidden="true">{panel.icono}</span>
+              {panel.boton}
+            </button>
+          ))}
 
           {/* Theme toggle */}
           <button
@@ -308,7 +270,7 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg font-display text-sm text-left transition-colors ${dark ? 'text-slate-200 hover:bg-[#294669]/50' : 'text-[#0D0B61] hover:bg-[#294669]/10'}`}
                   >
                     <span className="text-base">{panel.icono}</span>
-                    <span className="flex-1 min-w-0 leading-tight">{panel.etiqueta}</span>
+                    <span className="flex-1 min-w-0 leading-tight">{panel.boton}</span>
                   </button>
                 ))}
               </div>

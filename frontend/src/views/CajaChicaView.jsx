@@ -32,6 +32,16 @@ function uidItem() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/** Frecuencia legible de un aporte del Anexo II. */
+function frecuenciaAporte(aporte) {
+  const texto = `${aporte?.detalle || ''} ${aporte?.montoTexto || ''}`;
+  if (/mensual/i.test(texto)) return 'Mensual';
+  if (/anual/i.test(texto)) return 'Anual';
+  if (/semestral/i.test(texto)) return 'Semestral';
+  if (/variable|contingencia|extraordinari/i.test(texto)) return 'Por evento';
+  return 'Según resolución';
+}
+
 /** Anexo I del documento: contiene los Cuadros N.º 1 y N.º 2 de multas. */
 const ANEXO_I = ANEXOS_DATA.find((anexo) => anexo?.tablas?.some((t) => t.id === 'cuadro-2')) || null;
 
@@ -46,17 +56,17 @@ const ANEXO_II = ANEXOS_DATA.find((anexo) => anexo?.tablas?.some((t) => t.id ===
  *  registro y la consulta de ingresos y egresos menores.
  *
  *  · Registrar movimientos exige `caja_chica:gestionar` (Caja Chica y Admin).
- *  · El Tesorero tiene `contabilidad:ver`, por lo que puede consultar el panel
- *    en modo lectura: ve los movimientos y los saldos, pero el formulario de
- *    registro le aparece bloqueado.
+ *  · El Tesorero tiene `contabilidad:ver`, por lo que puede consultar el panel.
+ *    Tanto el Tesorero como el rol Caja Chica pueden cobrar multas del Anexo I
+ *    y aportes del Anexo II desde el carrito, sin pestañas bloqueadas.
  *
  *  FLUJO GUIADO DE REGISTRO (tres pestañas)
  *  ----------------------------------------
  *  · 💸 Gastos / Egresos Generales — formulario clásico (tipo, categoría,
  *    concepto libre, monto y fecha). Requiere `caja_chica:gestionar`.
- *  · ⚖️ Multas (Anexo I) — carrito de sanciones: se elige el socio y se agregan
+ *  · ⚖️ Multas (Anexo I) — tabla de sanciones: se elige el socio y se agregan
  *    una o varias infracciones de los Cuadros N.º 1 y N.º 2.
- *  · 💰 Aportes (Anexo II) — carrito de aportes de la Escala del Fondo de
+ *  · 💰 Aportes (Anexo II) — tabla de aportes de la Escala del Fondo de
  *    Accidentes (Aporte Ordinario, Fondo de Mantenimiento, Extraordinario…).
  *
  *  Ambos carritos comparten el socio y el mismo envío: al guardar, el backend
@@ -64,9 +74,9 @@ const ANEXO_II = ANEXOS_DATA.find((anexo) => anexo?.tablas?.some((t) => t.id ===
  *  INGRESO en Caja Chica por el importe total, con categoría «Multas /
  *  Sanciones», «Aportes / Fondos» o «Cobros Anexo I y II» según la composición.
  *
- *  El Tesorero no tiene `caja_chica:gestionar`, pero sí `multas:gestionar`: su
- *  única pestaña habilitada es la de multas. El rol Caja Chica registra gastos y
- *  aportes; únicamente el Admin puede mezclar multas y aportes en un mismo cobro.
+ *  El Tesorero conserva su acceso a multas y ahora también cobra aportes; el rol
+ *  Caja Chica registra gastos y ahora también cobra multas. El Admin puede
+ *  combinar ambos anexos en un mismo cobro.
  *
  * @param {object}  [props.cobroInicial] Cobro preseleccionado al llegar desde
  *   el Anexo I («Cobrar en Caja Chica»).
@@ -74,8 +84,12 @@ const ANEXO_II = ANEXOS_DATA.find((anexo) => anexo?.tablas?.some((t) => t.id ===
 export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroInicial, onCobroConsumido }) {
   const { logout, puede } = useAuth();
   const puedeGastos = puede(PERMISO_GESTIONAR_CAJA_CHICA);
-  const puedeMultas = puede(PERMISO_GESTIONAR_MULTAS);
-  const puedeAportes = puede(PERMISO_GESTIONAR_CAJA_CHICA);
+  // Tanto el Tesorero como el rol Caja Chica pueden cobrar multas (Anexo I) y
+  // aportes (Anexo II) desde este panel.
+  const puedeCobrarAnexos =
+    puede(PERMISO_GESTIONAR_MULTAS) || puede(PERMISO_GESTIONAR_CAJA_CHICA);
+  const puedeMultas = puedeCobrarAnexos;
+  const puedeAportes = puedeCobrarAnexos;
 
   const [mes, setMes] = useState(mesActual());
   const [datos, setDatos] = useState(null);
@@ -107,15 +121,13 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
   // Añadir una multa del Anexo I al carrito.
   const [filtroInfraccion, setFiltroInfraccion] = useState('');
-  const [infraccionSel, setInfraccionSel] = useState(null);
-  const [nivelSel, setNivelSel] = useState(null);
-  const [montoMulta, setMontoMulta] = useState('');
   const [fechaInfraccion, setFechaInfraccion] = useState(hoy());
 
   // Añadir un aporte del Anexo II al carrito.
   const [filtroAporte, setFiltroAporte] = useState('');
-  const [aporteSel, setAporteSel] = useState(null);
-  const [montoAporte, setMontoAporte] = useState('');
+
+  // Confirmación visual al agregar un rubro al carrito.
+  const [avisoAgregado, setAvisoAgregado] = useState(null);
 
   const [guardando, setGuardando] = useState(false);
 
@@ -162,21 +174,59 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     cargar(mes);
   }, [cargar, mes]);
 
+  // La confirmación de «agregado» desaparece sola para no llenar la pantalla.
+  useEffect(() => {
+    if (!avisoAgregado) return undefined;
+    const temporizador = setTimeout(() => setAvisoAgregado(null), 3500);
+    return () => clearTimeout(temporizador);
+  }, [avisoAgregado]);
+
   /* ---------------------------------------------------------------------- */
   /* Catálogos del carrito                                                  */
   /* ---------------------------------------------------------------------- */
 
-  const opcionesInfraccion = useMemo(() => {
+  const filasMultas = useMemo(() => {
     const q = filtroInfraccion.trim().toLowerCase();
-    const lista = q
-      ? catalogo.filter(
-          (i) =>
-            i.infraccion.toLowerCase().includes(q) ||
-            String(i.articulo).toLowerCase().includes(q) ||
-            i.categoria.toLowerCase().includes(q)
-        )
-      : catalogo;
-    return multasService.agruparPorCuadro(lista);
+    const filas = [];
+    catalogo.forEach((item) => {
+      const coincide =
+        !q ||
+        item.infraccion.toLowerCase().includes(q) ||
+        item.tituloCorto.toLowerCase().includes(q) ||
+        String(item.articulo).toLowerCase().includes(q) ||
+        item.categoria.toLowerCase().includes(q);
+      if (!coincide) return;
+
+      if (item.origen === 1) {
+        (item.niveles || []).forEach((nivel) => {
+          const monto = Number(nivel.monto);
+          if (!(monto > 0)) return;
+          filas.push({
+            id: `${item.clave}:${nivel.veces}`,
+            nombre: item.tituloCorto,
+            detalle: `${item.articulo} · ${nivel.etiqueta}`,
+            frecuencia: 'Por evento',
+            monto,
+            item,
+            nivel,
+          });
+        });
+        return;
+      }
+
+      const monto = Number(item.monto);
+      if (!(monto > 0)) return;
+      filas.push({
+        id: item.clave,
+        nombre: item.tituloCorto,
+        detalle: `${item.articulo} · ${item.categoria}`,
+        frecuencia: 'Por evento',
+        monto,
+        item,
+        nivel: null,
+      });
+    });
+    return filas;
   }, [catalogo, filtroInfraccion]);
 
   const opcionesAporte = useMemo(() => {
@@ -187,6 +237,19 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
         a.concepto.toLowerCase().includes(q) || String(a.detalle).toLowerCase().includes(q)
     );
   }, [aportesCatalogo, filtroAporte]);
+
+  const filasAportes = useMemo(
+    () =>
+      opcionesAporte.map((aporte) => ({
+        id: aporte.clave,
+        nombre: aporte.concepto,
+        detalle: aporte.detalle,
+        frecuencia: frecuenciaAporte(aporte),
+        monto: Number(aporte.monto),
+        item: aporte,
+      })),
+    [opcionesAporte]
+  );
 
   const sociosFiltrados = useMemo(() => {
     const q = filtroSocio.trim().toLowerCase();
@@ -219,85 +282,36 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     if (valor !== '') setFiltroSocio('');
   };
 
-  /** Elige una infracción del catálogo (Cuadros N.º 1 y 2). */
-  const elegirInfraccion = (clave) => {
-    const opcion = catalogo.find((i) => i.clave === clave) || null;
-    if (!opcion) {
-      setInfraccionSel(null);
-      setNivelSel(null);
-      setMontoMulta('');
-      return;
-    }
-    setFiltroInfraccion('');
-    const nivelInicial = opcion.origen === 1 ? opcion.niveles?.[0] || null : null;
-    setMontoMulta(String(multasService.montoDeOpcion(opcion, nivelInicial)));
-    setInfraccionSel(opcion);
-    setNivelSel(nivelInicial);
-  };
-
-  /** Fija el monto según el tramo de la escala general (Cuadro N.º 1). */
-  const elegirNivel = (nivel) => {
-    setNivelSel(nivel);
-    setMontoMulta(String(multasService.montoDeOpcion(infraccionSel, nivel)));
-  };
-
-  /**
-   * Etiqueta de una opción del desplegable de infracciones: artículo, resumen
-   * corto y monto, para ubicar la falta sin abrir el reglamento.
-   */
-  const etiquetaInfraccion = (item) => {
-    if (item.origen === 1) {
-      const escala = item.niveles.map((n) => n.monto).join(' / ');
-      return `${item.tituloCorto} · ${item.articulo} · escala ${escala} Bs.`;
-    }
-    const monto = item.monto > 0 ? `${item.monto} Bs.` : 'sin multa pecuniaria';
-    return `${item.articulo} · ${item.tituloCorto} · ${monto}`;
-  };
-
-  const agregarMultaAlCarrito = () => {
-    if (!infraccionSel) {
-      setError('Elija la infracción del Anexo I que desea agregar al carrito.');
-      return;
-    }
-    const monto = Number(montoMulta);
+  /** Agrega una multa del Anexo I directamente al carrito. */
+  const agregarMulta = (fila) => {
+    const monto = Number(fila.monto);
     if (!Number.isFinite(monto) || monto <= 0) {
-      setError('La sanción no tiene monto: fíjelo (o elija otra infracción) antes de agregarla.');
+      setError('Esta multa no tiene monto cobrable.');
       return;
     }
+    const nombre = fila.nivel ? `${fila.nombre} · ${fila.nivel.etiqueta}` : fila.nombre;
     setCarrito((c) => [
       ...c,
       {
         uid: uidItem(),
         tipo: 'multa',
-        clave: infraccionSel.clave,
-        articulo: infraccionSel.articulo,
-        infraccion: infraccionSel.infraccion,
-        tituloCorto: infraccionSel.tituloCorto,
-        categoria: infraccionSel.categoria,
-        medida: infraccionSel.medida,
+        clave: fila.item.clave,
+        articulo: fila.item.articulo,
+        infraccion: fila.item.infraccion,
+        tituloCorto: fila.nombre,
+        categoria: fila.item.categoria,
+        medida: fila.item.medida,
         monto,
         fechaInfraccion: fechaInfraccion || form.fecha,
       },
     ]);
-    setInfraccionSel(null);
-    setNivelSel(null);
-    setFiltroInfraccion('');
-    setMontoMulta('');
+    setAvisoAgregado({ nombre, monto, tipo: 'multa' });
     setError(null);
   };
 
-  const elegirAporte = (clave) => {
-    const opcion = aportesCatalogo.find((a) => a.clave === clave) || null;
-    setAporteSel(opcion);
-    setMontoAporte(opcion ? String(opcion.monto) : '');
-  };
-
-  const agregarAporteAlCarrito = () => {
-    if (!aporteSel) {
-      setError('Elija el aporte del Anexo II que desea agregar al carrito.');
-      return;
-    }
-    const monto = Number(montoAporte);
+  /** Agrega un aporte del Anexo II directamente al carrito. */
+  const agregarAporte = (fila) => {
+    const monto = Number(fila.monto);
     if (!Number.isFinite(monto) || monto <= 0) {
       setError('El monto del aporte debe ser mayor que cero.');
       return;
@@ -307,15 +321,13 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       {
         uid: uidItem(),
         tipo: 'aporte',
-        clave: aporteSel.clave,
-        concepto: aporteSel.concepto,
-        detalle: aporteSel.detalle,
+        clave: fila.item.clave,
+        concepto: fila.item.concepto,
+        detalle: fila.item.detalle,
         monto,
       },
     ]);
-    setAporteSel(null);
-    setFiltroAporte('');
-    setMontoAporte('');
+    setAvisoAgregado({ nombre: fila.item.concepto, monto, tipo: 'aporte' });
     setError(null);
   };
 
@@ -598,9 +610,8 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                 </span>
               </button>
 
-              {/* Pestañas de modo de registro. Se deshabilitan las que el rol no
-                  puede usar: el Tesorero sólo cobra multas; el rol Caja Chica
-                  registra gastos y aportes. */}
+              {/* Pestañas de modo de registro. Multas y Aportes quedan
+                  habilitadas tanto para el Tesorero como para Caja Chica. */}
               <div role="tablist" aria-label="Modo de registro" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -640,7 +651,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     ⚖️ Multas (Anexo I)
                   </span>
                   <span className="mt-0.5 block font-mono text-[10px] text-amber-700/85 dark:text-amber-300/85">
-                    {puedeMultas ? 'Agregue una o varias sanciones al carrito' : 'Su rol no habilita el cobro de multas'}
+                    {puedeMultas ? 'Elija una multa y haga clic en ＋ Agregar' : 'Su rol no habilita el cobro de multas'}
                   </span>
                 </button>
 
@@ -661,7 +672,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     💰 Aportes (Anexo II)
                   </span>
                   <span className="mt-0.5 block font-mono text-[10px] text-emerald-700/85 dark:text-emerald-300/85">
-                    {puedeAportes ? 'Agregue uno o varios aportes al carrito' : 'Su rol no habilita el registro de aportes'}
+                    {puedeAportes ? 'Elija un aporte y haga clic en ＋ Agregar' : 'Su rol no habilita el registro de aportes'}
                   </span>
                 </button>
               </div>
@@ -744,10 +755,10 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     <button
                       type="submit"
                       disabled={guardando}
-                      className="inline-flex items-center gap-2 font-display font-semibold text-sm px-5 py-2.5 rounded-lg text-white disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-display text-base font-bold text-white shadow-sm disabled:opacity-50"
                       style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
                     >
-                      <Save className="w-4 h-4" />
+                      <Save className="w-5 h-5" />
                       {guardando ? 'Registrando…' : 'Registrar Movimiento'}
                     </button>
                   </div>
@@ -763,7 +774,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         1
                       </span>
                       <label htmlFor="caja-socio-filtro" className={label}>
-                        SELECCIONAR SOCIO
+                        1. SELECCIONAR SOCIO
                       </label>
                       <span className="font-mono text-[10px] text-amber-700 dark:text-amber-300">
                         obligatorio
@@ -847,17 +858,21 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     )}
                   </div>
 
-                  {/* Caja 2 — Según la pestaña: infracción (Anexo I) o aporte (Anexo II) */}
+                  {/* Caja 2 — Tabla de multas (Anexo I) o aportes (Anexo II) */}
                   {modo === 'multas' && (
                     <div className="rounded-2xl border-2 border-amber-500/35 bg-amber-500/5 p-4">
                       <div className="mb-2 flex items-center gap-2">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 font-mono text-[11px] font-bold text-white">
                           2
                         </span>
-                        <label htmlFor="caja-infraccion" className={label}>
-                          SELECCIONAR INFRACCIÓN (ANEXO I — CUADROS 1 Y 2)
+                        <label htmlFor="caja-infraccion-filtro" className={label}>
+                          HACER CLIC EN ＋ AGREGAR
                         </label>
                       </div>
+                      <p className="mb-2 font-mono text-[11px] text-[#294669]/75 dark:text-[#476EAE]">
+                        Busque la multa, revise el monto y agréguela al carrito.
+                      </p>
+
                       <div className="relative">
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#294669]/50 dark:text-[#476EAE]" />
                         <input
@@ -865,14 +880,14 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                           type="text"
                           value={filtroInfraccion}
                           onChange={(e) => setFiltroInfraccion(e.target.value)}
-                          placeholder="Buscar por infracción, artículo o categoría (ej. inasistencia, Art. 41, EPP, ebriedad)…"
+                          placeholder="Buscar multa por nombre, artículo o categoría (ej. inasistencia, Art. 41, EPP)…"
                           className={`${input} pl-9`}
                         />
                         {filtroInfraccion !== '' && (
                           <button
                             type="button"
                             onClick={() => setFiltroInfraccion('')}
-                            aria-label="Limpiar búsqueda de infracciones"
+                            aria-label="Limpiar búsqueda de multas"
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#294669]/60 dark:text-slate-400 hover:bg-[#294669]/10"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -880,74 +895,11 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         )}
                       </div>
 
-                      <select
-                        id="caja-infraccion"
-                        value={infraccionSel?.clave || ''}
-                        onChange={(e) => elegirInfraccion(e.target.value)}
-                        className={`${input} mt-2`}
-                      >
-                        <option value="">— Seleccione la infracción —</option>
-                        {opcionesInfraccion.map((grupo) => (
-                          <optgroup key={grupo.nombre} label={grupo.nombre}>
-                            {grupo.items.map((item) => (
-                              <option key={item.clave} value={item.clave}>
-                                {etiquetaInfraccion(item)}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                      {filtroInfraccion.trim() !== '' && opcionesInfraccion.every((g) => g.items.length === 0) && (
-                        <p className="mt-1 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
-                          Ninguna infracción coincide con «{filtroInfraccion.trim()}».
-                        </p>
-                      )}
-
-                      {/* Escala general (Cuadro N.º 1): el monto sale del tramo. */}
-                      {infraccionSel?.origen === 1 && infraccionSel.niveles.length > 0 && (
-                        <div className="mt-3">
-                          <p className="mb-1 font-mono text-[10px] text-amber-700 dark:text-amber-300">
-                            <strong>{infraccionSel.tituloCorto}</strong> ·{' '}
-                            {infraccionSel.articulo} — elija la reincidencia y el monto se ajusta:
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-block px-2 py-0.5 rounded-lg font-display font-semibold text-[10px] uppercase bg-[#294669]/10 text-[#294669] dark:bg-[#294669]/45 dark:text-[#48B3AF] border border-[#294669]/20 dark:border-[#476EAE]/45">
-                              {infraccionSel.categoria}
-                            </span>
-                            {infraccionSel.niveles.map((n) => (
-                              <button
-                                key={n.veces}
-                                type="button"
-                                onClick={() => elegirNivel(n)}
-                                aria-pressed={nivelSel?.veces === n.veces}
-                                className={`rounded-lg border px-2.5 py-1 font-mono text-[10px] transition-colors ${
-                                  nivelSel?.veces === n.veces
-                                    ? 'border-amber-500/60 bg-amber-500/20 text-[#0D0B61] dark:text-amber-300'
-                                    : 'bg-slate-100 text-[#294669]/80 border-transparent hover:border-[#294669]/25 dark:bg-[#294669]/30 dark:text-slate-300'
-                                }`}
-                              >
-                                {n.etiqueta}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label htmlFor="caja-monto-multa" className={label}>MONTO (Bs.)</label>
-                          <input
-                            id="caja-monto-multa"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            value={montoMulta}
-                            onChange={(e) => setMontoMulta(e.target.value)}
-                            className={input}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="caja-fecha-infraccion" className={label}>FECHA DE LA INFRACCIÓN</label>
+                      <div className="mt-2 flex flex-wrap items-end gap-3">
+                        <div className="w-full sm:w-56">
+                          <label htmlFor="caja-fecha-infraccion" className={label}>
+                            FECHA DE LA INFRACCIÓN
+                          </label>
                           <input
                             id="caja-fecha-infraccion"
                             type="date"
@@ -956,15 +908,58 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             className={input}
                           />
                         </div>
-                        <div className="flex items-end">
-                          <button
-                            type="button"
-                            onClick={agregarMultaAlCarrito}
-                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/15 px-3 py-2.5 font-display text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/25"
-                          >
-                            <Plus className="w-4 h-4" /> Agregar multa
-                          </button>
-                        </div>
+                      </div>
+
+                      <div className="mt-3 max-h-96 overflow-auto rounded-xl border border-amber-500/30">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="sticky top-0 z-10 bg-amber-100 dark:bg-[#3A2C12]">
+                            <tr className="font-display text-[10px] uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                              <th className="p-3">Multa</th>
+                              <th className="p-3">Frecuencia</th>
+                              <th className="p-3 text-right">Monto</th>
+                              <th className="p-3 text-right">Acción</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-amber-500/20 bg-white/70 dark:bg-[#0D0B61]/60">
+                            {filasMultas.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
+                                  Ninguna multa coincide con «{filtroInfraccion.trim()}».
+                                </td>
+                              </tr>
+                            ) : (
+                              filasMultas.map((fila) => (
+                                <tr key={fila.id} className="hover:bg-amber-500/8">
+                                  <td className="p-3">
+                                    <p className="font-display text-sm font-bold text-[#0D0B61] dark:text-white">
+                                      {fila.nombre}
+                                    </p>
+                                    <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                                      {fila.detalle}
+                                    </p>
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                      {fila.frecuencia}
+                                    </span>
+                                  </td>
+                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-[#0D0B61] dark:text-white">
+                                    Bs. {formatearMonto(fila.monto)}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => agregarMulta(fila)}
+                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-amber-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
+                                    >
+                                      <Plus className="w-4 h-4" /> Agregar
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
@@ -975,10 +970,14 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 font-mono text-[11px] font-bold text-white">
                           2
                         </span>
-                        <label htmlFor="caja-aporte" className={label}>
-                          SELECCIONAR APORTE (ANEXO II — ESCALA DE APORTES)
+                        <label htmlFor="caja-aporte-filtro" className={label}>
+                          HACER CLIC EN ＋ AGREGAR
                         </label>
                       </div>
+                      <p className="mb-2 font-mono text-[11px] text-[#294669]/75 dark:text-[#476EAE]">
+                        Busque el aporte, revise el monto y agréguelo al carrito.
+                      </p>
+
                       <div className="relative">
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#294669]/50 dark:text-[#476EAE]" />
                         <input
@@ -1001,72 +1000,96 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         )}
                       </div>
 
-                      <select
-                        id="caja-aporte"
-                        value={aporteSel?.clave || ''}
-                        onChange={(e) => elegirAporte(e.target.value)}
-                        className={`${input} mt-2`}
-                      >
-                        <option value="">— Seleccione el aporte —</option>
-                        {opcionesAporte.map((item) => (
-                          <option key={item.clave} value={item.clave}>
-                            {item.concepto} · {item.montoTexto}
-                          </option>
-                        ))}
-                      </select>
-                      {filtroAporte.trim() !== '' && opcionesAporte.length === 0 && (
-                        <p className="mt-1 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
-                          Ningún aporte coincide con «{filtroAporte.trim()}».
-                        </p>
-                      )}
-
-                      {aporteSel && (
-                        <p className="mt-2 font-mono text-[10px] text-emerald-700 dark:text-emerald-300">
-                          {aporteSel.detalle}
-                          {aporteSel.variable
-                            ? ' · importe orientativo: confirme el monto según la Resolución de Asamblea.'
-                            : ''}
-                        </p>
-                      )}
-
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label htmlFor="caja-monto-aporte" className={label}>MONTO (Bs.)</label>
-                          <input
-                            id="caja-monto-aporte"
-                            type="number"
-                            min="0.01"
-                            step="0.01"
-                            value={montoAporte}
-                            onChange={(e) => setMontoAporte(e.target.value)}
-                            className={input}
-                          />
-                        </div>
-                        <div className="flex items-end sm:col-span-2">
-                          <button
-                            type="button"
-                            onClick={agregarAporteAlCarrito}
-                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-3 py-2.5 font-display text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25"
-                          >
-                            <Plus className="w-4 h-4" /> Agregar aporte
-                          </button>
-                        </div>
+                      <div className="mt-3 max-h-96 overflow-auto rounded-xl border border-emerald-500/30">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="sticky top-0 z-10 bg-emerald-100 dark:bg-[#123A2E]">
+                            <tr className="font-display text-[10px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                              <th className="p-3">Aporte</th>
+                              <th className="p-3">Frecuencia</th>
+                              <th className="p-3 text-right">Monto</th>
+                              <th className="p-3 text-right">Acción</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-emerald-500/20 bg-white/70 dark:bg-[#0D0B61]/60">
+                            {filasAportes.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
+                                  Ningún aporte coincide con «{filtroAporte.trim()}».
+                                </td>
+                              </tr>
+                            ) : (
+                              filasAportes.map((fila) => (
+                                <tr key={fila.id} className="hover:bg-emerald-500/8">
+                                  <td className="p-3">
+                                    <p className="font-display text-sm font-bold text-[#0D0B61] dark:text-white">
+                                      {fila.nombre}
+                                    </p>
+                                    <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                                      {fila.detalle}
+                                      {fila.item.variable
+                                        ? ' · importe orientativo, ajuste según la Resolución de Asamblea'
+                                        : ''}
+                                    </p>
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="inline-block rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                      {fila.frecuencia}
+                                    </span>
+                                  </td>
+                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-[#0D0B61] dark:text-white">
+                                    Bs. {formatearMonto(fila.monto)}
+                                  </td>
+                                  <td className="p-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => agregarAporte(fila)}
+                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
+                                    >
+                                      <Plus className="w-4 h-4" /> Agregar
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
 
                   {/* Caja 3 — Carrito */}
-                  <div className="rounded-2xl border border-[#294669]/20 dark:border-[#476EAE]/45 bg-[#294669]/5 dark:bg-[#294669]/20 p-4">
+                  <div id="carrito-cobro" className="rounded-2xl border border-[#294669]/20 dark:border-[#476EAE]/45 bg-[#294669]/5 dark:bg-[#294669]/20 p-4">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <label className={label}>CARRITO DEL COBRO</label>
+                      <label className={label}>3. CONFIRMAR COBRO</label>
                       <span className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
                         {carrito.length} ítem(s) · categoría {categoriaCarrito}
                       </span>
                     </div>
 
+                    {avisoAgregado && (
+                      <motion.div
+                        role="status"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/15 px-3 py-2.5"
+                      >
+                        <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <p className="font-display text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                          ¡Agregado al carrito! {avisoAgregado.nombre} · Bs. {formatearMonto(avisoAgregado.monto)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('carrito-cobro')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                          className="ml-auto font-mono text-[10px] font-bold text-emerald-700 underline dark:text-emerald-300"
+                        >
+                          Ver carrito
+                        </button>
+                      </motion.div>
+                    )}
+
                     {carrito.length === 0 ? (
                       <p className="py-4 text-center font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-                        El carrito está vacío. Agregue multas y/o aportes con los botones de arriba.
+                        El carrito está vacío. Use los botones «＋ Agregar» de la tabla de arriba.
                       </p>
                     ) : (
                       <div className="overflow-x-auto">
@@ -1166,11 +1189,11 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     <button
                       type="submit"
                       disabled={guardando}
-                      className="inline-flex items-center gap-2 font-display font-semibold text-sm px-5 py-2.5 rounded-lg text-white disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-display text-base font-bold text-white shadow-sm disabled:opacity-50"
                       style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
                     >
-                      <Save className="w-4 h-4" />
-                      {guardando ? 'Registrando…' : 'Registrar Cobro en Caja Chica'}
+                      <Save className="w-5 h-5" />
+                      {guardando ? 'Registrando…' : 'Confirmar Cobro'}
                     </button>
                     <p className="inline-flex items-center gap-1.5 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
                       <Sparkles className="w-3.5 h-3.5" />
