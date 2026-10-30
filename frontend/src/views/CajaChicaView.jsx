@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Sparkles, Coins, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Sparkles, Coins, Plus, Trash2, QrCode, Receipt } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -10,6 +10,7 @@ import * as multasService from '../services/multasService.js'
 import * as aportesService from '../services/aportesService.js'
 import * as cobrosService from '../services/cobrosService.js'
 import { ANEXOS_DATA } from '../data/reglamentoData'
+import qrCobro from '../assets/qr-cobro.svg'
 
 function formatearMonto(monto) {
   const numero = Number(monto);
@@ -37,9 +38,49 @@ function frecuenciaAporte(aporte) {
   const texto = `${aporte?.detalle || ''} ${aporte?.montoTexto || ''}`;
   if (/mensual/i.test(texto)) return 'Mensual';
   if (/anual/i.test(texto)) return 'Anual';
-  if (/semestral/i.test(texto)) return 'Semestral';
-  if (/variable|contingencia|extraordinari/i.test(texto)) return 'Por evento';
-  return 'Según resolución';
+  if (/variable|contingencia|extraordinari/i.test(texto)) return 'Extraordinario';
+  return 'Extraordinario';
+}
+
+/** Filtros rápidos del Cuadro N.º 2. */
+const FILTROS_MULTAS = [
+  { id: 'Todas', etiqueta: 'Todas' },
+  { id: 'Leve', etiqueta: 'Leves' },
+  { id: 'Grave', etiqueta: 'Graves' },
+  { id: 'Muy grave', etiqueta: 'Muy Graves' },
+  { id: 'Consejeros', etiqueta: 'Consejeros' },
+];
+
+/** Categoría visible de una fila del Cuadro N.º 2 (conserva «Consejeros»). */
+function categoriaVisible(item) {
+  return /consejero/i.test(item?.categoriaOriginal || '')
+    ? 'Consejeros'
+    : item?.categoria || 'Leve';
+}
+
+/** Clases del badge de categoría. */
+function claseCategoria(categoria) {
+  const texto = String(categoria || '').toLowerCase();
+  if (texto.includes('consejero')) {
+    return 'border-violet-400/40 bg-violet-500/15 text-violet-300';
+  }
+  if (texto.includes('muy grave')) {
+    return 'border-orange-400/40 bg-orange-500/15 text-orange-300';
+  }
+  if (texto.includes('gravísima') || texto.includes('gravisima')) {
+    return 'border-rose-400/40 bg-rose-500/15 text-rose-300';
+  }
+  if (texto.includes('grave')) {
+    return 'border-amber-400/40 bg-amber-500/15 text-amber-300';
+  }
+  return 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300';
+}
+
+/** Clases del badge de frecuencia de aportes. */
+function claseFrecuencia(frecuencia) {
+  if (frecuencia === 'Mensual') return 'border-sky-400/40 bg-sky-500/15 text-sky-300';
+  if (frecuencia === 'Anual') return 'border-amber-400/40 bg-amber-500/15 text-amber-300';
+  return 'border-fuchsia-400/40 bg-fuchsia-500/15 text-fuchsia-300';
 }
 
 /** Anexo I del documento: contiene los Cuadros N.º 1 y N.º 2 de multas. */
@@ -121,10 +162,19 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
   // Añadir una multa del Anexo I al carrito.
   const [filtroInfraccion, setFiltroInfraccion] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('Todas');
   const [fechaInfraccion, setFechaInfraccion] = useState(hoy());
 
   // Añadir un aporte del Anexo II al carrito.
   const [filtroAporte, setFiltroAporte] = useState('');
+
+  // Buscador de socios con lista desplegable.
+  const [sociosAbierto, setSociosAbierto] = useState(false);
+  const [alertaSocio, setAlertaSocio] = useState(false);
+
+  // Método de pago y comprobante de la transferencia / QR.
+  const [metodoPago, setMetodoPago] = useState('efectivo');
+  const [comprobante, setComprobante] = useState('');
 
   // Confirmación visual al agregar un rubro al carrito.
   const [avisoAgregado, setAvisoAgregado] = useState(null);
@@ -187,47 +237,35 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
   const filasMultas = useMemo(() => {
     const q = filtroInfraccion.trim().toLowerCase();
-    const filas = [];
-    catalogo.forEach((item) => {
-      const coincide =
-        !q ||
-        item.infraccion.toLowerCase().includes(q) ||
-        item.tituloCorto.toLowerCase().includes(q) ||
-        String(item.articulo).toLowerCase().includes(q) ||
-        item.categoria.toLowerCase().includes(q);
-      if (!coincide) return;
-
-      if (item.origen === 1) {
-        (item.niveles || []).forEach((nivel) => {
-          const monto = Number(nivel.monto);
-          if (!(monto > 0)) return;
-          filas.push({
-            id: `${item.clave}:${nivel.veces}`,
-            nombre: item.tituloCorto,
-            detalle: `${item.articulo} · ${nivel.etiqueta}`,
-            frecuencia: 'Por evento',
-            monto,
-            item,
-            nivel,
-          });
-        });
-        return;
-      }
-
-      const monto = Number(item.monto);
-      if (!(monto > 0)) return;
-      filas.push({
+    return catalogo
+      .filter((item) => item.origen === 2)
+      .filter((item) => filtroCategoria === 'Todas' || categoriaVisible(item) === filtroCategoria)
+      .filter((item) => {
+        if (!q) return true;
+        return [
+          item.infraccion,
+          item.tituloCorto,
+          item.articulo,
+          item.categoria,
+          item.categoriaOriginal,
+          item.medida,
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(q);
+      })
+      .map((item) => ({
         id: item.clave,
-        nombre: item.tituloCorto,
-        detalle: `${item.articulo} · ${item.categoria}`,
-        frecuencia: 'Por evento',
-        monto,
+        infraccion: item.infraccion,
+        articulo: item.articulo,
+        monto: Number(item.monto),
+        categoria: item.categoria,
+        categoriaOriginal: item.categoriaOriginal,
+        categoriaVisible: categoriaVisible(item),
+        medida: item.medida,
         item,
-        nivel: null,
-      });
-    });
-    return filas;
-  }, [catalogo, filtroInfraccion]);
+      }));
+  }, [catalogo, filtroInfraccion, filtroCategoria]);
 
   const opcionesAporte = useMemo(() => {
     const q = filtroAporte.trim().toLowerCase();
@@ -279,17 +317,34 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
   const elegirSocio = (valor) => {
     setSocioId(valor);
-    if (valor !== '') setFiltroSocio('');
+    setAlertaSocio(false);
+    setError(null);
+    if (valor !== '') {
+      setFiltroSocio('');
+      setSociosAbierto(false);
+    } else {
+      setSociosAbierto(true);
+    }
+  };
+
+  /** Exige un socio antes de agregar rubros y guía la vista hacia el paso 1. */
+  const verificarSocio = () => {
+    if (socioId) return true;
+    setAlertaSocio(true);
+    setError('Seleccione un socio primero para agregar rubros al carrito.');
+    document.getElementById('paso-socio')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
   };
 
   /** Agrega una multa del Anexo I directamente al carrito. */
   const agregarMulta = (fila) => {
+    if (!verificarSocio()) return;
     const monto = Number(fila.monto);
     if (!Number.isFinite(monto) || monto <= 0) {
       setError('Esta multa no tiene monto cobrable.');
       return;
     }
-    const nombre = fila.nivel ? `${fila.nombre} · ${fila.nivel.etiqueta}` : fila.nombre;
+    const nombre = fila.item.tituloCorto || fila.item.infraccion;
     setCarrito((c) => [
       ...c,
       {
@@ -298,7 +353,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
         clave: fila.item.clave,
         articulo: fila.item.articulo,
         infraccion: fila.item.infraccion,
-        tituloCorto: fila.nombre,
+        tituloCorto: fila.item.tituloCorto,
         categoria: fila.item.categoria,
         medida: fila.item.medida,
         monto,
@@ -311,6 +366,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
   /** Agrega un aporte del Anexo II directamente al carrito. */
   const agregarAporte = (fila) => {
+    if (!verificarSocio()) return;
     const monto = Number(fila.monto);
     if (!Number.isFinite(monto) || monto <= 0) {
       setError('El monto del aporte debe ser mayor que cero.');
@@ -434,7 +490,9 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
     // --- Carrito (multas del Anexo I y/o aportes del Anexo II) -----------
     if (!socioId) {
-      setError('Caja 1 · Seleccione el socio al que se imputa el cobro.');
+      setAlertaSocio(true);
+      setError('Seleccione un socio primero para agregar rubros al carrito.');
+      document.getElementById('paso-socio')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (carrito.length === 0) {
@@ -446,17 +504,25 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       return;
     }
 
+    const referenciaPago =
+      metodoPago === 'qr'
+        ? `Método de pago: Transferencia / QR${comprobante.trim() ? ` · Comprobante: ${comprobante.trim()}` : ''}`
+        : 'Método de pago: Efectivo';
+    const observaciones = [form.observaciones.trim(), referenciaPago].filter(Boolean).join(' · ');
+
     setGuardando(true);
     try {
       const json = await cobrosService.registrarCobroGrupal({
         socioId: Number(socioId),
         items: carrito,
         fechaCobro: form.fecha,
-        observaciones: form.observaciones,
+        observaciones,
         conceptoCobro: conceptoCarrito,
       });
       setExito(json?.mensaje || 'Cobro registrado en Caja Chica.');
       setCarrito([]);
+      setComprobante('');
+      setMetodoPago('efectivo');
       setForm((f) => ({ ...f, observaciones: '' }));
       cargar(mes);
     } catch (err) {
@@ -768,195 +834,275 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
               {formAbierto && modo !== 'gastos' && (
                 <form onSubmit={registrar} noValidate className="mt-5 space-y-4">
                   {/* Caja 1 — Socio (obligatorio, compartido por el carrito) */}
-                  <div className="rounded-2xl border-2 border-amber-500/35 bg-amber-500/5 p-4">
+                  <div
+                    id="paso-socio"
+                    className={`rounded-2xl border-2 bg-slate-900/95 p-4 shadow-xl ring-1 ring-amber-400/20 ${
+                      alertaSocio
+                        ? 'border-rose-400/70 ring-2 ring-rose-400/40'
+                        : 'border-amber-400/40'
+                    }`}
+                  >
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 font-mono text-[11px] font-bold text-white">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
                         1
                       </span>
-                      <label htmlFor="caja-socio-filtro" className={label}>
+                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
                         1. SELECCIONAR SOCIO
-                      </label>
-                      <span className="font-mono text-[10px] text-amber-700 dark:text-amber-300">
+                      </p>
+                      <span className="font-mono text-[10px] text-amber-200/70">
                         obligatorio
                       </span>
                     </div>
+
+                    {alertaSocio && (
+                      <div
+                        role="alert"
+                        className="mb-3 flex items-start gap-2 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3 py-2"
+                      >
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+                        <p className="font-mono text-[11px] text-rose-200">
+                          Seleccione un socio primero para poder agregar multas o aportes.
+                        </p>
+                      </div>
+                    )}
+
                     {cargandoSocios ? (
-                      <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-                        Cargando socios…
-                      </p>
+                      <p className="font-mono text-[11px] text-slate-300">Cargando socios…</p>
                     ) : socios.length === 0 ? (
-                      <p className="font-mono text-[11px] text-amber-600 dark:text-amber-400">
+                      <p className="font-mono text-[11px] text-amber-300">
                         No se pudo cargar el padrón de socios. Verifique su sesión e intente de nuevo.
                       </p>
+                    ) : socioElegido ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2.5">
+                        <p className="font-mono text-[11px] text-emerald-200">
+                          <Check className="mr-1 inline h-3.5 w-3.5" />
+                          <strong className="text-white">{socioElegido.nombre}</strong>
+                          {socioElegido.correo ? ` · ${socioElegido.correo}` : ''}
+                          {socioElegido.rol ? ` · ${socioElegido.rol}` : ''}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => elegirSocio('')}
+                          className="font-mono text-[10px] font-bold text-amber-300 underline hover:text-amber-200"
+                        >
+                          Cambiar socio
+                        </button>
+                      </div>
                     ) : (
-                      <>
-                        <div className="relative">
-                          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#294669]/50 dark:text-[#476EAE]" />
-                          <input
-                            id="caja-socio-filtro"
-                            type="text"
-                            value={filtroSocio}
-                            onChange={(e) => setFiltroSocio(e.target.value)}
-                            placeholder="Buscar socio por nombre o correo…"
-                            className={`${input} pl-9`}
-                          />
-                          {filtroSocio !== '' && (
-                            <button
-                              type="button"
-                              onClick={() => setFiltroSocio('')}
-                              aria-label="Limpiar búsqueda de socios"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#294669]/60 dark:text-slate-400 hover:bg-[#294669]/10"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          id="caja-socio-filtro"
+                          type="text"
+                          value={filtroSocio}
+                          onChange={(e) => {
+                            setFiltroSocio(e.target.value);
+                            setSociosAbierto(true);
+                          }}
+                          onFocus={() => setSociosAbierto(true)}
+                          onBlur={() => window.setTimeout(() => setSociosAbierto(false), 150)}
+                          placeholder="Buscar socio por nombre o correo…"
+                          autoComplete="off"
+                          aria-expanded={sociosAbierto}
+                          aria-controls="lista-socios"
+                          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                        />
+                        {filtroSocio !== '' && (
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => setFiltroSocio('')}
+                            aria-label="Limpiar búsqueda de socios"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-700"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
 
-                        {socioElegido ? (
-                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/45 bg-emerald-500/10 px-3 py-2">
-                            <p className="font-mono text-[11px] text-emerald-700 dark:text-emerald-300">
-                              <Check className="mr-1 inline h-3.5 w-3.5" />
-                              <strong>{socioElegido.nombre}</strong>
-                              {socioElegido.correo ? ` · ${socioElegido.correo}` : ''}
-                              {socioElegido.rol ? ` · ${socioElegido.rol}` : ''}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => elegirSocio('')}
-                              className="font-mono text-[10px] text-[#294669] underline dark:text-[#48B3AF]"
-                            >
-                              Cambiar socio
-                            </button>
+                        {sociosAbierto && (
+                          <div
+                            id="lista-socios"
+                            className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-900 shadow-2xl"
+                          >
+                            {sociosFiltrados.length === 0 ? (
+                              <p className="px-3 py-3 font-mono text-[11px] text-slate-400">
+                                Ningún socio coincide con «{filtroSocio.trim()}».
+                              </p>
+                            ) : (
+                              <ul className="divide-y divide-slate-700/70">
+                                {sociosFiltrados.map((s) => (
+                                  <li key={s.id}>
+                                    <button
+                                      type="button"
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => elegirSocio(String(s.id))}
+                                      className="flex w-full items-baseline justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-800"
+                                    >
+                                      <span className="font-display text-xs font-semibold text-white">
+                                        {s.nombre}
+                                      </span>
+                                      <span className="truncate font-mono text-[10px] text-slate-400">
+                                        {s.correo}
+                                        {s.rol ? ` · ${s.rol}` : ''}
+                                      </span>
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
-                        ) : (
-                          <ul className="mt-2 grid max-h-56 gap-1 overflow-y-auto pr-1">
-                            {sociosFiltrados.map((s) => (
-                              <li key={s.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => elegirSocio(String(s.id))}
-                                  className="flex w-full items-baseline justify-between gap-3 rounded-lg border border-[#294669]/15 bg-white/70 px-3 py-2 text-left hover:border-amber-500/50 hover:bg-amber-500/8 dark:border-[#476EAE]/35 dark:bg-[#0D0B61]/60"
-                                >
-                                  <span className="font-display text-xs font-semibold text-[#0D0B61] dark:text-white">
-                                    {s.nombre}
-                                  </span>
-                                  <span className="truncate font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
-                                    {s.correo}
-                                    {s.rol ? ` · ${s.rol}` : ''}
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
                         )}
-                        {!socioElegido && filtroSocio.trim() !== '' && sociosFiltrados.length === 0 && (
-                          <p className="mt-1 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
-                            Ningún socio coincide con «{filtroSocio.trim()}».
-                          </p>
-                        )}
-                      </>
+                      </div>
                     )}
                   </div>
 
                   {/* Caja 2 — Tabla de multas (Anexo I) o aportes (Anexo II) */}
                   {modo === 'multas' && (
-                    <div className="rounded-2xl border-2 border-amber-500/35 bg-amber-500/5 p-4">
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 font-mono text-[11px] font-bold text-white">
+                    <div className="rounded-2xl border-2 border-amber-400/40 bg-slate-900/95 p-4 shadow-xl">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
                           2
                         </span>
-                        <label htmlFor="caja-infraccion-filtro" className={label}>
-                          HACER CLIC EN ＋ AGREGAR
-                        </label>
+                        <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
+                          2. ELEGIR DE LA TABLA
+                        </p>
+                        <span className="font-mono text-[10px] text-slate-400">
+                          Cuadro N.º 2 · Infracciones Específicas
+                        </span>
                       </div>
-                      <p className="mb-2 font-mono text-[11px] text-[#294669]/75 dark:text-[#476EAE]">
-                        Busque la multa, revise el monto y agréguela al carrito.
+                      <p className="mb-3 font-mono text-[11px] text-slate-300">
+                        Busque la infracción, revise la multa y presione «＋ Agregar».
                       </p>
 
-                      <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#294669]/50 dark:text-[#476EAE]" />
-                        <input
-                          id="caja-infraccion-filtro"
-                          type="text"
-                          value={filtroInfraccion}
-                          onChange={(e) => setFiltroInfraccion(e.target.value)}
-                          placeholder="Buscar multa por nombre, artículo o categoría (ej. inasistencia, Art. 41, EPP)…"
-                          className={`${input} pl-9`}
-                        />
-                        {filtroInfraccion !== '' && (
+                      {alertaSocio && (
+                        <div
+                          role="alert"
+                          className="mb-3 flex items-start gap-2 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3 py-2"
+                        >
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+                          <p className="font-mono text-[11px] text-rose-200">
+                            Seleccione un socio primero para agregar esta multa.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {FILTROS_MULTAS.map((filtro) => (
                           <button
+                            key={filtro.id}
                             type="button"
-                            onClick={() => setFiltroInfraccion('')}
-                            aria-label="Limpiar búsqueda de multas"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#294669]/60 dark:text-slate-400 hover:bg-[#294669]/10"
+                            onClick={() => setFiltroCategoria(filtro.id)}
+                            aria-pressed={filtroCategoria === filtro.id}
+                            className={`rounded-full border px-3 py-1.5 font-display text-[11px] font-bold transition-colors ${
+                              filtroCategoria === filtro.id
+                                ? 'border-amber-300 bg-amber-400 text-slate-900'
+                                : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-400/60 hover:text-amber-200'
+                            }`}
                           >
-                            <X className="w-3.5 h-3.5" />
+                            {filtro.etiqueta}
                           </button>
-                        )}
+                        ))}
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-end gap-3">
-                        <div className="w-full sm:w-56">
-                          <label htmlFor="caja-fecha-infraccion" className={label}>
-                            FECHA DE LA INFRACCIÓN
+                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            id="caja-infraccion-filtro"
+                            type="text"
+                            value={filtroInfraccion}
+                            onChange={(e) => setFiltroInfraccion(e.target.value)}
+                            placeholder="Buscar por infracción, artículo o medida (ej. EPP, Art. 41)…"
+                            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                          />
+                          {filtroInfraccion !== '' && (
+                            <button
+                              type="button"
+                              onClick={() => setFiltroInfraccion('')}
+                              aria-label="Limpiar búsqueda de multas"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-700"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div>
+                          <label htmlFor="caja-fecha-infraccion" className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                            Fecha de la infracción
                           </label>
                           <input
                             id="caja-fecha-infraccion"
                             type="date"
                             value={fechaInfraccion}
                             onChange={(e) => setFechaInfraccion(e.target.value)}
-                            className={input}
+                            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 font-mono text-sm text-white focus:border-amber-400 focus:outline-none sm:w-44"
                           />
                         </div>
                       </div>
 
-                      <div className="mt-3 max-h-96 overflow-auto rounded-xl border border-amber-500/30">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="sticky top-0 z-10 bg-amber-100 dark:bg-[#3A2C12]">
-                            <tr className="font-display text-[10px] uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                              <th className="p-3">Multa</th>
-                              <th className="p-3">Frecuencia</th>
-                              <th className="p-3 text-right">Monto</th>
+                      <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[980px] border-collapse text-left text-xs">
+                          <thead className="sticky top-0 z-10 bg-slate-800">
+                            <tr className="font-display text-[10px] uppercase tracking-wider text-amber-300">
+                              <th className="p-3">Infracción tipificada</th>
+                              <th className="p-3">Artículo</th>
+                              <th className="p-3 text-right">Multa (Bs.)</th>
+                              <th className="p-3">Categoría</th>
+                              <th className="p-3">Medida complementaria</th>
                               <th className="p-3 text-right">Acción</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-amber-500/20 bg-white/70 dark:bg-[#0D0B61]/60">
+                          <tbody className="divide-y divide-slate-700/80 bg-slate-900">
                             {filasMultas.length === 0 ? (
                               <tr>
-                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-                                  Ninguna multa coincide con «{filtroInfraccion.trim()}».
+                                <td colSpan={6} className="p-6 text-center font-mono text-[11px] text-slate-400">
+                                  Ninguna infracción coincide con los filtros aplicados.
                                 </td>
                               </tr>
                             ) : (
-                              filasMultas.map((fila) => (
-                                <tr key={fila.id} className="hover:bg-amber-500/8">
-                                  <td className="p-3">
-                                    <p className="font-display text-sm font-bold text-[#0D0B61] dark:text-white">
-                                      {fila.nombre}
-                                    </p>
-                                    <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
-                                      {fila.detalle}
-                                    </p>
-                                  </td>
-                                  <td className="p-3">
-                                    <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                                      {fila.frecuencia}
-                                    </span>
-                                  </td>
-                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-[#0D0B61] dark:text-white">
-                                    Bs. {formatearMonto(fila.monto)}
-                                  </td>
-                                  <td className="p-3 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => agregarMulta(fila)}
-                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-amber-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
-                                    >
-                                      <Plus className="w-4 h-4" /> Agregar
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
+                              filasMultas.map((fila) => {
+                                const cobrable = fila.monto > 0;
+                                return (
+                                  <tr key={fila.id} className="transition-colors hover:bg-slate-800/70">
+                                    <td className="max-w-[360px] p-3">
+                                      <p className="font-display text-sm font-semibold leading-snug text-white">
+                                        {fila.infraccion}
+                                      </p>
+                                    </td>
+                                    <td className="whitespace-nowrap p-3 font-mono text-[11px] text-slate-300">
+                                      {fila.articulo}
+                                    </td>
+                                    <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-amber-200">
+                                      {cobrable ? `Bs. ${formatearMonto(fila.monto)}` : '—'}
+                                    </td>
+                                    <td className="p-3">
+                                      <span
+                                        className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${claseCategoria(fila.categoriaVisible)}`}
+                                      >
+                                        {fila.categoriaVisible}
+                                      </span>
+                                    </td>
+                                    <td className="max-w-[280px] p-3 font-mono text-[11px] leading-snug text-slate-300">
+                                      {fila.medida || '—'}
+                                    </td>
+                                    <td className="p-3 text-right">
+                                      <button
+                                        type="button"
+                                        onClick={() => agregarMulta(fila)}
+                                        disabled={!cobrable}
+                                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 font-display text-sm font-bold shadow-sm transition-colors ${
+                                          cobrable
+                                            ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-400'
+                                            : 'cursor-not-allowed bg-slate-700 text-slate-400'
+                                        }`}
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                        {cobrable ? 'Agregar' : 'Sin multa'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })
                             )}
                           </tbody>
                         </table>
@@ -965,66 +1111,81 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                   )}
 
                   {modo === 'aportes' && (
-                    <div className="rounded-2xl border-2 border-emerald-500/35 bg-emerald-500/5 p-4">
-                      <div className="mb-2 flex items-center gap-2">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 font-mono text-[11px] font-bold text-white">
+                    <div className="rounded-2xl border-2 border-emerald-400/40 bg-slate-900/95 p-4 shadow-xl">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400 font-mono text-[11px] font-bold text-slate-900">
                           2
                         </span>
-                        <label htmlFor="caja-aporte-filtro" className={label}>
-                          HACER CLIC EN ＋ AGREGAR
-                        </label>
+                        <p className="font-display text-[11px] font-semibold tracking-widest text-emerald-300">
+                          2. ELEGIR DE LA TABLA
+                        </p>
+                        <span className="font-mono text-[10px] text-slate-400">
+                          Anexo II · Escala de Aportes
+                        </span>
                       </div>
-                      <p className="mb-2 font-mono text-[11px] text-[#294669]/75 dark:text-[#476EAE]">
-                        Busque el aporte, revise el monto y agréguelo al carrito.
+                      <p className="mb-3 font-mono text-[11px] text-slate-300">
+                        Busque el aporte, revise la frecuencia y presione «＋ Agregar».
                       </p>
 
+                      {alertaSocio && (
+                        <div
+                          role="alert"
+                          className="mb-3 flex items-start gap-2 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3 py-2"
+                        >
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+                          <p className="font-mono text-[11px] text-rose-200">
+                            Seleccione un socio primero para agregar este aporte.
+                          </p>
+                        </div>
+                      )}
+
                       <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#294669]/50 dark:text-[#476EAE]" />
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <input
                           id="caja-aporte-filtro"
                           type="text"
                           value={filtroAporte}
                           onChange={(e) => setFiltroAporte(e.target.value)}
                           placeholder="Buscar aporte (ej. ordinario, fondo de accidentes, mantenimiento)…"
-                          className={`${input} pl-9`}
+                          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
                         />
                         {filtroAporte !== '' && (
                           <button
                             type="button"
                             onClick={() => setFiltroAporte('')}
                             aria-label="Limpiar búsqueda de aportes"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[#294669]/60 dark:text-slate-400 hover:bg-[#294669]/10"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-700"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
 
-                      <div className="mt-3 max-h-96 overflow-auto rounded-xl border border-emerald-500/30">
-                        <table className="w-full text-left text-xs border-collapse">
-                          <thead className="sticky top-0 z-10 bg-emerald-100 dark:bg-[#123A2E]">
-                            <tr className="font-display text-[10px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                              <th className="p-3">Aporte</th>
+                      <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-700">
+                        <table className="w-full min-w-[760px] border-collapse text-left text-xs">
+                          <thead className="sticky top-0 z-10 bg-slate-800">
+                            <tr className="font-display text-[10px] uppercase tracking-wider text-emerald-300">
+                              <th className="p-3">Concepto de aporte</th>
                               <th className="p-3">Frecuencia</th>
-                              <th className="p-3 text-right">Monto</th>
+                              <th className="p-3 text-right">Monto (Bs.)</th>
                               <th className="p-3 text-right">Acción</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-emerald-500/20 bg-white/70 dark:bg-[#0D0B61]/60">
+                          <tbody className="divide-y divide-slate-700/80 bg-slate-900">
                             {filasAportes.length === 0 ? (
                               <tr>
-                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
+                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-slate-400">
                                   Ningún aporte coincide con «{filtroAporte.trim()}».
                                 </td>
                               </tr>
                             ) : (
                               filasAportes.map((fila) => (
-                                <tr key={fila.id} className="hover:bg-emerald-500/8">
-                                  <td className="p-3">
-                                    <p className="font-display text-sm font-bold text-[#0D0B61] dark:text-white">
+                                <tr key={fila.id} className="transition-colors hover:bg-slate-800/70">
+                                  <td className="max-w-[420px] p-3">
+                                    <p className="font-display text-sm font-semibold leading-snug text-white">
                                       {fila.nombre}
                                     </p>
-                                    <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                                    <p className="mt-0.5 font-mono text-[10px] leading-snug text-slate-400">
                                       {fila.detalle}
                                       {fila.item.variable
                                         ? ' · importe orientativo, ajuste según la Resolución de Asamblea'
@@ -1032,20 +1193,22 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                                     </p>
                                   </td>
                                   <td className="p-3">
-                                    <span className="inline-block rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                    <span
+                                      className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${claseFrecuencia(fila.frecuencia)}`}
+                                    >
                                       {fila.frecuencia}
                                     </span>
                                   </td>
-                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-[#0D0B61] dark:text-white">
+                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-emerald-200">
                                     Bs. {formatearMonto(fila.monto)}
                                   </td>
                                   <td className="p-3 text-right">
                                     <button
                                       type="button"
                                       onClick={() => agregarAporte(fila)}
-                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
+                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-500 px-4 py-2.5 font-display text-sm font-bold text-white shadow-sm shadow-emerald-500/20 transition-colors hover:bg-emerald-400"
                                     >
-                                      <Plus className="w-4 h-4" /> Agregar
+                                      <Plus className="h-4 w-4" /> Agregar
                                     </button>
                                   </td>
                                 </tr>
@@ -1058,10 +1221,12 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                   )}
 
                   {/* Caja 3 — Carrito */}
-                  <div id="carrito-cobro" className="rounded-2xl border border-[#294669]/20 dark:border-[#476EAE]/45 bg-[#294669]/5 dark:bg-[#294669]/20 p-4">
+                  <div id="carrito-cobro" className="rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-xl">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <label className={label}>3. CONFIRMAR COBRO</label>
-                      <span className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
+                        3. CONFIRMAR COBRO
+                      </p>
+                      <span className="font-mono text-[10px] text-slate-400">
                         {carrito.length} ítem(s) · categoría {categoriaCarrito}
                       </span>
                     </div>
@@ -1071,16 +1236,16 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         role="status"
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/50 bg-emerald-500/15 px-3 py-2.5"
+                        className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3 py-2.5"
                       >
-                        <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        <p className="font-display text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                        <Check className="h-4 w-4 shrink-0 text-emerald-300" />
+                        <p className="font-display text-sm font-semibold text-emerald-200">
                           ¡Agregado al carrito! {avisoAgregado.nombre} · Bs. {formatearMonto(avisoAgregado.monto)}
                         </p>
                         <button
                           type="button"
                           onClick={() => document.getElementById('carrito-cobro')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                          className="ml-auto font-mono text-[10px] font-bold text-emerald-700 underline dark:text-emerald-300"
+                          className="ml-auto font-mono text-[10px] font-bold text-amber-300 underline hover:text-amber-200"
                         >
                           Ver carrito
                         </button>
@@ -1088,41 +1253,41 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     )}
 
                     {carrito.length === 0 ? (
-                      <p className="py-4 text-center font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
+                      <p className="py-4 text-center font-mono text-[11px] text-slate-400">
                         El carrito está vacío. Use los botones «＋ Agregar» de la tabla de arriba.
                       </p>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
+                        <table className="w-full min-w-[560px] border-collapse text-left text-xs">
                           <thead>
-                            <tr className="text-[#294669] dark:text-[#48B3AF] uppercase font-semibold text-[10px] tracking-wider">
+                            <tr className="font-display text-[10px] font-semibold uppercase tracking-wider text-amber-300">
                               <th className="p-2">Anexo</th>
                               <th className="p-2">Detalle</th>
                               <th className="p-2 text-right">Monto (Bs.)</th>
                               <th className="p-2" />
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-[#294669]/10 dark:divide-[#294669]/30">
+                          <tbody className="divide-y divide-slate-700/80">
                             {carrito.map((item) => (
-                              <tr key={item.uid}>
+                              <tr key={item.uid} className="transition-colors hover:bg-slate-800/60">
                                 <td className="p-2">
                                   <span
-                                    className={`inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase border ${
+                                    className={`inline-block rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase ${
                                       item.tipo === 'aporte'
-                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
-                                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25'
+                                        ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
+                                        : 'border-amber-400/40 bg-amber-500/15 text-amber-300'
                                     }`}
                                   >
                                     {item.tipo === 'aporte' ? 'Anexo II' : 'Anexo I'}
                                   </span>
                                 </td>
-                                <td className="p-2 text-[#0D0B61] dark:text-slate-100">
+                                <td className="p-2 text-slate-100">
                                   {item.tipo === 'aporte' ? item.concepto : item.infraccion}
-                                  <span className="block font-mono text-[10px] text-[#294669]/60 dark:text-slate-500">
+                                  <span className="block font-mono text-[10px] text-slate-400">
                                     {item.tipo === 'aporte' ? item.detalle : `${item.articulo} · ${item.categoria}`}
                                   </span>
                                 </td>
-                                <td className="p-2 text-right font-mono text-[#0D0B61] dark:text-slate-100 whitespace-nowrap">
+                                <td className="whitespace-nowrap p-2 text-right font-mono text-slate-100">
                                   {formatearMonto(item.monto)}
                                 </td>
                                 <td className="p-2 text-right">
@@ -1130,9 +1295,9 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                                     type="button"
                                     onClick={() => quitarDelCarrito(item.uid)}
                                     aria-label="Quitar del carrito"
-                                    className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
+                                    className="rounded p-1 text-rose-300 hover:bg-rose-500/15"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                                 </td>
                               </tr>
@@ -1140,10 +1305,10 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                           </tbody>
                           <tfoot>
                             <tr>
-                              <td colSpan={2} className="p-2 font-display font-bold text-xs text-[#0D0B61] dark:text-white text-right">
+                              <td colSpan={2} className="p-2 text-right font-display text-xs font-bold text-white">
                                 TOTAL
                               </td>
-                              <td className="p-2 text-right font-display font-bold text-sm text-[#48B3AF] whitespace-nowrap">
+                              <td className="whitespace-nowrap p-2 text-right font-display text-sm font-bold text-amber-200">
                                 {formatearMonto(totalCarrito)}
                               </td>
                               <td />
@@ -1154,9 +1319,93 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     )}
 
                     {carrito.length > 0 && (
-                      <p className="mt-2 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                      <p className="mt-2 font-mono text-[10px] text-slate-400">
                         Concepto: {conceptoCarrito}
                       </p>
+                    )}
+                  </div>
+
+                  {/* Método de pago: efectivo o transferencia / QR estático */}
+                  <div className="rounded-2xl border border-amber-400/30 bg-slate-900/95 p-4 shadow-xl">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <QrCode className="h-4 w-4 text-amber-300" />
+                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
+                        MÉTODO DE PAGO
+                      </p>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        seleccione cómo recibió el dinero
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setMetodoPago('efectivo')}
+                        aria-pressed={metodoPago === 'efectivo'}
+                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-display text-sm font-bold transition-colors ${
+                          metodoPago === 'efectivo'
+                            ? 'border-emerald-400 bg-emerald-500/15 text-emerald-200'
+                            : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-emerald-400/60'
+                        }`}
+                      >
+                        <span className="text-lg">💵</span> Efectivo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMetodoPago('qr')}
+                        aria-pressed={metodoPago === 'qr'}
+                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-display text-sm font-bold transition-colors ${
+                          metodoPago === 'qr'
+                            ? 'border-amber-400 bg-amber-400/15 text-amber-200'
+                            : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-400/60'
+                        }`}
+                      >
+                        <span className="text-lg">📱</span> Transferencia / QR
+                      </button>
+                    </div>
+
+                    {metodoPago === 'qr' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 flex flex-col items-center gap-3 rounded-2xl border border-amber-400/40 bg-slate-800 p-4"
+                      >
+                        <img
+                          src={qrCobro}
+                          alt="QR estático de cobro de la Cooperativa Minera Nevado Chachacomani R.L."
+                          className="w-44 rounded-xl bg-white p-2 shadow-lg"
+                        />
+                        <div className="w-full max-w-md text-center">
+                          <p className="font-mono text-[10px] uppercase tracking-widest text-amber-300">
+                            Monto exacto a cobrar
+                          </p>
+                          <p className="font-display text-4xl font-bold text-white">
+                            Bs. {formatearMonto(totalCarrito)}
+                          </p>
+                          <p className="mt-1 font-mono text-[11px] leading-relaxed text-slate-300">
+                            Escanee el QR desde su aplicación bancaria.
+                          </p>
+
+                          <label
+                            htmlFor="caja-comprobante"
+                            className="mt-3 block text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-300"
+                          >
+                            Número de comprobante / transacción{' '}
+                            <span className="font-normal normal-case text-slate-400">(opcional)</span>
+                          </label>
+                          <div className="relative mt-1">
+                            <Receipt className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <input
+                              id="caja-comprobante"
+                              type="text"
+                              value={comprobante}
+                              onChange={(e) => setComprobante(e.target.value)}
+                              placeholder="Ej. 123456789"
+                              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-3 py-2.5 pl-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
                     )}
                   </div>
 
