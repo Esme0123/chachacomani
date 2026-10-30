@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Sparkles, Coins, Plus, Trash2, QrCode, Receipt } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
+import GestionDeudas from '../components/GestionDeudas.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { PERMISO_GESTIONAR_CAJA_CHICA, PERMISO_GESTIONAR_MULTAS } from '../services/permisosService.js'
 import * as cajaChicaService from '../services/cajaChicaService.js'
@@ -1457,6 +1458,11 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
               Consulta en modo lectura: su rol permite consultar la caja chica pero no registrar
               movimientos.
             </p>
+          )}
+
+          {/* Bandeja de pagos reportados y emisión de deudas */}
+          {carritoDisponible && (
+            <GestionDeudas onDeudaAprobada={() => cargar(mes)} />
           )}
 
           {/* Movimientos */}

@@ -13,6 +13,9 @@
  *      GET  /api/auth/usuarios   ->  api/auth/usuarios.php
  *      GET  /api/drm             ->  api/drm.php
  *      GET  /api/multas          ->  api/multas.php
+ *      GET  /api/deudas          ->  api/deudas.php
+ *      GET  /api/notificaciones  ->  api/notificaciones.php
+ *      POST /api/notificar-pago  ->  api/notificar_pago.php
  *      GET  /api/caja-chica      ->  api/caja_chica.php
  *      GET  /api/votos           ->  api/mis_votos.php
  *      GET  /api/estadisticas    ->  api/estadisticas.php
@@ -69,6 +72,11 @@ const RUTAS_API = [
 
     // Módulo de multas (Anexo I) y caja chica
     'multas'                => ['GET' => 'multas.php', 'POST' => 'multas.php', 'PUT' => 'multas.php'],
+    // Deudas de multas/aportes y su ciclo de pago con comprobante
+    'deudas'                => ['GET' => 'deudas.php', 'POST' => 'deudas.php', 'PUT' => 'deudas.php'],
+    'notificaciones'        => ['GET' => 'notificaciones.php', 'PUT' => 'notificaciones.php'],
+    'notificar-pago'        => ['POST' => 'notificar_pago.php'],
+    'notificar_pago'        => ['POST' => 'notificar_pago.php'],
     'caja-chica'            => ['GET' => 'caja_chica.php', 'POST' => 'caja_chica.php'],
     'caja_chica'            => ['GET' => 'caja_chica.php', 'POST' => 'caja_chica.php'],
     // Cobro grupal del carrito (multas del Anexo I + aportes del Anexo II).

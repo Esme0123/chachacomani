@@ -132,6 +132,10 @@ const ALIAS_PHP = {
   usuarios: 'auth/usuarios.php',
   drm: 'drm.php',
   multas: 'multas.php',
+  deudas: 'deudas.php',
+  notificaciones: 'notificaciones.php',
+  'notificar-pago': 'notificar_pago.php',
+  'notificar_pago': 'notificar_pago.php',
   'caja-chica': 'caja_chica.php',
   caja_chica: 'caja_chica.php',
   cobros: 'cobros.php',
@@ -209,20 +213,24 @@ function cabeceras({ metodo, cuerpo, token }) {
  * @param {object} [opciones]
  * @param {'GET'|'POST'|'PUT'} [opciones.metodo='GET']
  * @param {object}         [opciones.cuerpo]   Objeto serializado a JSON.
+ * @param {FormData}       [opciones.formData] Cuerpo multipart (subida de archivos).
  * @param {object}         [opciones.params]   Query string.
  * @param {string|null}    [opciones.token]    Fuerza el token (logout usa null).
  * @returns {Promise<object>}
  * @throws {ApiError}
  */
 export async function peticion(ruta, opciones = {}) {
-  const { metodo = 'GET', cuerpo, params, token } = opciones;
+  const { metodo = 'GET', cuerpo, formData, params, token } = opciones;
 
   const ejecutar = async (destino) => {
     const opcionesFetch = {
       method: metodo,
-      headers: cabeceras({ metodo, cuerpo, token }),
+      // Con FormData el navegador debe fijar el Content-Type (incluye boundary).
+      headers: cabeceras({ metodo, cuerpo: formData ? undefined : cuerpo, token }),
     };
-    if (cuerpo !== undefined) {
+    if (formData) {
+      opcionesFetch.body = formData;
+    } else if (cuerpo !== undefined) {
       opcionesFetch.body = JSON.stringify(cuerpo);
     }
     return fetch(construirUrl(destino, params), opcionesFetch);

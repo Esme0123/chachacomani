@@ -267,6 +267,82 @@ function validarTipoVoto($tipo): ?string
     return null;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Notificaciones                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** ¿La tabla `notificaciones` ya fue creada por la migración? */
+function notificacionDisponible(): bool
+{
+    return tablaTieneColumna('notificaciones', 'id');
+}
+
+/**
+ * Inserta un aviso para un usuario (o para un rol, si `usuario_id` es null).
+ * No falla si la migración aún no se aplicó: simplemente no hay campana.
+ */
+function crearNotificacion(
+    PDO $pdo,
+    ?int $usuarioId,
+    ?string $rolDestino,
+    string $titulo,
+    string $mensaje
+): void {
+    if (!notificacionDisponible()) {
+        return;
+    }
+
+    $pdo->prepare(
+        'INSERT INTO `notificaciones` (`usuario_id`, `rol_destino`, `titulo`, `mensaje`)
+         VALUES (:usuario_id, :rol_destino, :titulo, :mensaje)'
+    )->execute([
+        ':usuario_id'  => $usuarioId,
+        ':rol_destino' => $rolDestino,
+        ':titulo'      => textoLimpio($titulo, 150),
+        ':mensaje'     => textoLimpio($mensaje, 2000),
+    ]);
+}
+
+/** Aviso dirigido a un socio concreto. */
+function notificarUsuario(PDO $pdo, int $usuarioId, string $titulo, string $mensaje): void
+{
+    crearNotificacion($pdo, $usuarioId, 'socio', $titulo, $mensaje);
+}
+
+/**
+ * Aviso para todos los usuarios activos de uno o varios roles.
+ * Se crea una fila por usuario para que el estado «leído» sea personal.
+ *
+ * @param string[] $roles Roles del sistema (`tesorero`, `caja_chica`, `admin`)
+ *   o el alias `socio` (que internamente es el rol `lectura`).
+ */
+function notificarRoles(PDO $pdo, array $roles, string $titulo, string $mensaje): void
+{
+    if (!notificacionDisponible() || $roles === []) {
+        return;
+    }
+
+    $rolesSistema = [];
+    foreach ($roles as $rol) {
+        $rolesSistema[] = $rol === 'socio' ? ROL_LECTURA : $rol;
+    }
+    $rolesSistema = array_values(array_unique($rolesSistema));
+    if ($rolesSistema === []) {
+        return;
+    }
+
+    $marcadores = implode(', ', array_fill(0, count($rolesSistema), '?'));
+    $stmt = $pdo->prepare(
+        'SELECT `id`, `rol` FROM `usuarios` WHERE `activo` = 1 AND `rol` IN (' . $marcadores . ')'
+    );
+    $stmt->execute($rolesSistema);
+
+    foreach ($stmt->fetchAll() as $usuario) {
+        $rolDestino = $usuario['rol'] === ROL_LECTURA ? 'socio' : (string) $usuario['rol'];
+        crearNotificacion($pdo, (int) $usuario['id'], $rolDestino, $titulo, $mensaje);
+    }
+}
+
 /** Devuelve la IP pública del visitante (IPv6 hasta 45 chars). */
 function ipVisitante(): string
 {

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
-  UserCog, KeyRound, Gavel, Save, Check, AlertTriangle, LogOut, ArrowLeft, ShieldAlert
+  UserCog, KeyRound, Gavel, Save, Check, AlertTriangle, LogOut, ArrowLeft, ShieldAlert,
+  Receipt,
 } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
+import MisDeudas from '../components/MisDeudas.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { validarContrasena } from '../services/authService.js'
 import * as multasService from '../services/multasService.js'
@@ -57,10 +59,12 @@ const LABEL = 'font-display font-semibold text-[#294669] dark:text-[#48B3AF] tex
  *   · Contraseña -> cambiar la contraseña (valida la actual y la nueva, 8+ alfanuméricos).
  *   · Multas     -> tabla del historial de sanciones: infracción, artículo,
  *                   fecha, monto en Bs. y estado de pago.
+ *   · Deudas     -> multas y aportes pendientes con reporte de pago y comprobante.
  *
  * @param {{dark: boolean, onNavigate: Function, onToggleTheme: Function,
  *          onIrAPerfil?: Function,
- *          seccion?: 'perfil'|'password'|'multas', onCambiarSeccion?: Function}} props
+ *          seccion?: 'perfil'|'password'|'multas'|'deudas',
+ *          onCambiarSeccion?: Function}} props
  */
 export default function ProfileView({
   dark,
@@ -87,6 +91,7 @@ export default function ProfileView({
     { clave: 'perfil', etiqueta: 'Datos de Perfil', icono: UserCog },
     { clave: 'password', etiqueta: 'Cambiar Contraseña', icono: KeyRound },
     { clave: 'multas', etiqueta: 'Revisar mis Multas', icono: Gavel },
+    { clave: 'deudas', etiqueta: 'Mis Deudas y Aportes', icono: Receipt },
   ];
 
   if (!usuario) {
@@ -192,6 +197,7 @@ export default function ProfileView({
           )}
           {seccion === 'password' && <SeccionPassword />}
           {seccion === 'multas' && <SeccionMultas />}
+          {seccion === 'deudas' && <MisDeudas />}
         </main>
 
         <Footer />

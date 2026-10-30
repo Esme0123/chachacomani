@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, UserCog, KeyRound, Gavel, LogOut, Wallet } from 'lucide-react'
+import { UserCog, KeyRound, Gavel, LogOut, Wallet, Receipt } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   PERMISO_GESTIONAR_CAJA_CHICA,
@@ -15,13 +15,14 @@ import {
  *   1. Ver / Editar Datos de Perfil (Nombre, Correo)
  *   2. Cambiar Contraseña
  *   3. Revisar mis Multas
- *   4. Cerrar Sesión
+ *   4. Mis Deudas y Aportes (reporte de pago con comprobante)
+ *   5. Cerrar Sesión
  *
  * Se añaden además dos accesos condicionados al rol: «Caja Chica» para el rol
  * Caja Chica y «Usuarios y Roles» para el Administrador.
  *
  * @param {(destino: string) => void} onNavigate
- * @param {(seccion: 'perfil'|'password'|'multas') => void} onIrAPerfil
+ * @param {(seccion: 'perfil'|'password'|'multas'|'deudas') => void} onIrAPerfil
  */
 export default function PerfilMenu({ dark, onNavigate, onIrAPerfil }) {
   const { usuario, nombreRol, logout, puede } = useAuth()
@@ -83,6 +84,12 @@ export default function PerfilMenu({ dark, onNavigate, onIrAPerfil }) {
       etiqueta: 'Revisar mis Multas',
       icono: Gavel,
       accion: () => irAPerfil('multas'),
+    },
+    {
+      clave: 'deudas',
+      etiqueta: 'Mis Deudas y Aportes',
+      icono: Receipt,
+      accion: () => irAPerfil('deudas'),
     },
   ]
 

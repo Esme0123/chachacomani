@@ -8,6 +8,11 @@ frontend/.vite/
 .env
 .env.*
 
+# Comprobantes subidos por los socios (datos personales)
+backend/uploads/comprobantes/*
+!backend/uploads/comprobantes/.htaccess
+!backend/uploads/comprobantes/index.html
+
 # OS Files
 .DS_Store
 Thumbs.db

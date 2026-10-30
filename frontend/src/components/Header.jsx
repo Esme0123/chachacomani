@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { CARDS } from '../data/landingData.js'
 import PerfilMenu from './PerfilMenu.jsx'
+import NotificacionesBell from './NotificacionesBell.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   PERMISO_VER_CONTABILIDAD,
@@ -178,6 +179,15 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
             {dark ? '🌙' : '☀️'}
           </button>
 
+          {/* Campana de avisos (sólo con sesión) */}
+          {estaAutenticado && (
+            <NotificacionesBell
+              dark={dark}
+              onNavigate={onNavigate}
+              onIrAPerfil={onIrAPerfil}
+            />
+          )}
+
           {/* Con sesión iniciada: bienvenida + menú de perfil.
               Sin sesión: botón «Login». */}
           {estaAutenticado ? (
@@ -194,6 +204,17 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
             </button>
           )}
         </nav>
+
+        {/* Campana en móvil */}
+        {estaAutenticado && (
+          <div className="md:hidden ml-auto">
+            <NotificacionesBell
+              dark={dark}
+              onNavigate={onNavigate}
+              onIrAPerfil={onIrAPerfil}
+            />
+          </div>
+        )}
 
         {/* Burger (móvil) */}
         <button
@@ -288,6 +309,7 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
                     { etiqueta: 'Ver / Editar Datos de Perfil', destino: 'perfil' },
                     { etiqueta: 'Cambiar Contraseña', destino: 'password' },
                     { etiqueta: 'Revisar mis Multas', destino: 'multas' },
+                    { etiqueta: 'Mis Deudas y Aportes', destino: 'deudas' },
                   ].map(item => (
                     <button
                       key={item.destino}

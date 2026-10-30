@@ -1,0 +1,19 @@
+Options -Indexes
+
+# Los comprobantes son datos de usuario: nunca deben ejecutarse como código.
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|phtml|phar|php3|php4|php5|cgi|pl|py|sh|asp|aspx)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(php|phtml|phar|php3|php4|php5|cgi|pl|py|sh|asp|aspx)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+    RemoveHandler .php .phtml .phar
+    RemoveType .php .phtml .phar
+</IfModule>

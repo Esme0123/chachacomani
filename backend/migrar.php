@@ -161,7 +161,16 @@ function ejecutarMigracion(array $argumentos): array
     };
 
     // 1. Tablas -------------------------------------------------------
-    $tablas = ['usuarios', 'sesiones', 'votos_articulos', 'multas', 'caja_chica_movimientos', 'configuraciones'];
+    $tablas = [
+        'usuarios',
+        'sesiones',
+        'votos_articulos',
+        'multas',
+        'deudas_multas',
+        'caja_chica_movimientos',
+        'notificaciones',
+        'configuraciones',
+    ];
     foreach ($tablas as $tabla) {
         if (tablaExiste($pdo, $tabla)) {
             $log('Tabla `' . $tabla . '` ya existe (se conserva).');
@@ -307,6 +316,32 @@ function ejecutarMigracion(array $argumentos): array
         );
     } else {
         $log('No hay movimientos con la categoría anterior «Aportes».');
+    }
+
+    // 4.e Bandeja de «Pagos reportados»: vínculo del ingreso en Caja Chica con
+    //     la deuda aprobada. UNIQUE evita duplicar el asiento si se reintenta
+    //     la aprobación.
+    if (columnaExiste($pdo, 'caja_chica_movimientos', 'deuda_id')) {
+        $log('Columna `caja_chica_movimientos`.`deuda_id` ya existe.');
+    } else {
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD COLUMN `deuda_id` INT NULL DEFAULT NULL AFTER `detalle`',
+            'agregar la columna `deuda_id` a `caja_chica_movimientos`',
+            $log
+        );
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD UNIQUE KEY `uq_caja_deuda` (`deuda_id`)',
+            'crear la clave única `uq_caja_deuda` (un ingreso por deuda)',
+            $log
+        );
+        $dll(
+            $pdo,
+            'ALTER TABLE `caja_chica_movimientos` ADD CONSTRAINT `fk_caja_deuda` FOREIGN KEY (`deuda_id`) REFERENCES `deudas_multas` (`id`) ON DELETE CASCADE',
+            'enlazar `caja_chica_movimientos`.`deuda_id` con `deudas_multas`.`id`',
+            $log
+        );
     }
 
     // 5. Índices de apoyo ---------------------------------------------

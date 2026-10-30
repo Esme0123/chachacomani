@@ -62,7 +62,7 @@ function AppShell() {
   /**
    * Navega a la vista de perfil, opcionalmente a una de sus secciones.
    * El `Header` y el `Sidebar` la invocan con un destino simple:
-   *   'perfil' | 'password' | 'multas'
+   *   'perfil' | 'password' | 'multas' | 'deudas'
    */
   const irAPerfil = useCallback((destino = 'perfil') => {
     const seccion = typeof destino === 'string' ? destino : destino?.seccion;
