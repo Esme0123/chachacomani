@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, CheckCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import * as notificacionesService from '../services/notificacionesService.js'
+import { useNotificaciones } from '../context/NotificacionesContext.jsx'
 
 function formatearFechaNotificacion(valor) {
   if (!valor) return ''
@@ -19,45 +19,27 @@ function formatearFechaNotificacion(valor) {
 /**
  * Campana de notificaciones del Header.
  *
- * Consulta los avisos del usuario cada 30 segundos y permite marcar uno o
- * todos como leídos. Al pulsar un aviso navega a la sección correspondiente:
- * «Mis Deudas» para el socio o la bandeja de Caja Chica para el personal.
+ * El estado y el polling viven en `NotificacionesProvider`, de modo que la
+ * instancia de escritorio y la móvil comparten el mismo contador y un único
+ * toast. Este componente sólo controla el panel desplegable y delega las
+ * acciones al contexto global.
  */
 export default function NotificacionesBell({ dark, onNavigate, onIrAPerfil }) {
   const { estaAutenticado } = useAuth()
+  const {
+    notificaciones,
+    noLeidas,
+    cargando,
+    recargar,
+    marcarLeida,
+    marcarTodasLeidas,
+  } = useNotificaciones()
   const [abierto, setAbierto] = useState(false)
-  const [notificaciones, setNotificaciones] = useState([])
-  const [noLeidas, setNoLeidas] = useState(0)
-  const [cargando, setCargando] = useState(false)
   const contenedorRef = useRef(null)
 
-  const cargar = useCallback(async (silencioso = false) => {
-    if (!estaAutenticado) return
-    if (!silencioso) setCargando(true)
-    try {
-      const json = await notificacionesService.listarNotificaciones()
-      setNotificaciones(Array.isArray(json?.notificaciones) ? json.notificaciones : [])
-      setNoLeidas(Number(json?.noLeidas) || 0)
-    } catch (error) {
-      if (!silencioso) {
-        console.error('No se pudieron cargar las notificaciones:', error)
-      }
-    } finally {
-      if (!silencioso) setCargando(false)
-    }
-  }, [estaAutenticado])
-
   useEffect(() => {
-    if (!estaAutenticado) {
-      setNotificaciones([])
-      setNoLeidas(0)
-      setAbierto(false)
-      return undefined
-    }
-    cargar()
-    const temporizador = window.setInterval(() => cargar(true), 30000)
-    return () => window.clearInterval(temporizador)
-  }, [estaAutenticado, cargar])
+    if (!estaAutenticado) setAbierto(false)
+  }, [estaAutenticado])
 
   useEffect(() => {
     if (!abierto) return undefined
@@ -80,20 +62,15 @@ export default function NotificacionesBell({ dark, onNavigate, onIrAPerfil }) {
   const alternar = () => {
     const nuevo = !abierto
     setAbierto(nuevo)
-    if (nuevo) cargar(true)
+    if (nuevo) recargar({ silencioso: true })
   }
 
   const abrirNotificacion = async (notificacion) => {
     if (!notificacion.leido) {
-      setNotificaciones((prev) =>
-        prev.map((n) => (n.id === notificacion.id ? { ...n, leido: true } : n))
-      )
-      setNoLeidas((prev) => Math.max(0, prev - 1))
       try {
-        await notificacionesService.marcarLeida(notificacion.id)
+        await marcarLeida(notificacion.id)
       } catch (error) {
         console.error('No se pudo marcar el aviso como leído:', error)
-        cargar(true)
       }
     }
 
@@ -107,13 +84,10 @@ export default function NotificacionesBell({ dark, onNavigate, onIrAPerfil }) {
   }
 
   const marcarTodas = async () => {
-    setNotificaciones((prev) => prev.map((n) => ({ ...n, leido: true })))
-    setNoLeidas(0)
     try {
-      await notificacionesService.marcarTodasLeidas()
+      await marcarTodasLeidas()
     } catch (error) {
       console.error('No se pudieron marcar todos los avisos:', error)
-      cargar(true)
     }
   }
 

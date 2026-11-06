@@ -10,6 +10,7 @@ import CajaChicaView from './views/CajaChicaView.jsx'
 import UsuariosView from './views/UsuariosView.jsx'
 import { CursorRippleOverlay } from './components/Effects.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import { NotificacionesProvider } from './context/NotificacionesContext.jsx'
 import { DRMProvider } from './context/DRMContext.jsx'
 import { PERMISO_GESTIONAR_CAJA_CHICA, PERMISO_VER_CONTABILIDAD, PERMISO_GESTIONAR_USUARIOS } from './services/permisosService.js'
 
@@ -20,9 +21,11 @@ import { PERMISO_GESTIONAR_CAJA_CHICA, PERMISO_VER_CONTABILIDAD, PERMISO_GESTION
 export default function App() {
   return (
     <AuthProvider>
-      <DRMProvider>
-        <AppShell />
-      </DRMProvider>
+      <NotificacionesProvider>
+        <DRMProvider>
+          <AppShell />
+        </DRMProvider>
+      </NotificacionesProvider>
     </AuthProvider>
   )
 }

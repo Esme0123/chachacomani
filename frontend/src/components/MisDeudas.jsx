@@ -4,6 +4,7 @@ import {
   AlertTriangle, CheckCircle2, Clock3, FileUp, Receipt, X, ExternalLink,
 } from 'lucide-react'
 import * as deudasService from '../services/deudasService.js'
+import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas.js'
 import qrCobro from '../assets/qr-cobro.svg'
 
 const ESTADO_DEUDA = {
@@ -52,17 +53,23 @@ export default function MisDeudas() {
   const [exito, setExito] = useState(null)
   const [deudaSeleccionada, setDeudaSeleccionada] = useState(null)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
-    setError(null)
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setCargando(true)
+      setError(null)
+    }
     try {
       const json = await deudasService.misDeudas()
       setDeudas(Array.isArray(json?.deudas) ? json.deudas : [])
       setTotales(json?.totales || null)
     } catch (err) {
-      setError(err?.message || 'No se pudieron cargar sus deudas y aportes.')
+      if (!silencioso) {
+        setError(err?.message || 'No se pudieron cargar sus deudas y aportes.')
+      } else {
+        console.error('No se pudieron refrescar sus deudas:', err)
+      }
     } finally {
-      setCargando(false)
+      if (!silencioso) setCargando(false)
     }
   }, [])
 
@@ -70,11 +77,15 @@ export default function MisDeudas() {
     cargar()
   }, [cargar])
 
+  // Sincronización en vivo: polling cada 7 s + revalidación al enfocar la
+  // ventana. Las deudas pasan solas de pendiente a en_revision/cancelado.
+  useRefrescoEstadisticas(() => cargar(true), { intervaloMs: 7000 })
+
   const alReportar = async (datos) => {
     await deudasService.reportarPago(datos)
     setDeudaSeleccionada(null)
     setExito('Pago reportado. Tesorería revisará el comprobante y confirmará la cancelación.')
-    await cargar()
+    await cargar(true)
   }
 
   const pendientes = deudas.filter((d) => d.estado !== 'cancelado')

@@ -4,6 +4,7 @@ import {
   AlertTriangle, CheckCircle2, Clock3, ExternalLink, Plus, Receipt, RotateCcw, Send,
 } from 'lucide-react'
 import * as deudasService from '../services/deudasService.js'
+import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas.js'
 
 const ESTADO_DEUDA = {
   pendiente: {
@@ -75,9 +76,11 @@ export default function GestionDeudas({ onDeudaAprobada }) {
   const [guardando, setGuardando] = useState(false)
   const [errorForm, setErrorForm] = useState(null)
 
-  const cargar = useCallback(async () => {
-    setCargando(true)
-    setError(null)
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setCargando(true)
+      setError(null)
+    }
     try {
       const json = await deudasService.listarDeudas({
         estado: filtroEstado || undefined,
@@ -88,15 +91,23 @@ export default function GestionDeudas({ onDeudaAprobada }) {
       setTotales(json?.totales || null)
       setPuedeGestionar(json?.puedeGestionar !== false)
     } catch (err) {
-      setError(err?.message || 'No se pudieron cargar las deudas.')
+      if (!silencioso) {
+        setError(err?.message || 'No se pudieron cargar las deudas.')
+      } else {
+        console.error('No se pudo refrescar la bandeja de deudas:', err)
+      }
     } finally {
-      setCargando(false)
+      if (!silencioso) setCargando(false)
     }
   }, [filtroEstado, filtroTipo])
 
   useEffect(() => {
     cargar()
   }, [cargar])
+
+  // Bandeja de «Pagos reportados» en vivo: polling cada 7 s y revalidación al
+  // volver a la ventana. El pago reportado por el socio aparece sin recargar.
+  useRefrescoEstadisticas(() => cargar(true), { intervaloMs: 7000 })
 
   const reportados = deudas.filter((d) => d.estado === 'en_revision')
 
@@ -112,7 +123,7 @@ export default function GestionDeudas({ onDeudaAprobada }) {
           ? `Pago aprobado. La deuda #${deuda.id} quedó cancelada y el ingreso fue registrado en Caja Chica.`
           : `La deuda #${deuda.id} volvió a estado pendiente.`
       )
-      await cargar()
+      await cargar(true)
       if (estado === 'cancelado' && onDeudaAprobada) onDeudaAprobada()
     } catch (err) {
       setError(err?.message || 'No se pudo actualizar la deuda.')
@@ -153,7 +164,7 @@ export default function GestionDeudas({ onDeudaAprobada }) {
       })
       setExito('Deuda emitida. El socio recibió una notificación con el detalle.')
       setForm((f) => ({ ...f, socioId: '', concepto: '', monto: '' }))
-      await cargar()
+      await cargar(true)
     } catch (err) {
       setErrorForm(err?.message || 'No se pudo emitir la deuda.')
     } finally {
