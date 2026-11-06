@@ -873,3 +873,4 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
     </div>
   )
 }
+
