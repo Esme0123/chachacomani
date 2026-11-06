@@ -171,11 +171,10 @@ export default function MisDeudas() {
               key={opcion.id}
               type="button"
               onClick={() => setFiltroCategoria(opcion.id)}
-              className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
-                filtroCategoria === opcion.id
+              className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${filtroCategoria === opcion.id
                   ? 'bg-amber-600 text-white font-bold shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
+                }`}
             >
               {opcion.etiqueta}
             </button>
@@ -197,11 +196,10 @@ export default function MisDeudas() {
               key={opcion.id}
               type="button"
               onClick={() => setFiltroEstado(opcion.id)}
-              className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
-                filtroEstado === opcion.id
+              className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${filtroEstado === opcion.id
                   ? 'bg-[#48B3AF] text-white font-bold shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
+                }`}
             >
               {opcion.etiqueta}
             </button>
