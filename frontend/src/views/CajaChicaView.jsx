@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Coins, Plus, QrCode, Receipt } from 'lucide-react'
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Coins, Plus, QrCode, Receipt, ShoppingCart, Trash2 } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
 import GestionDeudas from '../components/GestionDeudas.jsx'
@@ -167,11 +167,13 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
   const [sociosAbierto, setSociosAbierto] = useState(false);
   const [alertaSocio, setAlertaSocio] = useState(false);
 
-  // Selección pendiente de confirmar y datos del cobro inmediato.
-  const [seleccion, setSeleccion] = useState(null);
+  // Carrito de selección múltiple (multas y aportes acumulables)
+  const [carrito, setCarrito] = useState([]);
+  const [modalCobroAbierto, setModalCobroAbierto] = useState(false);
   const [estadoSeleccion, setEstadoSeleccion] = useState('pendiente');
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [comprobante, setComprobante] = useState('');
+  const [archivoComprobante, setArchivoComprobante] = useState(null);
   const [guardandoSeleccion, setGuardandoSeleccion] = useState(false);
   const [errorSeleccion, setErrorSeleccion] = useState(null);
   const [deudasVersion, setDeudasVersion] = useState(0);
@@ -337,7 +339,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     return texto.slice(0, 255);
   };
 
-  /** Abre la elección «pendiente / cobro inmediato» para una multa del Anexo I. */
+  /** Agrega una multa al carrito acumulable. */
   const agregarMulta = (fila) => {
     if (!verificarSocio()) return;
     const monto = Number(fila.monto);
@@ -345,25 +347,25 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       setError('Esta multa no tiene monto cobrable.');
       return;
     }
-    abrirSeleccion({
+    const item = {
       tipo: 'multa',
+      carritoId: Date.now() + Math.random().toString(36).slice(2, 7),
       nombre: fila.item.tituloCorto || fila.item.infraccion,
       detalle: `${fila.item.articulo} · ${fila.item.categoria}`,
       monto,
-      item: {
-        tipo: 'multa',
-        infraccion: fila.item.infraccion,
-        articulo: fila.item.articulo,
-        categoria: fila.item.categoria,
-        medida: fila.item.medida || '',
-        monto,
-        fechaInfraccion: fechaInfraccion || hoy(),
-      },
-    });
+      infraccion: fila.item.infraccion,
+      articulo: fila.item.articulo,
+      categoria: fila.item.categoria,
+      medida: fila.item.medida || '',
+      observaciones: '',
+      fechaInfraccion: fechaInfraccion || hoy(),
+    };
+    setCarrito((prev) => [...prev, item]);
+    setExito(`«${item.articulo}» agregada al carrito (${carrito.length + 1} ítems).`);
     setError(null);
   };
 
-  /** Abre la elección «pendiente / cobro inmediato» para un aporte del Anexo II. */
+  /** Agrega un aporte al carrito acumulable. */
   const agregarAporte = (fila) => {
     if (!verificarSocio()) return;
     const monto = Number(fila.monto);
@@ -371,23 +373,48 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       setError('El monto del aporte debe ser mayor que cero.');
       return;
     }
-    abrirSeleccion({
+    const item = {
       tipo: 'aporte',
+      carritoId: Date.now() + Math.random().toString(36).slice(2, 7),
       nombre: fila.item.concepto,
+      concepto: fila.item.concepto,
       detalle: fila.item.detalle,
       monto,
-      item: {
-        tipo: 'aporte',
-        concepto: fila.item.concepto,
-        detalle: fila.item.detalle,
-        monto,
-      },
-    });
+    };
+    setCarrito((prev) => [...prev, item]);
+    setExito(`«${item.concepto}» agregado al carrito (${carrito.length + 1} ítems).`);
     setError(null);
   };
 
-  const confirmarSeleccion = async () => {
-    if (!seleccion || guardandoSeleccion) return;
+  const quitarDelCarrito = (carritoId) => {
+    setCarrito((prev) => prev.filter((it) => it.carritoId !== carritoId));
+  };
+
+  const vaciarCarrito = () => {
+    setCarrito([]);
+  };
+
+  const totalMontoCarrito = useMemo(
+    () => carrito.reduce((sum, it) => sum + Number(it.monto || 0), 0),
+    [carrito]
+  );
+
+  const abrirModalCobroLote = () => {
+    if (carrito.length === 0) {
+      setError('El carrito está vacío: agregue al menos una multa o un aporte.');
+      return;
+    }
+    if (!verificarSocio()) return;
+    setModalCobroAbierto(true);
+    setEstadoSeleccion('pendiente');
+    setMetodoPago('efectivo');
+    setComprobante('');
+    setArchivoComprobante(null);
+    setErrorSeleccion(null);
+  };
+
+  const confirmarLote = async () => {
+    if (carrito.length === 0 || guardandoSeleccion) return;
     if (!socioId) {
       setErrorSeleccion('Seleccione un socio antes de continuar.');
       return;
@@ -399,43 +426,42 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     setExito(null);
     try {
       if (estadoSeleccion === 'pendiente') {
-        const json = await deudasService.emitirDeuda({
+        const json = await deudasService.emitirLoteDeudas({
           socioId: Number(socioId),
-          tipo: seleccion.tipo === 'multa'
-            ? deudasService.TIPO_DEUDA_MULTA
-            : deudasService.TIPO_DEUDA_APORTE,
-          concepto: conceptoDeuda(seleccion),
-          monto: seleccion.monto,
-          fechaEmision: hoy(),
+          items: carrito,
         });
-        setExito(json?.mensaje || 'Deuda emitida y notificada al socio.');
+        setExito(json?.mensaje || `Lote de ${carrito.length} deudas emitidas en estado pendiente.`);
       } else {
         const referencia = [
           metodoPago === 'qr'
             ? 'Método de pago: Transferencia / QR'
             : 'Método de pago: Efectivo',
           comprobante.trim() ? `Comprobante: ${comprobante.trim()}` : '',
+          'Módulo: Caja Chica',
         ].filter(Boolean).join(' · ');
 
         const json = await cobrosService.registrarCobroGrupal({
           socioId: Number(socioId),
-          items: [seleccion.item],
+          items: carrito,
           fechaCobro: hoy(),
           observaciones: referencia,
           conceptoCobro: cobrosService.conceptoCobroGrupal(
-            [seleccion.item],
+            carrito,
             socioElegido?.nombre || ''
           ),
           metodoPago,
           nroComprobante: comprobante.trim(),
+          archivo: archivoComprobante,
         });
         setExito(json?.mensaje || 'Cobro registrado en Caja Chica.');
         cargar(mes);
       }
 
       setDeudasVersion((v) => v + 1);
-      setSeleccion(null);
+      setCarrito([]);
+      setModalCobroAbierto(false);
       setComprobante('');
+      setArchivoComprobante(null);
       setMetodoPago('efectivo');
     } catch (err) {
       setErrorSeleccion(err?.message || 'No se pudo registrar la deuda o el cobro.');
@@ -479,24 +505,23 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     setFormAbierto(true);
     if (cobroInicial.socioId != null) setSocioId(String(cobroInicial.socioId));
     const monto = Number(cobroInicial.monto) || 0;
-    setSeleccion({
+    const item = {
+      carritoId: `${Date.now()}-cobro-inicial`,
       tipo: 'multa',
-      nombre: cobroInicial.infraccion,
-      detalle: `${cobroInicial.articulo || ''} · ${cobroInicial.categoria || 'Grave'}`,
+      tipoDeuda: 'multa_anexo_1',
+      articulo: cobroInicial.articulo || '',
+      concepto: cobroInicial.infraccion,
+      infraccion: cobroInicial.infraccion,
+      categoria: cobroInicial.categoria || 'Grave',
       monto,
-      item: {
-        tipo: 'multa',
-        infraccion: cobroInicial.infraccion,
-        articulo: cobroInicial.articulo,
-        categoria: cobroInicial.categoria || 'Grave',
-        medida: '',
-        monto,
-        fechaInfraccion: hoy(),
-      },
-    });
+      fechaInfraccion: hoy(),
+    };
+    setCarrito([item]);
+    setModalCobroAbierto(true);
     setEstadoSeleccion('inmediato');
     setMetodoPago('efectivo');
     setComprobante('');
+    setArchivoComprobante(null);
     setErrorSeleccion(null);
     setError(null);
     setExito(null);
@@ -972,6 +997,76 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     )}
                   </div>
 
+                  {/* WIDGET DEL CARRITO ACUMULABLE (cuando hay ítems) */}
+                  {modo !== 'gastos' && carrito.length > 0 && (
+                    <div className="rounded-2xl border-2 border-amber-500/50 bg-amber-500/5 p-4 shadow-sm dark:border-amber-500/40">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-500/20">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <h3 className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                            Carrito de Selección ({carrito.length} {carrito.length === 1 ? 'ítem' : 'ítems'})
+                          </h3>
+                        </div>
+                        {socioElegido && (
+                          <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
+                            Socio: <strong>{socioElegido.nombre}</strong>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 max-h-48 overflow-y-auto space-y-1.5">
+                        {carrito.map((it) => (
+                          <div
+                            key={it.carritoId}
+                            className="flex items-center justify-between gap-3 text-xs p-2 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700"
+                          >
+                            <div className="min-w-0 flex-1 truncate">
+                              <span className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 mr-2">
+                                {it.tipo === 'multa' ? '[MULTA]' : '[APORTE]'}
+                              </span>
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {it.articulo ? `${it.articulo}: ` : ''}{it.concepto || it.infraccion || it.nombre}
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                              Bs. {formatearMonto(it.monto)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => quitarDelCarrito(it.carritoId)}
+                              className="text-slate-400 hover:text-rose-500 p-1"
+                              title="Quitar del carrito"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-500/20">
+                        <div className="flex items-center gap-3">
+                          <span className="font-display font-bold text-base text-slate-900 dark:text-white">
+                            Total: Bs. {formatearMonto(totalMontoCarrito)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={vaciarCarrito}
+                            className="font-mono text-[11px] text-rose-500 hover:underline"
+                          >
+                            Vaciar carrito
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={abrirModalCobroLote}
+                          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-display text-sm font-bold text-white bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/20 transition-all hover:scale-[1.02]"
+                        >
+                          Confirmar y Registrar ({carrito.length} ítems)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Caja 2 — Tabla de multas (Anexo I) o aportes (Anexo II) */}
                   {modo === 'multas' && (
                     <div className="rounded-2xl border-2 border-amber-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-amber-400/40 dark:shadow-xl">
@@ -1246,21 +1341,25 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
             </p>
           )}
 
-          <ModalCobroMulta
-            seleccion={seleccion}
-            socioElegido={socioElegido}
-            estadoSeleccion={estadoSeleccion}
-            metodoPago={metodoPago}
-            comprobante={comprobante}
-            guardando={guardandoSeleccion}
-            error={errorSeleccion}
-            onClose={() => setSeleccion(null)}
-            onEstadoChange={setEstadoSeleccion}
-            onMetodoPagoChange={setMetodoPago}
-            onComprobanteChange={setComprobante}
-            onConfirmar={confirmarSeleccion}
-            modulo="Caja Chica"
-          />
+          {modalCobroAbierto && (
+            <ModalCobroMulta
+              items={carrito}
+              socioElegido={socioElegido}
+              estadoSeleccion={estadoSeleccion}
+              metodoPago={metodoPago}
+              comprobante={comprobante}
+              archivoComprobante={archivoComprobante}
+              guardando={guardandoSeleccion}
+              error={errorSeleccion}
+              onClose={() => setModalCobroAbierto(false)}
+              onEstadoChange={setEstadoSeleccion}
+              onMetodoPagoChange={setMetodoPago}
+              onComprobanteChange={setComprobante}
+              onArchivoChange={setArchivoComprobante}
+              onConfirmar={confirmarLote}
+              modulo="Caja Chica"
+            />
+          )}
 
           {/* Bandeja de pagos reportados y emisión de deudas */}
           {carritoDisponible && (

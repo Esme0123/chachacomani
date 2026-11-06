@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  AlertTriangle, CheckCircle2, Clock3, FileUp, Receipt, X, ExternalLink,
+  AlertTriangle, CheckCircle2, Clock3, FileUp, Receipt, X, ExternalLink, Eye, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import * as deudasService from '../services/deudasService.js'
@@ -18,7 +18,7 @@ const ESTADO_DEUDA = {
     clases: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30',
   },
   cancelado: {
-    texto: 'Cancelado',
+    texto: 'Cancelado / Pagado',
     clases: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   },
 }
@@ -40,11 +40,13 @@ function formatearMonto(monto) {
 }
 
 /**
- * Panel «Mis Deudas y Aportes» del perfil del socio.
+ * Panel unificado «Mis Deudas y Aportes» del perfil del socio.
  *
- * Muestra las deudas emitidas por Tesorería/Caja Chica (multas del Anexo I y
- * aportes del Anexo II) y permite reportar el pago con método, número de
- * comprobante y adjunto. La aprobación la realiza el personal autorizado.
+ * Integra multas del Anexo I y aportes del Anexo II con dos barras de filtros:
+ *  - Categoría: Todas | Multas (Anexo I) | Aportes (Anexo II)
+ *  - Estado: Todas | Pendientes | En revisión | Pagadas / Canceladas
+ * Permite realizar pagos parciales (abonos), subir foto del comprobante
+ * y consultar el historial completo de pagos y abonos anteriores.
  */
 export default function MisDeudas() {
   const { usuario } = useAuth()
@@ -53,8 +55,14 @@ export default function MisDeudas() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [exito, setExito] = useState(null)
+
+  // Filtros duales
+  const [filtroCategoria, setFiltroCategoria] = useState('') // '' = Todas, 'multa_anexo_1', 'aporte_anexo_2'
+  const [filtroEstado, setFiltroEstado] = useState('') // '' = Todas, 'pendiente', 'en_revision', 'cancelado'
+
   const [deudaSeleccionada, setDeudaSeleccionada] = useState(null)
-  const [filtroEstado, setFiltroEstado] = useState('')
+  const [comprobanteModalUrl, setComprobanteModalUrl] = useState(null)
+  const [historialExpandido, setHistorialExpandido] = useState({})
 
   const cargar = useCallback(async (silencioso = false) => {
     if (!usuario?.id) return
@@ -65,6 +73,7 @@ export default function MisDeudas() {
     try {
       const json = await deudasService.listarDeudas({
         socioId: usuario.id,
+        tipo: filtroCategoria || undefined,
         estado: filtroEstado || undefined,
         propias: true,
       })
@@ -79,24 +88,25 @@ export default function MisDeudas() {
     } finally {
       if (!silencioso) setCargando(false)
     }
-  }, [usuario?.id, filtroEstado])
+  }, [usuario?.id, filtroCategoria, filtroEstado])
 
   useEffect(() => {
     cargar()
   }, [cargar])
 
-  // Sincronización en vivo: polling cada 7 s + revalidación al enfocar la
-  // ventana. Las deudas pasan solas de pendiente a en_revision/cancelado.
+  // Sincronización en vivo cada 7 segundos
   useRefrescoEstadisticas(() => cargar(true), { intervaloMs: 7000 })
 
   const alReportar = async (datos) => {
     await deudasService.reportarPago(datos)
     setDeudaSeleccionada(null)
-    setExito('Pago reportado. Tesorería revisará el comprobante y confirmará la cancelación.')
+    setExito('Pago o abono reportado. Tesorería revisará el comprobante.')
     await cargar(true)
   }
 
-  const pendientes = deudas.filter((d) => d.estado !== 'cancelado')
+  const toggleHistorial = (id) => {
+    setHistorialExpandido((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
 
   return (
     <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -105,7 +115,7 @@ export default function MisDeudas() {
           Mis Deudas y Aportes
         </h2>
         <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-          Multas del Anexo I y aportes del Anexo II emitidos a su cuenta. Reporte el pago
+          Multas del Anexo I y aportes del Anexo II emitidos a su cuenta. Reporte el pago o abono
           con su comprobante para que Tesorería lo apruebe.
         </p>
       </div>
@@ -116,7 +126,7 @@ export default function MisDeudas() {
             { etiqueta: 'Pendientes', valor: String(totales.pendientes ?? 0), color: 'text-amber-600 dark:text-amber-400' },
             { etiqueta: 'En revisión', valor: String(totales.enRevision ?? 0), color: 'text-sky-600 dark:text-sky-400' },
             { etiqueta: 'Monto pendiente', valor: formatearMonto(totales.montoPendiente), color: 'text-rose-600 dark:text-rose-400' },
-            { etiqueta: 'Canceladas', valor: String(totales.canceladas ?? 0), color: 'text-emerald-600 dark:text-emerald-400' },
+            { etiqueta: 'Pagadas / Canceladas', valor: String(totales.canceladas ?? 0), color: 'text-emerald-600 dark:text-emerald-400' },
           ].map((item) => (
             <div
               key={item.etiqueta}
@@ -145,28 +155,58 @@ export default function MisDeudas() {
         </div>
       )}
 
-      {/* Filtro por estado */}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 mr-1">Filtrar por estado:</span>
-        {[
-          { id: '', etiqueta: 'Todos' },
-          { id: 'pendiente', etiqueta: 'Pendientes' },
-          { id: 'en_revision', etiqueta: 'En revisión' },
-          { id: 'cancelado', etiqueta: 'Canceladas' },
-        ].map((opcion) => (
-          <button
-            key={opcion.id}
-            type="button"
-            onClick={() => setFiltroEstado(opcion.id)}
-            className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
-              filtroEstado === opcion.id
-                ? 'bg-[#48B3AF] text-white font-bold shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-            }`}
-          >
-            {opcion.etiqueta}
-          </button>
-        ))}
+      {/* BARRAS DE FILTROS REQUERIDAS */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3.5 space-y-3">
+        {/* 1. Filtro de Categoría */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 min-w-[70px]">
+            Categoría:
+          </span>
+          {[
+            { id: '', etiqueta: 'Todas' },
+            { id: deudasService.TIPO_DEUDA_MULTA, etiqueta: 'Multas (Anexo I)' },
+            { id: deudasService.TIPO_DEUDA_APORTE, etiqueta: 'Aportes (Anexo II)' },
+          ].map((opcion) => (
+            <button
+              key={opcion.id}
+              type="button"
+              onClick={() => setFiltroCategoria(opcion.id)}
+              className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
+                filtroCategoria === opcion.id
+                  ? 'bg-amber-600 text-white font-bold shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {opcion.etiqueta}
+            </button>
+          ))}
+        </div>
+
+        {/* 2. Filtro de Estado */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+          <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 min-w-[70px]">
+            Estado:
+          </span>
+          {[
+            { id: '', etiqueta: 'Todas' },
+            { id: 'pendiente', etiqueta: 'Pendientes' },
+            { id: 'en_revision', etiqueta: 'En revisión' },
+            { id: 'cancelado', etiqueta: 'Pagadas / Canceladas' },
+          ].map((opcion) => (
+            <button
+              key={opcion.id}
+              type="button"
+              onClick={() => setFiltroEstado(opcion.id)}
+              className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
+                filtroEstado === opcion.id
+                  ? 'bg-[#48B3AF] text-white font-bold shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {opcion.etiqueta}
+            </button>
+          ))}
+        </div>
       </div>
 
       {cargando ? (
@@ -179,10 +219,12 @@ export default function MisDeudas() {
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-10 text-center space-y-2">
           <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500" />
           <p className="font-display font-semibold text-sm text-[#0D0B61] dark:text-white">
-            No tiene deudas ni aportes pendientes
+            No se encontraron deudas ni aportes con los filtros aplicados
           </p>
           <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-            Su cuenta está al día con Tesorería y Caja Chica.
+            {filtroEstado === 'cancelado'
+              ? 'No tiene registros pagados en esta categoría.'
+              : 'Su cuenta está al día con Tesorería y Caja Chica.'}
           </p>
         </div>
       ) : (
@@ -190,76 +232,181 @@ export default function MisDeudas() {
           {deudas.map((deuda) => {
             const estado = ESTADO_DEUDA[deuda.estado] || ESTADO_DEUDA.pendiente
             const esAporte = deuda.tipo === deudasService.TIPO_DEUDA_APORTE
+            const saldo = deuda.saldoPendiente !== undefined ? deuda.saldoPendiente : deuda.monto
+            const pagado = deuda.montoPagado || 0
+
             return (
               <article
                 key={deuda.id}
-                className="rounded-2xl border border-[#294669]/15 dark:border-[#294669]/40 bg-white/92 dark:bg-[#0D0B61]/85 p-4 md:p-5"
+                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 md:p-5 shadow-sm"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <span className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-[#48B3AF]">
                         {esAporte ? <Receipt className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                        {deudasService.ETIQUETA_TIPO_DEUDA[deuda.tipo] || deuda.tipo}
+                        {deudasService.ETIQUETA_TIPO_DEUDA[deuda.tipo] || deuda.tipo} · #{deuda.id}
                       </span>
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${estado.clases}`}>
                         {estado.texto}
                       </span>
                     </div>
-                    <h3 className="font-display font-semibold text-sm text-[#0D0B61] dark:text-white leading-snug">
+
+                    <h3 className="font-display font-semibold text-sm text-slate-900 dark:text-white leading-snug">
                       {deuda.concepto}
                     </h3>
-                    <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE] mt-1">
+                    <p className="font-mono text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                       Emitida el {formatearFecha(deuda.fechaEmision)}
-                      {deuda.estado === 'cancelado' && deuda.fechaPago
-                        ? ` · Cancelada el ${formatearFecha(deuda.fechaPago)}`
-                        : ''}
+                      {deuda.fechaPago && ` · Pagada el ${formatearFecha(deuda.fechaPago)}`}
                     </p>
-                    {deuda.nroComprobante && (
-                      <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE] mt-0.5">
-                        Comprobante: {deuda.nroComprobante}
-                        {deuda.comprobanteUrl && (
-                          <a
-                            href={deuda.comprobanteUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 ml-2 text-[#48B3AF] hover:underline"
-                          >
-                            Ver adjunto <ExternalLink className="w-3 h-3" />
-                          </a>
+
+                    {/* Desglose de Saldos y Pagos Parciales */}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-3 font-mono text-xs">
+                      <span className="text-slate-700 dark:text-slate-300">
+                        Total: <strong>{formatearMonto(deuda.monto)}</strong>
+                      </span>
+                      {pagado > 0 && (
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          Abonado: <strong>{formatearMonto(pagado)}</strong>
+                        </span>
+                      )}
+                      {deuda.estado !== 'cancelado' && (
+                        <span className="text-rose-600 dark:text-rose-400">
+                          Saldo pendiente: <strong>{formatearMonto(saldo)}</strong>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Datos de Comprobante / Miniatura con Vista Previa */}
+                    {(deuda.nroComprobante || deuda.comprobanteUrl || deuda.metodoPago) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        {deuda.metodoPago && (
+                          <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                            Método: <strong>{deuda.metodoPago}</strong>
+                          </span>
                         )}
-                      </p>
+                        {deuda.nroComprobante && (
+                          <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                            N° Recibo/Comp: <strong>{deuda.nroComprobante}</strong>
+                          </span>
+                        )}
+
+                        {/* Miniatura de imagen / PDF con Lightbox */}
+                        {deuda.comprobanteUrl && (
+                          <div className="flex items-center gap-2">
+                            {deuda.comprobanteUrl.toLowerCase().includes('.pdf') ? (
+                              <button
+                                type="button"
+                                onClick={() => setComprobanteModalUrl(deuda.comprobanteUrl)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs font-mono text-[#48B3AF] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Ver PDF
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setComprobanteModalUrl(deuda.comprobanteUrl)}
+                                className="group relative flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 p-1 hover:border-[#48B3AF] transition-colors"
+                                title="Haga clic para ampliar el comprobante"
+                              >
+                                <img
+                                  src={deuda.comprobanteUrl}
+                                  alt="Comprobante"
+                                  className="h-9 w-9 object-cover rounded"
+                                />
+                                <span className="font-mono text-[10px] text-[#48B3AF] flex items-center gap-0.5 pr-1">
+                                  <Eye className="w-3 h-3" /> Ampliar
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Historial de Abonos si existen */}
+                    {deuda.abonos && deuda.abonos.length > 0 && (
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleHistorial(deuda.id)}
+                          className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-400 hover:text-[#48B3AF]"
+                        >
+                          {historialExpandido[deuda.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          Historial de abonos ({deuda.abonos.length})
+                        </button>
+
+                        {historialExpandido[deuda.id] && (
+                          <div className="mt-2 space-y-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 p-2.5 border border-slate-200 dark:border-slate-800">
+                            {deuda.abonos.map((ab) => (
+                              <div
+                                key={ab.id}
+                                className="flex flex-wrap items-center justify-between text-xs py-1 border-b border-slate-200/50 dark:border-slate-700 last:border-none"
+                              >
+                                <span className="font-mono text-slate-600 dark:text-slate-400">
+                                  {formatearFecha(ab.creadoEn)} · {ab.metodoPago}
+                                  {ab.nroComprobante ? ` (Comp: ${ab.nroComprobante})` : ''}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                    {formatearMonto(ab.monto)}
+                                  </span>
+                                  {ab.comprobanteUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setComprobanteModalUrl(ab.comprobanteUrl)}
+                                      className="text-[#48B3AF] hover:underline text-[10px] font-mono"
+                                    >
+                                      [Ver foto]
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
+                  {/* Columna Derecha: Monto y Botón Reportar Pago */}
                   <div className="text-right shrink-0">
-                    <p className="font-display font-bold text-lg text-[#0D0B61] dark:text-white">
+                    <p className="font-display font-bold text-base text-slate-900 dark:text-white">
                       {formatearMonto(deuda.monto)}
                     </p>
+                    {deuda.estado !== 'cancelado' && saldo < deuda.monto && (
+                      <p className="font-mono text-[10px] text-rose-500 font-semibold">
+                        Saldo: {formatearMonto(saldo)}
+                      </p>
+                    )}
+
                     {deuda.estado === 'pendiente' && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setExito(null)
-                          setDeudaSeleccionada(deuda)
-                        }}
-                        className="mt-2 inline-flex items-center gap-1.5 font-display font-semibold text-xs px-3 py-1.5 rounded-lg text-white transition-all hover:scale-[1.02]"
+                        onClick={() => setDeudaSeleccionada(deuda)}
+                        className="mt-3 inline-flex items-center gap-1.5 font-display font-semibold text-xs px-3.5 py-1.5 rounded-lg text-white shadow-sm transition-all hover:scale-[1.02]"
                         style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
                       >
-                        <FileUp className="w-3.5 h-3.5" /> Reportar pago
+                        <FileUp className="w-3.5 h-3.5" />
+                        Reportar pago / abono
                       </button>
                     )}
+
                     {deuda.estado === 'en_revision' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExito(null)
-                          setDeudaSeleccionada(deuda)
-                        }}
-                        className="mt-2 inline-flex items-center gap-1.5 font-display font-semibold text-xs px-3 py-1.5 rounded-lg border border-sky-500/40 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 transition-colors"
-                      >
-                        <Clock3 className="w-3.5 h-3.5" /> Actualizar comprobante
-                      </button>
+                      <div className="mt-3 space-y-1">
+                        <span className="inline-flex items-center gap-1 font-mono text-[10px] text-sky-600 dark:text-sky-400">
+                          <Clock3 className="w-3 h-3" /> En verificación
+                        </span>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setDeudaSeleccionada(deuda)}
+                            className="font-mono text-[10px] text-[#48B3AF] hover:underline"
+                          >
+                            Reenviar / abonar más
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -269,19 +416,23 @@ export default function MisDeudas() {
         </div>
       )}
 
-      {pendientes.length > 0 && (
-        <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]/70">
-          El plazo para el pago de toda multa es de quince (15) días calendario desde la
-          notificación, conforme al Art. 73 del Reglamento Interno.
-        </p>
-      )}
-
+      {/* Modal para reportar pago o abono */}
       <AnimatePresence>
         {deudaSeleccionada && (
-          <ModalReportarPago
+          <ModalReporte
             deuda={deudaSeleccionada}
             onCerrar={() => setDeudaSeleccionada(null)}
             onEnviar={alReportar}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Modal Lightbox para ver foto del comprobante ampliada */}
+      <AnimatePresence>
+        {comprobanteModalUrl && (
+          <ModalVisorComprobante
+            url={comprobanteModalUrl}
+            onClose={() => setComprobanteModalUrl(null)}
           />
         )}
       </AnimatePresence>
@@ -289,28 +440,90 @@ export default function MisDeudas() {
   )
 }
 
-/* -------------------------------------------------------------------------- */
-/* Modal de reporte de pago                                                    */
-/* -------------------------------------------------------------------------- */
+/** Modal Lightbox para ampliar comprobante */
+function ModalVisorComprobante({ url, onClose }) {
+  if (!url) return null
+  const esPdf = url.toLowerCase().includes('.pdf')
 
-function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
-  const [metodoPago, setMetodoPago] = useState(deuda.metodoPago || 'efectivo')
-  const [nroComprobante, setNroComprobante] = useState(deuda.nroComprobante || '')
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-h-[92vh] max-w-3xl w-full rounded-2xl bg-white dark:bg-slate-900 p-4 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-full flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <span className="font-display font-bold text-sm text-slate-900 dark:text-white">
+            Comprobante de Pago
+          </span>
+          <div className="flex items-center gap-2">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-mono text-xs text-[#48B3AF] hover:underline px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800"
+            >
+              Abrir original <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="mt-4 w-full flex justify-center overflow-auto max-h-[75vh]">
+          {esPdf ? (
+            <iframe src={url} className="w-full h-[65vh] rounded-lg border border-slate-200" title="PDF Comprobante" />
+          ) : (
+            <img src={url} alt="Comprobante de pago" className="max-h-[70vh] object-contain rounded-lg shadow" />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Modal para reportar pago parcial o total con foto de comprobante */
+function ModalReporte({ deuda, onCerrar, onEnviar }) {
+  const saldoPendiente = deuda.saldoPendiente !== undefined && deuda.saldoPendiente > 0
+    ? deuda.saldoPendiente
+    : deuda.monto
+
+  const [montoAbono, setMontoAbono] = useState(String(saldoPendiente))
+  const [metodoPago, setMetodoPago] = useState('qr')
+  const [nroComprobante, setNroComprobante] = useState('')
   const [archivo, setArchivo] = useState(null)
+  const [vistaPrevia, setVistaPrevia] = useState(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState(null)
 
-  const enviar = async (e) => {
-    e.preventDefault()
-    if (enviando) return
-    setError(null)
-
-    if (!metodoPago) {
-      setError('Seleccione el método de pago.')
+  const manejarArchivo = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setArchivo(null)
+      setVistaPrevia(null)
       return
     }
-    if (archivo && archivo.size > 5 * 1024 * 1024) {
-      setError('El comprobante debe pesar como máximo 5 MB.')
+    setArchivo(file)
+    if (file.type.startsWith('image/')) {
+      setVistaPrevia(URL.createObjectURL(file))
+    } else {
+      setVistaPrevia('pdf')
+    }
+  }
+
+  const enviar = async (e) => {
+    e.preventDefault()
+    setError(null)
+    const abonoNum = Number(montoAbono)
+    if (!Number.isFinite(abonoNum) || abonoNum <= 0) {
+      setError('Indique un monto a abonar mayor a 0.')
       return
     }
 
@@ -319,12 +532,12 @@ function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
       await onEnviar({
         deudaId: deuda.id,
         metodoPago,
-        nroComprobante: nroComprobante.trim(),
+        montoAbono: abonoNum,
+        nroComprobante: nroComprobante.trim() || undefined,
         archivo,
       })
     } catch (err) {
       setError(err?.message || 'No se pudo reportar el pago.')
-    } finally {
       setEnviando(false)
     }
   }
@@ -334,26 +547,22 @@ function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar()
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
     >
       <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 12, scale: 0.98 }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="titulo-reportar-pago"
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[#294669]/20 dark:border-[#294669]/50 bg-white dark:bg-[#0D0B61] p-5 md:p-6 shadow-2xl"
+        initial={{ scale: 0.95, y: 10 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 10 }}
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-2xl"
       >
         <div className="flex items-start justify-between gap-3 mb-4">
           <div>
-            <h3 id="titulo-reportar-pago" className="font-display font-bold text-base text-[#0D0B61] dark:text-white">
-              Reportar pago
+            <h3 className="font-display font-bold text-base text-slate-900 dark:text-white">
+              Reportar pago o abono
             </h3>
-            <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE] mt-1">
+            <p className="font-mono text-[10px] text-slate-500 dark:text-slate-400 mt-1">
               {deuda.concepto}
             </p>
           </div>
@@ -361,31 +570,61 @@ function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar"
-            className="w-8 h-8 rounded-full border border-[#294669]/25 dark:border-[#476EAE]/50 flex items-center justify-center text-[#294669] dark:text-[#48B3AF] hover:bg-[#294669]/10"
+            className="w-8 h-8 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="rounded-xl border border-[#48B3AF]/30 bg-[#48B3AF]/8 px-4 py-3 mb-4 flex items-center justify-between gap-3">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-[#294669]/70 dark:text-[#476EAE]">
-            Monto a pagar
-          </span>
-          <span className="font-display font-bold text-lg text-[#0D0B61] dark:text-white">
-            {formatearMonto(deuda.monto)}
-          </span>
+        {/* Resumen de saldo */}
+        <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 mb-4 flex items-center justify-between gap-3">
+          <div>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+              Saldo pendiente total
+            </span>
+            <span className="font-display font-bold text-base text-amber-700 dark:text-amber-300">
+              {formatearMonto(saldoPendiente)}
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="font-mono text-[10px] text-slate-500 block">Total deuda</span>
+            <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
+              {formatearMonto(deuda.monto)}
+            </span>
+          </div>
         </div>
 
         <form onSubmit={enviar} className="space-y-4">
+          {/* Campo Monto a Abonar */}
           <div>
-            <label htmlFor="metodo-pago" className="font-display font-semibold text-[#294669] dark:text-[#48B3AF] text-[11px] tracking-widest block mb-1.5">
+            <label htmlFor="monto-abono" className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+              MONTO A ABONAR (Bs.) *
+            </label>
+            <input
+              id="monto-abono"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max={saldoPendiente}
+              value={montoAbono}
+              onChange={(e) => setMontoAbono(e.target.value)}
+              className="w-full rounded-xl px-3 py-2.5 font-mono text-sm text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#48B3AF]"
+              required
+            />
+            <p className="font-mono text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+              Puede pagar la totalidad o ingresar un abono parcial menor.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="metodo-pago" className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
               MÉTODO DE PAGO
             </label>
             <select
               id="metodo-pago"
               value={metodoPago}
               onChange={(e) => setMetodoPago(e.target.value)}
-              className="w-full rounded-lg px-3 py-2.5 font-mono text-sm text-[#0D0B61] dark:text-white bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55 focus:outline-none focus:border-[#48B3AF]"
+              className="w-full rounded-xl px-3 py-2.5 font-mono text-sm text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#48B3AF]"
             >
               {deudasService.METODOS_PAGO.map((metodo) => (
                 <option key={metodo.id} value={metodo.id}>
@@ -395,19 +634,25 @@ function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
             </select>
           </div>
 
+          {/* Tarjeta de QR con marco blanco fijo estático */}
           {(metodoPago === 'qr' || metodoPago === 'transferencia') && (
-            <div className="rounded-xl border border-[#294669]/15 dark:border-[#294669]/40 bg-slate-50 dark:bg-[#294669]/25 p-3 flex items-center gap-3">
-              <img src={qrCobro} alt="QR para el pago" className="w-20 h-20 rounded-lg bg-white p-1 shrink-0" />
-              <p className="font-mono text-[10px] leading-relaxed text-[#294669]/80 dark:text-[#476EAE]">
-                Escanee el QR o realice la transferencia y luego adjunte el comprobante.
-                Tesorería validará el monto antes de cancelar la deuda.
+            <div className="rounded-2xl border border-amber-400/40 bg-white dark:bg-slate-800/80 p-3.5 flex flex-col items-center gap-2">
+              <div className="w-full flex justify-center py-1">
+                <img
+                  src={qrCobro}
+                  alt="QR para el pago"
+                  className="bg-white p-2.5 rounded-2xl shadow-md border border-slate-200 w-48 h-48 mx-auto object-contain"
+                />
+              </div>
+              <p className="font-mono text-[10px] text-center text-slate-600 dark:text-slate-300">
+                Escanee el QR o realice la transferencia bancaria y adjunte la foto de su comprobante a continuación.
               </p>
             </div>
           )}
 
           <div>
-            <label htmlFor="nro-comprobante" className="font-display font-semibold text-[#294669] dark:text-[#48B3AF] text-[11px] tracking-widest block mb-1.5">
-              N° DE COMPROBANTE (OPCIONAL)
+            <label htmlFor="nro-comprobante" className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+              N° DE COMPROBANTE / TRANSACCIÓN (OPCIONAL)
             </label>
             <input
               id="nro-comprobante"
@@ -415,24 +660,33 @@ function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
               maxLength={100}
               value={nroComprobante}
               onChange={(e) => setNroComprobante(e.target.value)}
-              placeholder="Ej. 00012345"
-              className="w-full rounded-lg px-3 py-2.5 font-mono text-sm text-[#0D0B61] dark:text-white placeholder-[#294669]/40 dark:placeholder-[#476EAE] bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55 focus:outline-none focus:border-[#48B3AF]"
+              placeholder="Ej. TRANS-987456321"
+              className="w-full rounded-xl px-3 py-2.5 font-mono text-sm text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#48B3AF]"
             />
           </div>
 
+          {/* Subida de archivo de imagen/PDF */}
           <div>
-            <label htmlFor="comprobante" className="font-display font-semibold text-[#294669] dark:text-[#48B3AF] text-[11px] tracking-widest block mb-1.5">
-              FOTO O PDF DEL COMPROBANTE (OPCIONAL)
+            <label htmlFor="comprobante" className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+              FOTO O CAPTURA DEL COMPROBANTE (RECOMENDADO)
             </label>
             <input
               id="comprobante"
               type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={(e) => setArchivo(e.target.files?.[0] || null)}
-              className="w-full font-mono text-[11px] text-[#294669] dark:text-[#476EAE] file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:font-display file:font-semibold file:text-xs file:text-white file:cursor-pointer file:bg-[#294669] dark:file:bg-[#48B3AF] dark:file:text-[#0D0B61]"
+              accept="image/*,application/pdf"
+              onChange={manejarArchivo}
+              className="w-full font-mono text-xs text-slate-700 dark:text-slate-300 file:mr-3 file:px-3 file:py-2 file:rounded-xl file:border-0 file:font-display file:font-semibold file:text-xs file:text-white file:cursor-pointer file:bg-[#48B3AF] hover:file:opacity-90"
             />
-            <p className="font-mono text-[9px] text-[#294669]/60 dark:text-[#476EAE]/70 mt-1">
-              JPG, PNG, WEBP o PDF. Máximo 5 MB.
+            {vistaPrevia && vistaPrevia !== 'pdf' && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={vistaPrevia} alt="Vista previa" className="h-12 w-12 rounded-lg object-cover border border-slate-200" />
+                <span className="font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                  {archivo?.name}
+                </span>
+              </div>
+            )}
+            <p className="font-mono text-[9px] text-slate-500 dark:text-slate-400 mt-1">
+              Admite fotos JPG, PNG, WEBP o documentos PDF hasta 5 MB.
             </p>
           </div>
 
@@ -442,19 +696,18 @@ function ModalReportarPago({ deuda, onCerrar, onEnviar }) {
             </p>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-1">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onCerrar}
-              className="font-display font-semibold text-sm px-4 py-2 rounded-lg border border-[#294669]/25 dark:border-[#476EAE]/50 text-[#294669] dark:text-[#48B3AF] hover:bg-[#294669]/10 transition-colors"
+              className="font-display font-semibold text-sm px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={enviando}
-              className="inline-flex items-center gap-2 font-display font-semibold text-sm px-4 py-2 rounded-lg text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-              style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
+              className="inline-flex items-center gap-2 font-display font-semibold text-sm px-5 py-2 rounded-xl text-white shadow-sm transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 bg-[#48B3AF] hover:bg-[#3ba09c]"
             >
               <FileUp className="w-4 h-4" />
               {enviando ? 'Enviando…' : 'Enviar reporte'}

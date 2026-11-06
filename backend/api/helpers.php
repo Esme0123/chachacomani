@@ -356,3 +356,80 @@ function ipVisitante(): string
     $ip = filter_var(trim($ip), FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6);
     return $ip !== false ? $ip : '0.0.0.0';
 }
+
+/**
+ * Guarda un archivo de comprobante subido en `uploads/comprobantes/`.
+ * Admite imágenes JPG, PNG, WEBP y documentos PDF de hasta 5 MB.
+ * Devuelve la URL accesible absoluta o relativa del archivo, o null si no se adjuntó ninguno.
+ *
+ * @param array $archivo Elemento de $_FILES (ej. $_FILES['comprobante'])
+ * @param string $prefijo Prefijo del nombre generado
+ * @return string|null
+ */
+function guardarArchivoComprobante(array $archivo, string $prefijo = 'comprobante'): ?string
+{
+    $error = $archivo['error'] ?? UPLOAD_ERR_NO_FILE;
+    if ($error === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if ($error !== UPLOAD_ERR_OK) {
+        jsonError('No se pudo subir el archivo de comprobante. Intente nuevamente.', 400);
+    }
+
+    $size = (int) ($archivo['size'] ?? 0);
+    if ($size <= 0 || $size > 5 * 1024 * 1024) {
+        jsonError('El archivo de comprobante no debe superar los 5 MB.', 400);
+    }
+
+    $mime = '';
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo !== false) {
+            $mime = (string) finfo_file($finfo, (string) $archivo['tmp_name']);
+            finfo_close($finfo);
+        }
+    }
+    if ($mime === '') {
+        $porExtension = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'pdf' => 'application/pdf',
+        ];
+        $ext = strtolower(pathinfo((string) ($archivo['name'] ?? ''), PATHINFO_EXTENSION));
+        $mime = $porExtension[$ext] ?? '';
+    }
+
+    $extensiones = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'application/pdf' => 'pdf',
+    ];
+    if (!isset($extensiones[$mime])) {
+        jsonError('Formato no admitido. Adjunte una imagen (JPG, PNG, WEBP) o un PDF.', 400);
+    }
+
+    $directorio = dirname(__DIR__) . '/uploads/comprobantes';
+    if (!is_dir($directorio) && !mkdir($directorio, 0755, true) && !is_dir($directorio)) {
+        error_log('guardarArchivoComprobante: no se pudo crear ' . $directorio);
+        jsonError('No se pudo preparar el directorio de almacenamiento.', 500);
+    }
+
+    $nombre = $prefijo . '_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $extensiones[$mime];
+    $destino = $directorio . '/' . $nombre;
+
+    if (!move_uploaded_file((string) $archivo['tmp_name'], $destino)) {
+        error_log('guardarArchivoComprobante: no se pudo mover a ' . $destino);
+        jsonError('No se pudo guardar el archivo del comprobante.', 500);
+    }
+
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/api/deudas.php'));
+    $base = rtrim(str_replace('\\', '/', dirname(dirname($script))), '/');
+    return ($https ? 'https' : 'http') . '://' . $host . $base
+        . '/uploads/comprobantes/' . rawurlencode($nombre);
+}

@@ -72,77 +72,33 @@ if ($deuda['estado'] === 'cancelado') {
 }
 
 /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
 /* Comprobante (opcional)                                                      */
 /* -------------------------------------------------------------------------- */
 
 $comprobanteUrl = null;
 if (isset($_FILES['comprobante']) && is_array($_FILES['comprobante'])) {
-    $archivo = $_FILES['comprobante'];
-
-    if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-        if (($archivo['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            jsonError('No se pudo subir el comprobante. Intente nuevamente.', 400);
-        }
-        if ((int) ($archivo['size'] ?? 0) <= 0 || (int) $archivo['size'] > 5 * 1024 * 1024) {
-            jsonError('El comprobante debe pesar como máximo 5 MB.', 400);
-        }
-
-        $mime = '';
-        if (function_exists('finfo_open')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            if ($finfo !== false) {
-                $mime = (string) finfo_file($finfo, (string) $archivo['tmp_name']);
-                finfo_close($finfo);
-            }
-        }
-        if ($mime === '') {
-            // Hosting sin fileinfo: se valida por extensión y el .htaccess
-            // impide que cualquier archivo se ejecute como código.
-            $porExtension = [
-                'jpg' => 'image/jpeg',
-                'jpeg' => 'image/jpeg',
-                'png' => 'image/png',
-                'webp' => 'image/webp',
-                'pdf' => 'application/pdf',
-            ];
-            $extension = strtolower(pathinfo((string) ($archivo['name'] ?? ''), PATHINFO_EXTENSION));
-            $mime = $porExtension[$extension] ?? '';
-        }
-
-        $extensiones = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            'application/pdf' => 'pdf',
-        ];
-        if (!isset($extensiones[$mime])) {
-            jsonError('Formato no admitido. Adjunte una imagen JPG/PNG/WEBP o un PDF.', 400);
-        }
-
-        $directorio = __DIR__ . '/../uploads/comprobantes';
-        if (!is_dir($directorio) && !mkdir($directorio, 0755, true) && !is_dir($directorio)) {
-            error_log('notificar_pago: no se pudo crear ' . $directorio);
-            jsonError('No se pudo preparar la carpeta de comprobantes.', 500);
-        }
-
-        $nombreArchivo = 'comprobante_' . $deudaId . '_' . bin2hex(random_bytes(8))
-            . '.' . $extensiones[$mime];
-        $destino = $directorio . '/' . $nombreArchivo;
-
-        if (!move_uploaded_file((string) $archivo['tmp_name'], $destino)) {
-            error_log('notificar_pago: no se pudo mover el archivo a ' . $destino);
-            jsonError('No se pudo guardar el comprobante.', 500);
-        }
-
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
-        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-        $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? '/api/notificar_pago.php'));
-        $base = rtrim(str_replace('\\', '/', dirname(dirname($script))), '/');
-        $comprobanteUrl = ($https ? 'https' : 'http') . '://' . $host . $base
-            . '/uploads/comprobantes/' . rawurlencode($nombreArchivo);
-    }
+    $comprobanteUrl = guardarArchivoComprobante($_FILES['comprobante'], 'comprobante_' . $deudaId);
 }
+
+/* -------------------------------------------------------------------------- */
+/* Monto del abono / pago reportado                                           */
+/* -------------------------------------------------------------------------- */
+
+$montoTotal = (float) $deuda['monto'];
+$montoYaPagado = isset($deuda['monto_pagado']) ? (float) $deuda['monto_pagado'] : 0.0;
+$saldoActual = isset($deuda['saldo_pendiente']) && (float) $deuda['saldo_pendiente'] > 0
+    ? (float) $deuda['saldo_pendiente']
+    : max(0.0, $montoTotal - $montoYaPagado);
+
+$montoAbono = isset($_POST['monto_abono']) && trim((string) $_POST['monto_abono']) !== ''
+    ? (float) str_replace(',', '.', (string) $_POST['monto_abono'])
+    : $saldoActual;
+
+if ($montoAbono <= 0) {
+    $montoAbono = $saldoActual;
+}
+$montoAbono = min($montoAbono, $saldoActual > 0 ? $saldoActual : $montoTotal);
 
 /* -------------------------------------------------------------------------- */
 /* Actualización y avisos                                                      */
@@ -152,19 +108,59 @@ $pdo = db();
 try {
     $pdo->beginTransaction();
 
-    $pdo->prepare(
-        'UPDATE `deudas_multas`
-            SET `estado` = \'en_revision\',
-                `metodo_pago` = :metodo,
-                `nro_comprobante` = :nro,
-                `comprobante_url` = COALESCE(:comprobante_url, `comprobante_url`)
-          WHERE `id` = :id'
-    )->execute([
-        ':metodo' => $metodoPago,
-        ':nro' => $nroComprobante !== '' ? $nroComprobante : null,
-        ':comprobante_url' => $comprobanteUrl,
-        ':id' => $deudaId,
-    ]);
+    if (tablaTieneColumna('abonos_deudas', 'id')) {
+        $pdo->prepare(
+            'INSERT INTO `abonos_deudas`
+                (`deuda_id`, `monto`, `metodo_pago`, `nro_comprobante`, `comprobante_url`, `observaciones`, `registrado_por`)
+             VALUES
+                (:deuda_id, :monto, :metodo, :nro, :url, :obs, :reg)'
+        )->execute([
+            ':deuda_id' => $deudaId,
+            ':monto' => $montoAbono,
+            ':metodo' => $metodoPago,
+            ':nro' => $nroComprobante !== '' ? $nroComprobante : null,
+            ':url' => $comprobanteUrl,
+            ':obs' => 'Abono reportado por el socio.',
+            ':reg' => (int) $usuario['id'],
+        ]);
+    }
+
+    $nuevoPagado = round($montoYaPagado + $montoAbono, 2);
+    $nuevoSaldo = max(0.0, round($montoTotal - $nuevoPagado, 2));
+
+    if (tablaTieneColumna('deudas_multas', 'monto_pagado')) {
+        $pdo->prepare(
+            'UPDATE `deudas_multas`
+                SET `estado` = \'en_revision\',
+                    `monto_pagado` = :pagado,
+                    `saldo_pendiente` = :saldo,
+                    `metodo_pago` = :metodo,
+                    `nro_comprobante` = :nro,
+                    `comprobante_url` = COALESCE(:comprobante_url, `comprobante_url`)
+              WHERE `id` = :id'
+        )->execute([
+            ':pagado' => $nuevoPagado,
+            ':saldo' => $nuevoSaldo,
+            ':metodo' => $metodoPago,
+            ':nro' => $nroComprobante !== '' ? $nroComprobante : null,
+            ':comprobante_url' => $comprobanteUrl,
+            ':id' => $deudaId,
+        ]);
+    } else {
+        $pdo->prepare(
+            'UPDATE `deudas_multas`
+                SET `estado` = \'en_revision\',
+                    `metodo_pago` = :metodo,
+                    `nro_comprobante` = :nro,
+                    `comprobante_url` = COALESCE(:comprobante_url, `comprobante_url`)
+              WHERE `id` = :id'
+        )->execute([
+            ':metodo' => $metodoPago,
+            ':nro' => $nroComprobante !== '' ? $nroComprobante : null,
+            ':comprobante_url' => $comprobanteUrl,
+            ':id' => $deudaId,
+        ]);
+    }
 
     $detalleComprobante = $nroComprobante !== ''
         ? ' Comprobante: ' . $nroComprobante . '.'
@@ -173,8 +169,8 @@ try {
         $pdo,
         [ROL_TESORERO, ROL_CAJA_CHICA, ROL_ADMIN],
         'Pago reportado por ' . $deuda['socio_nombre'],
-        'El socio ' . $deuda['socio_nombre'] . ' reportó el pago de Bs. '
-        . number_format((float) $deuda['monto'], 2, '.', '')
+        'El socio ' . $deuda['socio_nombre'] . ' reportó un pago de Bs. '
+        . number_format($montoAbono, 2, '.', '')
         . ' por «' . $deuda['concepto'] . '» mediante ' . $metodoPago
         . '.' . $detalleComprobante . ' Revise la bandeja de «Pagos reportados».'
     );
@@ -183,6 +179,10 @@ try {
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
+    }
+    error_log('notificar_pago POST: ' . $e->getMessage());
+    jsonError('No se pudo reportar el pago.', 500);
+}
     }
     error_log('notificar_pago POST: ' . $e->getMessage());
     jsonError('No se pudo reportar el pago.', 500);

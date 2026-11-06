@@ -319,7 +319,6 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
                   {[
                     { etiqueta: 'Ver / Editar Datos de Perfil', destino: 'perfil' },
                     { etiqueta: 'Cambiar Contraseña', destino: 'password' },
-                    { etiqueta: 'Revisar mis Multas', destino: 'multas' },
                     { etiqueta: 'Mis Deudas y Aportes', destino: 'deudas' },
                   ].map(item => (
                     <button

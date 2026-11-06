@@ -113,6 +113,20 @@ export async function registrarCobroGrupal(datos) {
         }
   );
 
+  if (datos.archivo) {
+    const formData = new FormData();
+    formData.append('socio_id', String(datos.socioId));
+    if (datos.fechaCobro) formData.append('fecha_cobro', datos.fechaCobro);
+    if (datos.observaciones) formData.append('observaciones', datos.observaciones);
+    if (datos.conceptoCobro) formData.append('concepto_cobro', datos.conceptoCobro);
+    if (datos.metodoPago) formData.append('metodo_pago', datos.metodoPago);
+    if (datos.nroComprobante) formData.append('nro_comprobante', datos.nroComprobante);
+    formData.append('items', JSON.stringify(items));
+    formData.append('comprobante', datos.archivo);
+
+    return peticion('cobros', { metodo: 'POST', formData });
+  }
+
   return peticion('cobros', {
     metodo: 'POST',
     cuerpo: {

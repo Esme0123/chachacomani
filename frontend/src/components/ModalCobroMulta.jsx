@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion'
-import { X, Save, Receipt, AlertTriangle } from 'lucide-react'
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Save, Receipt, AlertTriangle, Upload, Eye, FileText, CheckCircle2 } from 'lucide-react'
 import qrCobro from '../assets/qr-cobro.svg'
 
 function formatearMonto(monto) {
@@ -10,27 +11,52 @@ function formatearMonto(monto) {
 
 /**
  * Modal compartido para cobro inmediato o emisión de deuda pendiente
- * para Multas (Anexo I) y Aportes (Anexo II).
- * Utilizado con idéntico flujo en TesoreriaView y CajaChicaView.
+ * para Multas (Anexo I) y Aportes (Anexo II), individual o en lote (carrito).
  */
 export default function ModalCobroMulta({
-  seleccion,
-  socioElegido,
+  seleccion = null,
+  items = [],
+  socioElegido = null,
   estadoSeleccion = 'pendiente',
   metodoPago = 'efectivo',
   comprobante = '',
+  archivoComprobante = null,
   guardando = false,
   error = null,
   onClose,
   onEstadoChange,
   onMetodoPagoChange,
   onComprobanteChange,
+  onArchivoChange,
   onConfirmar,
   modulo = 'Tesorería',
 }) {
-  if (!seleccion) return null
+  const listaItems = items && items.length > 0
+    ? items
+    : seleccion
+    ? [seleccion]
+    : []
 
-  const esMulta = seleccion.tipo === 'multa'
+  if (listaItems.length === 0 && !seleccion) return null
+
+  const montoTotal = listaItems.reduce((sum, it) => sum + Number(it.monto || 0), 0)
+  const [vistaPreviaUrl, setVistaPreviaUrl] = useState(null)
+
+  const manejarArchivo = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      if (onArchivoChange) onArchivoChange(null)
+      setVistaPreviaUrl(null)
+      return
+    }
+    if (onArchivoChange) onArchivoChange(file)
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file)
+      setVistaPreviaUrl(url)
+    } else {
+      setVistaPreviaUrl('pdf')
+    }
+  }
 
   return (
     <div
@@ -49,21 +75,22 @@ export default function ModalCobroMulta({
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
           <div>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-              {esMulta ? 'Anexo I · Multa' : 'Anexo II · Aporte'}
+              {listaItems.length > 1
+                ? `Lote de ${listaItems.length} registros seleccionados`
+                : listaItems[0]?.tipo === 'multa'
+                ? 'Anexo I · Multa'
+                : 'Anexo II · Aporte'}
             </p>
             <h3
               id="titulo-modal-cobro"
               className="mt-1 font-display text-lg font-bold leading-snug text-slate-900 dark:text-white"
             >
-              {seleccion.nombre}
+              {listaItems.length === 1
+                ? listaItems[0].nombre || listaItems[0].concepto || listaItems[0].infraccion
+                : `Confirmación de Carrito (${listaItems.length} ítems)`}
             </h3>
-            {seleccion.detalle && (
-              <p className="mt-1 font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                {seleccion.detalle}
-              </p>
-            )}
             <p className="mt-2 font-display text-2xl font-bold text-amber-700 dark:text-amber-300">
-              Bs. {formatearMonto(seleccion.monto)}
+              Total: Bs. {formatearMonto(montoTotal)}
             </p>
           </div>
           <button
@@ -92,6 +119,33 @@ export default function ModalCobroMulta({
           )}
         </div>
 
+        {/* Desglose de ítems si es más de 1 */}
+        {listaItems.length > 1 && (
+          <div className="mt-3 max-h-36 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 p-2.5 space-y-1.5">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              Desglose del lote:
+            </p>
+            {listaItems.map((item, idx) => (
+              <div
+                key={item.carritoId || idx}
+                className="flex items-center justify-between text-xs py-1 border-b border-slate-200/50 dark:border-slate-800 last:border-none"
+              >
+                <div className="min-w-0 pr-2 truncate">
+                  <span className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 mr-1.5">
+                    {item.tipo === 'aporte' ? '[Aporte]' : '[Multa]'}
+                  </span>
+                  <span className="text-slate-800 dark:text-slate-200">
+                    {item.concepto || item.infraccion || item.articulo || item.nombre}
+                  </span>
+                </div>
+                <span className="font-mono font-semibold text-slate-900 dark:text-white shrink-0">
+                  Bs. {formatearMonto(item.monto)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Selector de Flujo: Dejar Pendiente / Cobrar Ahora */}
         <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <button
@@ -108,7 +162,7 @@ export default function ModalCobroMulta({
               <span>🟡</span> Dejar pendiente
             </span>
             <span className="mt-1 block font-mono text-[10px] leading-relaxed opacity-80 text-slate-600 dark:text-slate-300">
-              Guarda el registro en estado <strong className="text-amber-700 dark:text-amber-300">pendiente</strong>, notifica al socio y no genera ingreso inmediato.
+              Guarda {listaItems.length > 1 ? 'los registros' : 'el registro'} en estado <strong className="text-amber-700 dark:text-amber-300">pendiente</strong>, notifica al socio y no genera ingreso inmediato.
             </span>
           </button>
 
@@ -164,7 +218,6 @@ export default function ModalCobroMulta({
             {/* Vista Transferencia / QR con Marco Blanco Fijo Estático */}
             {metodoPago === 'qr' && (
               <div className="flex flex-col items-center gap-3 rounded-2xl border border-amber-400/40 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/80">
-                {/* Marco blanco fijo para el QR sin deformaciones ni afectación de modo oscuro */}
                 <div className="w-full flex justify-center py-1">
                   <img
                     src={qrCobro}
@@ -173,41 +226,19 @@ export default function ModalCobroMulta({
                   />
                 </div>
                 <p className="text-center font-mono text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                  Escanee el código QR para realizar la transferencia bancaria y registre el número de comprobante.
+                  Escanee el código QR para realizar la transferencia bancaria y adjunte el comprobante o referencia.
                 </p>
-                <div className="w-full">
-                  <label
-                    htmlFor="modal-cobro-nro-comprobante"
-                    className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300"
-                  >
-                    Número o referencia de comprobante / transferencia{' '}
-                    <span className="font-normal normal-case text-slate-500 dark:text-slate-400">
-                      (opcional)
-                    </span>
-                  </label>
-                  <div className="relative">
-                    <Receipt className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      id="modal-cobro-nro-comprobante"
-                      type="text"
-                      value={comprobante}
-                      onChange={(e) => onComprobanteChange(e.target.value)}
-                      placeholder="Ej. TRANS-987456321"
-                      className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
-            {/* Vista Efectivo: Comprobante opcional */}
-            {metodoPago === 'efectivo' && (
-              <div className="w-full">
+            {/* Campos de Comprobante: Referencia escrita + Subida de Archivo de Imagen */}
+            <div className="space-y-3">
+              <div>
                 <label
-                  htmlFor="modal-cobro-nro-recibo-efectivo"
-                  className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300"
+                  htmlFor="modal-cobro-nro-comprobante"
+                  className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300"
                 >
-                  Número de recibo físico o comprobante{' '}
+                  Número o referencia de comprobante / recibo{' '}
                   <span className="font-normal normal-case text-slate-500 dark:text-slate-400">
                     (opcional)
                   </span>
@@ -215,16 +246,73 @@ export default function ModalCobroMulta({
                 <div className="relative">
                   <Receipt className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
-                    id="modal-cobro-nro-recibo-efectivo"
+                    id="modal-cobro-nro-comprobante"
                     type="text"
                     value={comprobante}
                     onChange={(e) => onComprobanteChange(e.target.value)}
-                    placeholder="Ej. REC-00452"
+                    placeholder={metodoPago === 'qr' ? 'Ej. TRANS-987456321' : 'Ej. REC-00452'}
                     className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
                   />
                 </div>
               </div>
-            )}
+
+              {/* Selector de Archivo de Imagen / PDF */}
+              <div>
+                <label
+                  htmlFor="modal-cobro-archivo-comprobante"
+                  className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                >
+                  Foto o documento del comprobante{' '}
+                  <span className="font-normal normal-case text-slate-500 dark:text-slate-400">
+                    (JPG, PNG, WEBP, PDF · opcional)
+                  </span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <label
+                    htmlFor="modal-cobro-archivo-comprobante"
+                    className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 font-mono text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+                  >
+                    <Upload className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>{archivoComprobante ? 'Cambiar archivo' : 'Adjuntar foto o PDF'}</span>
+                    <input
+                      id="modal-cobro-archivo-comprobante"
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={manejarArchivo}
+                      className="sr-only"
+                    />
+                  </label>
+
+                  {archivoComprobante && (
+                    <div className="flex items-center gap-2">
+                      {vistaPreviaUrl && vistaPreviaUrl !== 'pdf' ? (
+                        <img
+                          src={vistaPreviaUrl}
+                          alt="Vista previa"
+                          className="h-10 w-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+                        />
+                      ) : (
+                        <FileText className="h-7 w-7 text-rose-500" />
+                      )}
+                      <span className="font-mono text-xs text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
+                        {archivoComprobante.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onArchivoChange) onArchivoChange(null)
+                          setVistaPreviaUrl(null)
+                        }}
+                        className="text-slate-400 hover:text-rose-500 p-1"
+                        title="Quitar comprobante"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -265,12 +353,11 @@ export default function ModalCobroMulta({
             {guardando
               ? 'Procesando…'
               : estadoSeleccion === 'inmediato'
-              ? 'Confirmar cobro'
-              : 'Emitir deuda pendiente'}
+              ? (listaItems.length > 1 ? `Confirmar cobro (${listaItems.length})` : 'Confirmar cobro')
+              : (listaItems.length > 1 ? `Emitir deudas (${listaItems.length})` : 'Emitir deuda pendiente')}
           </button>
         </div>
       </motion.div>
     </div>
   )
 }
-

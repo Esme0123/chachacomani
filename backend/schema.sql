@@ -129,6 +129,8 @@ CREATE TABLE IF NOT EXISTS `deudas_multas` (
   `socio_id` INT NOT NULL,
   `concepto` VARCHAR(255) NOT NULL,
   `monto` DECIMAL(10, 2) NOT NULL,
+  `monto_pagado` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  `saldo_pendiente` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
   `tipo` ENUM('multa_anexo_1', 'aporte_anexo_2') NOT NULL DEFAULT 'multa_anexo_1',
   `estado` ENUM('pendiente', 'en_revision', 'cancelado') NOT NULL DEFAULT 'pendiente',
   `metodo_pago` ENUM('efectivo', 'qr', 'transferencia') NULL,
@@ -149,6 +151,28 @@ CREATE TABLE IF NOT EXISTS `deudas_multas` (
   CONSTRAINT `fk_deudas_registrador` FOREIGN KEY (`registrado_por`)
     REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Deudas de multas (Anexo I) y aportes (Anexo II) con su ciclo de pago';
+
+-- ------------------------------------------------------------
+-- 3.c ABONOS Y PAGOS PARCIALES A DEUDAS
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `abonos_deudas` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `deuda_id` INT NOT NULL,
+  `monto` DECIMAL(10, 2) NOT NULL,
+  `metodo_pago` ENUM('efectivo', 'qr', 'transferencia') NOT NULL DEFAULT 'efectivo',
+  `nro_comprobante` VARCHAR(100) NULL,
+  `comprobante_url` VARCHAR(255) NULL,
+  `observaciones` TEXT NULL,
+  `registrado_por` INT NULL,
+  `creado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_abonos_deuda` (`deuda_id`),
+  KEY `idx_abonos_registrador` (`registrado_por`),
+  CONSTRAINT `fk_abonos_deuda` FOREIGN KEY (`deuda_id`)
+    REFERENCES `deudas_multas` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_abonos_registrador` FOREIGN KEY (`registrado_por`)
+    REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Historial de abonos y pagos parciales a deudas';
 
 -- ------------------------------------------------------------
 -- 4. CAJA CHICA (ingresos y egresos menores)

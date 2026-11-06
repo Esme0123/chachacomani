@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Landmark, AlertTriangle, LogOut, Scale, Search, X, Check, Coins, Plus,
+  Trash2, ShoppingCart, TrendingDown, Save,
 } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
@@ -13,6 +14,7 @@ import * as multasService from '../services/multasService.js'
 import * as aportesService from '../services/aportesService.js'
 import * as cobrosService from '../services/cobrosService.js'
 import * as deudasService from '../services/deudasService.js'
+import * as cajaChicaService from '../services/cajaChicaService.js'
 import { ANEXOS_DATA } from '../data/reglamentoData'
 
 /* -------------------------------------------------------------------------- */
@@ -80,22 +82,18 @@ const ANEXO_II = ANEXOS_DATA.find((a) => a?.tablas?.some((t) => t.id === 'cuadro
  * ============================================================================
  *  PANEL DE TESORERÍA (TesoreriaView.jsx)
  * ============================================================================
- *  Vista unificada para el rol Tesorero con paridad total de experiencia
- *  visual, flujos y componentes respecto a Caja Chica:
- *
- *  · Catálogo interactivo de Multas (Anexo I) y Aportes (Anexo II)
- *  · Modal compartido `ModalCobroMulta` con:
- *      - 🟡 Dejar pendiente (Emitir deuda)
- *      - 🟢 Cobrar ahora (registra ingreso en Tesorería)
- *      - Marco blanco estático para el QR
- *  · Bandeja de deudas y pagos reportados con edición inline de comprobantes
- *  · Soporte completo de Modo Claro / Modo Oscuro
+ *  - Carrito de selección múltiple (multas y aportes acumulables)
+ *  - Modal unificado con "Dejar Pendiente" y "Cobrar Ahora"
+ *  - Subida de foto/PDF de comprobante con previsualización
+ *  - Pestaña de Gastos / Egresos restaurada
+ *  - Marco blanco fijo estático para el QR
+ *  - Adaptabilidad total a Modo Oscuro (dark:)
  */
 export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
   const { logout, puede } = useAuth()
   const puedeGestionar = puede(PERMISO_GESTIONAR_MULTAS)
 
-  // Modos de catálogo: 'multas' | 'aportes'
+  // Modos de catálogo: 'multas' | 'aportes' | 'gastos'
   const [modo, setModo] = useState('multas')
   const [error, setError] = useState(null)
   const [exito, setExito] = useState(null)
@@ -116,13 +114,28 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
   const [fechaInfraccion, setFechaInfraccion] = useState(hoy())
   const [filtroAporte, setFiltroAporte] = useState('')
 
-  // Modal de cobro compartido
-  const [seleccion, setSeleccion] = useState(null)
+  // Carrito de selección múltiple
+  const [carrito, setCarrito] = useState([])
+  const [modalCobroAbierto, setModalCobroAbierto] = useState(false)
+
+  // Modal de cobro compartido y comprobante
   const [estadoSeleccion, setEstadoSeleccion] = useState('pendiente')
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [comprobante, setComprobante] = useState('')
+  const [archivoComprobante, setArchivoComprobante] = useState(null)
   const [guardandoSeleccion, setGuardandoSeleccion] = useState(false)
   const [errorSeleccion, setErrorSeleccion] = useState(null)
+
+  // Formulario Gastos / Egresos
+  const [formGasto, setFormGasto] = useState({
+    tipo: 'egreso',
+    categoria: 'Otros',
+    concepto: '',
+    monto: '',
+    fecha: hoy(),
+    observaciones: '',
+  })
+  const [guardandoGasto, setGuardandoGasto] = useState(false)
 
   // Catálogos Anexo I y II
   const catalogo = useMemo(() => multasService.catalogoInfracciones(ANEXO_I), [])
@@ -227,29 +240,12 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
   const verificarSocio = () => {
     if (socioId) return true
     setAlertaSocio(true)
-    setError('Seleccione un socio primero para registrar una multa o un aporte.')
+    setError('Seleccione un socio primero para poder agregar multas o aportes.')
     document.getElementById('paso-socio-tesoreria')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     return false
   }
 
-  const abrirSeleccion = (nueva) => {
-    setSeleccion(nueva)
-    setEstadoSeleccion('pendiente')
-    setMetodoPago('efectivo')
-    setComprobante('')
-    setErrorSeleccion(null)
-    setError(null)
-    setExito(null)
-  }
-
-  const conceptoDeuda = (sel) => {
-    if (!sel) return ''
-    const texto = sel.tipo === 'multa'
-      ? `${sel.item.articulo} · ${sel.item.infraccion}`
-      : `${sel.item.concepto}${sel.item.detalle ? ` · ${sel.item.detalle}` : ''}`
-    return texto.slice(0, 255)
-  }
-
+  // AGREGAR AL CARRITO
   const agregarMulta = (fila) => {
     if (!verificarSocio()) return
     const monto = Number(fila.monto)
@@ -257,21 +253,22 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
       setError('Esta multa no tiene monto cobrable.')
       return
     }
-    abrirSeleccion({
+
+    const item = {
       tipo: 'multa',
+      carritoId: Date.now() + Math.random().toString(36).slice(2, 7),
       nombre: fila.item.tituloCorto || fila.item.infraccion,
-      detalle: `${fila.item.articulo} · ${fila.item.categoria}`,
+      infraccion: fila.item.infraccion,
+      articulo: fila.item.articulo,
+      categoria: fila.item.categoria,
+      medida: fila.item.medida || '',
       monto,
-      item: {
-        tipo: 'multa',
-        infraccion: fila.item.infraccion,
-        articulo: fila.item.articulo,
-        categoria: fila.item.categoria,
-        medida: fila.item.medida || '',
-        monto,
-        fechaInfraccion: fechaInfraccion || hoy(),
-      },
-    })
+      fechaInfraccion: fechaInfraccion || hoy(),
+      detalle: `${fila.item.articulo} · ${fila.item.categoria}`,
+    }
+
+    setCarrito((prev) => [...prev, item])
+    setExito(`«${item.articulo}» agregada al carrito (${carrito.length + 1} ítems).`)
   }
 
   const agregarAporte = (fila) => {
@@ -281,22 +278,50 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
       setError('El monto del aporte debe ser mayor que cero.')
       return
     }
-    abrirSeleccion({
+
+    const item = {
       tipo: 'aporte',
+      carritoId: Date.now() + Math.random().toString(36).slice(2, 7),
       nombre: fila.item.concepto,
+      concepto: fila.item.concepto,
       detalle: fila.item.detalle,
       monto,
-      item: {
-        tipo: 'aporte',
-        concepto: fila.item.concepto,
-        detalle: fila.item.detalle,
-        monto,
-      },
-    })
+    }
+
+    setCarrito((prev) => [...prev, item])
+    setExito(`«${item.concepto}» agregado al carrito (${carrito.length + 1} ítems).`)
   }
 
-  const confirmarSeleccion = useCallback(async () => {
-    if (!seleccion || guardandoSeleccion) return
+  const quitarDelCarrito = (carritoId) => {
+    setCarrito((prev) => prev.filter((it) => it.carritoId !== carritoId))
+  }
+
+  const vaciarCarrito = () => {
+    setCarrito([])
+  }
+
+  const totalMontoCarrito = useMemo(
+    () => carrito.reduce((sum, it) => sum + Number(it.monto || 0), 0),
+    [carrito]
+  )
+
+  const abrirModalCobroLote = () => {
+    if (carrito.length === 0) {
+      setError('El carrito está vacío: agregue al menos una multa o un aporte.')
+      return
+    }
+    if (!verificarSocio()) return
+    setModalCobroAbierto(true)
+    setEstadoSeleccion('pendiente')
+    setMetodoPago('efectivo')
+    setComprobante('')
+    setArchivoComprobante(null)
+    setErrorSeleccion(null)
+  }
+
+  // CONFIRMAR LOTE
+  const confirmarLote = useCallback(async () => {
+    if (carrito.length === 0 || guardandoSeleccion) return
     if (!socioId) {
       setErrorSeleccion('Seleccione un socio antes de continuar.')
       return
@@ -308,16 +333,11 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
     setExito(null)
     try {
       if (estadoSeleccion === 'pendiente') {
-        const json = await deudasService.emitirDeuda({
+        const json = await deudasService.emitirLoteDeudas({
           socioId: Number(socioId),
-          tipo: seleccion.tipo === 'multa'
-            ? deudasService.TIPO_DEUDA_MULTA
-            : deudasService.TIPO_DEUDA_APORTE,
-          concepto: conceptoDeuda(seleccion),
-          monto: seleccion.monto,
-          fechaEmision: hoy(),
+          items: carrito,
         })
-        setExito(json?.mensaje || 'Deuda emitida y notificada al socio en estado pendiente.')
+        setExito(json?.mensaje || `Lote de ${carrito.length} deudas emitidas en estado pendiente.`)
       } else {
         const referencia = [
           metodoPago === 'qr' ? 'Método de pago: Transferencia / QR' : 'Método de pago: Efectivo',
@@ -327,26 +347,70 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
 
         const json = await cobrosService.registrarCobroGrupal({
           socioId: Number(socioId),
-          items: [seleccion.item],
+          items: carrito,
           fechaCobro: hoy(),
           observaciones: referencia,
-          conceptoCobro: cobrosService.conceptoCobroGrupal([seleccion.item], socioElegido?.nombre || ''),
+          conceptoCobro: cobrosService.conceptoCobroGrupal(carrito, socioElegido?.nombre || ''),
           metodoPago,
           nroComprobante: comprobante.trim(),
+          archivo: archivoComprobante,
         })
         setExito(json?.mensaje || 'Cobro registrado exitosamente en el módulo de Tesorería.')
       }
 
       setDeudasVersion((v) => v + 1)
-      setSeleccion(null)
+      setCarrito([])
+      setModalCobroAbierto(false)
       setComprobante('')
+      setArchivoComprobante(null)
       setMetodoPago('efectivo')
     } catch (err) {
-      setErrorSeleccion(err?.message || 'No se pudo registrar la deuda o el cobro en Tesorería.')
+      setErrorSeleccion(err?.message || 'No se pudo procesar el registro del lote.')
     } finally {
       setGuardandoSeleccion(false)
     }
-  }, [seleccion, guardandoSeleccion, socioId, estadoSeleccion, metodoPago, comprobante, socioElegido])
+  }, [carrito, guardandoSeleccion, socioId, estadoSeleccion, metodoPago, comprobante, archivoComprobante, socioElegido])
+
+  // REGISTRAR GASTO LIBRE
+  const registrarGasto = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setExito(null)
+    const montoNum = Number(formGasto.monto)
+    if (!Number.isFinite(montoNum) || montoNum <= 0) {
+      setError('El monto del egreso debe ser mayor a 0.')
+      return
+    }
+    if (!formGasto.concepto.trim()) {
+      setError('Indique el concepto del egreso o gasto.')
+      return
+    }
+
+    setGuardandoGasto(true)
+    try {
+      const res = await cajaChicaService.registrarMovimiento({
+        tipo: formGasto.tipo,
+        categoria: formGasto.categoria,
+        concepto: formGasto.concepto.trim(),
+        monto: montoNum,
+        fecha: formGasto.fecha,
+        observaciones: formGasto.observaciones ? `[Tesorería] ${formGasto.observaciones}` : '[Tesorería]',
+      })
+      setExito(res?.mensaje || 'Gasto/Egreso registrado correctamente.')
+      setFormGasto({
+        tipo: 'egreso',
+        categoria: 'Otros',
+        concepto: '',
+        monto: '',
+        fecha: hoy(),
+        observaciones: '',
+      })
+    } catch (err) {
+      setError(err?.message || 'No se pudo registrar el gasto.')
+    } finally {
+      setGuardandoGasto(false)
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden transition-colors duration-300 bg-slate-50 dark:bg-[#0D0B61]">
@@ -381,12 +445,12 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
           {/* Título de la Vista */}
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="font-display font-bold text-xl md:text-2xl text-[#0D0B61] dark:text-white flex items-center gap-2">
+              <h1 className="font-display font-bold text-xl md:text-2xl text-slate-900 dark:text-white flex items-center gap-2">
                 <Landmark className="w-6 h-6 text-[#48B3AF]" />
                 Panel de Tesorería
               </h1>
-              <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-                Emisión de deudas pendientes y cobro inmediato de sanciones (Anexo I) y aportes (Anexo II).
+              <p className="font-mono text-[11px] text-slate-600 dark:text-[#476EAE]">
+                Emisión de deudas en lote (carrito), cobro inmediato de sanciones (Anexo I), aportes (Anexo II) y registro de egresos.
               </p>
             </div>
           </div>
@@ -399,9 +463,10 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
             </div>
           )}
           {exito && (
-            <p role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
-              {exito}
-            </p>
+            <div role="status" className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 flex items-start gap-2">
+              <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <p className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">{exito}</p>
+            </div>
           )}
 
           {/* Tarjeta Principal de Registro */}
@@ -409,24 +474,23 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
             <motion.section
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="border-glow-card bg-white dark:bg-[#0D0B61]/85 p-6 border border-slate-200 dark:border-slate-800"
-              style={{ borderRadius: '20px' }}
+              className="border-glow-card bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-sm"
             >
               <button
                 onClick={() => setFormAbierto((o) => !o)}
                 aria-expanded={formAbierto}
                 className="w-full flex items-center justify-between gap-3 text-left"
               >
-                <h2 className="font-display font-bold text-sm text-[#0D0B61] dark:text-white">
-                  Registrar Cobro o Emisión de Sanción / Aporte
+                <h2 className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                  Módulo de Cobro, Emisión de Deudas y Egresos
                 </h2>
-                <span className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
+                <span className="font-mono text-[10px] text-slate-500 dark:text-[#476EAE]">
                   {formAbierto ? 'Ocultar ▲' : 'Mostrar ▼'}
                 </span>
               </button>
 
-              {/* Conmutador de Pestañas: Multas (Anexo I) / Aportes (Anexo II) */}
-              <div role="tablist" aria-label="Modo de registro de tesorería" className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Conmutador de Pestañas: Multas | Aportes | Gastos */}
+              <div role="tablist" aria-label="Modo de registro de tesorería" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   role="tab"
@@ -443,10 +507,10 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
                 >
                   <span className="flex items-center gap-2 font-display font-bold text-xs text-slate-900 dark:text-white">
                     <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    ⚖️ Multas y Sanciones (Anexo I)
+                    ⚖️ Multas (Anexo I)
                   </span>
                   <span className="mt-0.5 block font-mono text-[10px] text-amber-700/85 dark:text-amber-300/85">
-                    Elija la infracción del Cuadro N.º 2 y haga clic en ＋ Agregar
+                    Cuadro N.º 2 · Sume al carrito
                   </span>
                 </button>
 
@@ -466,267 +530,411 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
                 >
                   <span className="flex items-center gap-2 font-display font-bold text-xs text-slate-900 dark:text-white">
                     <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    💰 Escala de Aportes (Anexo II)
+                    💰 Aportes (Anexo II)
                   </span>
                   <span className="mt-0.5 block font-mono text-[10px] text-emerald-700/85 dark:text-emerald-300/85">
-                    Elija el aporte del Fondo de Accidentes y haga clic en ＋ Agregar
+                    Fondo de Accidentes · Sume al carrito
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={modo === 'gastos'}
+                  onClick={() => {
+                    setModo('gastos')
+                    setError(null)
+                  }}
+                  className={`text-left rounded-xl border-2 px-3.5 py-3 transition-colors ${
+                    modo === 'gastos'
+                      ? 'border-[#48B3AF]/60 bg-[#48B3AF]/15'
+                      : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-display font-bold text-xs text-slate-900 dark:text-white">
+                    <TrendingDown className="w-4 h-4 text-[#48B3AF]" />
+                    💸 Gastos / Egresos
+                  </span>
+                  <span className="mt-0.5 block font-mono text-[10px] text-slate-600 dark:text-slate-400">
+                    Registrar salidas de dinero
                   </span>
                 </button>
               </div>
 
               {formAbierto && (
                 <div className="mt-5 space-y-4">
-                  {/* Paso 1: Selección obligatoria de Socio */}
-                  <div
-                    id="paso-socio-tesoreria"
-                    className={`rounded-2xl border-2 bg-white dark:bg-slate-900 p-4 shadow-sm ring-1 ring-amber-400/20 ${
-                      alertaSocio
-                        ? 'border-rose-400/70 ring-2 ring-rose-400/40'
-                        : 'border-amber-400/50 dark:border-amber-400/40'
-                    }`}
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
-                        1
-                      </span>
-                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-700 dark:text-amber-300">
-                        1. SELECCIONAR SOCIO
-                      </p>
-                      <span className="font-mono text-[10px] text-amber-700/70 dark:text-amber-200/70">
-                        obligatorio
-                      </span>
-                    </div>
-
-                    {alertaSocio && (
-                      <div
-                        role="alert"
-                        className="mb-3 flex items-start gap-2 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3 py-2"
-                      >
-                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
-                        <p className="font-mono text-[11px] text-rose-200">
-                          Seleccione un socio primero para poder emitir o cobrar la multa o aporte.
+                  {/* SELECCIÓN DE SOCIO (requerida para Multas y Aportes) */}
+                  {modo !== 'gastos' && (
+                    <div
+                      id="paso-socio-tesoreria"
+                      className={`rounded-2xl border-2 bg-slate-50/60 dark:bg-slate-900 p-4 shadow-sm ring-1 ring-amber-400/20 ${
+                        alertaSocio
+                          ? 'border-rose-400/70 ring-2 ring-rose-400/40'
+                          : 'border-amber-400/50 dark:border-amber-400/40'
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
+                          1
+                        </span>
+                        <p className="font-display text-[11px] font-semibold tracking-widest text-amber-700 dark:text-amber-300">
+                          1. SELECCIONAR SOCIO
                         </p>
+                        <span className="font-mono text-[10px] text-amber-700/70 dark:text-amber-200/70">
+                          obligatorio para el carrito
+                        </span>
                       </div>
-                    )}
 
-                    {cargandoSocios ? (
-                      <p className="font-mono text-[11px] text-slate-600 dark:text-slate-300">Cargando socios…</p>
-                    ) : socios.length === 0 ? (
-                      <p className="font-mono text-[11px] text-amber-700 dark:text-amber-300">
-                        No se pudo cargar el padrón de socios. Verifique su sesión e intente nuevamente.
-                      </p>
-                    ) : socioElegido ? (
-                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
-                        <p className="font-mono text-[11px] text-emerald-700 dark:text-emerald-200">
-                          <Check className="mr-1 inline h-3.5 w-3.5" />
-                          <strong className="text-slate-900 dark:text-white">{socioElegido.nombre}</strong>
-                          {socioElegido.correo ? ` · ${socioElegido.correo}` : ''}
-                          {socioElegido.rol ? ` · ${socioElegido.rol}` : ''}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => elegirSocio('')}
-                          className="font-mono text-[10px] font-bold text-amber-700 underline hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200"
+                      {alertaSocio && (
+                        <div
+                          role="alert"
+                          className="mb-3 flex items-start gap-2 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3 py-2"
                         >
-                          Cambiar socio
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          value={filtroSocio}
-                          onChange={(e) => {
-                            setFiltroSocio(e.target.value)
-                            setSociosAbierto(true)
-                          }}
-                          onFocus={() => setSociosAbierto(true)}
-                          onBlur={() => window.setTimeout(() => setSociosAbierto(false), 150)}
-                          placeholder="Buscar socio por nombre o correo…"
-                          autoComplete="off"
-                          aria-expanded={sociosAbierto}
-                          aria-controls="lista-socios-tesoreria"
-                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
-                        />
-                        {filtroSocio !== '' && (
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+                          <p className="font-mono text-[11px] text-rose-200">
+                            Seleccione un socio antes de añadir ítems al carrito.
+                          </p>
+                        </div>
+                      )}
+
+                      {cargandoSocios ? (
+                        <p className="font-mono text-[11px] text-slate-600 dark:text-slate-300">Cargando socios…</p>
+                      ) : socios.length === 0 ? (
+                        <p className="font-mono text-[11px] text-amber-700 dark:text-amber-300">
+                          No se pudo cargar el padrón de socios.
+                        </p>
+                      ) : socioElegido ? (
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
+                          <p className="font-mono text-[11px] text-emerald-700 dark:text-emerald-200">
+                            <Check className="mr-1 inline h-3.5 w-3.5" />
+                            <strong className="text-slate-900 dark:text-white">{socioElegido.nombre}</strong>
+                            {socioElegido.correo ? ` · ${socioElegido.correo}` : ''}
+                          </p>
                           <button
                             type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => setFiltroSocio('')}
-                            aria-label="Limpiar búsqueda de socios"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
+                            onClick={() => elegirSocio('')}
+                            className="font-mono text-[10px] font-bold text-amber-700 underline hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            Cambiar socio
                           </button>
-                        )}
-
-                        {sociosAbierto && (
-                          <div
-                            id="lista-socios-tesoreria"
-                            className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-                          >
-                            {sociosFiltrados.length === 0 ? (
-                              <p className="px-3 py-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                                Ningún socio coincide con «{filtroSocio.trim()}».
-                              </p>
-                            ) : (
-                              <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-                                {sociosFiltrados.map((s) => (
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={filtroSocio}
+                            onChange={(e) => {
+                              setFiltroSocio(e.target.value)
+                              setSociosAbierto(true)
+                            }}
+                            onFocus={() => setSociosAbierto(true)}
+                            onBlur={() => window.setTimeout(() => setSociosAbierto(false), 150)}
+                            placeholder="Buscar socio por nombre o correo…"
+                            autoComplete="off"
+                            className="w-full rounded-xl border bg-white dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                          />
+                          {sociosAbierto && (
+                            <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                              {sociosFiltrados.length === 0 ? (
+                                <li className="px-3 py-2 font-mono text-[11px] text-slate-500">
+                                  No hay socios que coincidan.
+                                </li>
+                              ) : (
+                                sociosFiltrados.map((s) => (
                                   <li key={s.id}>
                                     <button
                                       type="button"
-                                      onMouseDown={(e) => e.preventDefault()}
-                                      onClick={() => elegirSocio(String(s.id))}
-                                      className="flex w-full items-baseline justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                                      onMouseDown={() => elegirSocio(String(s.id))}
+                                      className="w-full px-3 py-1.5 text-left font-mono text-xs text-slate-900 hover:bg-amber-500/10 dark:text-slate-200 dark:hover:bg-amber-500/20"
                                     >
-                                      <span className="font-display text-xs font-semibold text-slate-900 dark:text-white">
-                                        {s.nombre}
-                                      </span>
-                                      <span className="truncate font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                                        {s.correo}
-                                        {s.rol ? ` · ${s.rol}` : ''}
-                                      </span>
+                                      <strong>{s.nombre}</strong> · {s.correo}
                                     </button>
                                   </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
+                                ))
+                              )}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* WIDGET DEL CARRITO ACUMULABLE (cuando hay ítems) */}
+                  {modo !== 'gastos' && carrito.length > 0 && (
+                    <div className="rounded-2xl border-2 border-amber-500/50 bg-amber-500/5 p-4 shadow-sm dark:border-amber-500/40">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-amber-500/20">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <h3 className="font-display font-bold text-sm text-slate-900 dark:text-white">
+                            Carrito de Selección ({carrito.length} {carrito.length === 1 ? 'ítem' : 'ítems'})
+                          </h3>
+                        </div>
+                        {socioElegido && (
+                          <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
+                            Socio: <strong>{socioElegido.nombre}</strong>
+                          </span>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Paso 2: Tabla de Multas (Anexo I) */}
+                      <div className="mt-3 max-h-48 overflow-y-auto space-y-1.5">
+                        {carrito.map((it) => (
+                          <div
+                            key={it.carritoId}
+                            className="flex items-center justify-between gap-3 text-xs p-2 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700"
+                          >
+                            <div className="min-w-0 flex-1 truncate">
+                              <span className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 mr-2">
+                                {it.tipo === 'multa' ? '[MULTA]' : '[APORTE]'}
+                              </span>
+                              <span className="font-semibold text-slate-900 dark:text-white">
+                                {it.articulo ? `${it.articulo}: ` : ''}{it.concepto || it.infraccion || it.nombre}
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                              Bs. {formatearMonto(it.monto)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => quitarDelCarrito(it.carritoId)}
+                              className="text-slate-400 hover:text-rose-500 p-1"
+                              title="Quitar del carrito"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-500/20">
+                        <div className="flex items-center gap-3">
+                          <span className="font-display font-bold text-base text-slate-900 dark:text-white">
+                            Total: Bs. {formatearMonto(totalMontoCarrito)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={vaciarCarrito}
+                            className="font-mono text-[11px] text-rose-500 hover:underline"
+                          >
+                            Vaciar carrito
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={abrirModalCobroLote}
+                          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-display text-sm font-bold text-white bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/20 transition-all hover:scale-[1.02]"
+                        >
+                          Confirmar y Registrar ({carrito.length} ítems)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FORMULARIO DE GASTOS / EGRESOS */}
+                  {modo === 'gastos' && (
+                    <form onSubmit={registrarGasto} className="rounded-2xl border-2 border-[#48B3AF]/40 bg-white dark:bg-slate-900 p-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                          TIPO
+                        </label>
+                        <select
+                          value={formGasto.tipo}
+                          onChange={(e) => setFormGasto((f) => ({ ...f, tipo: e.target.value }))}
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                        >
+                          <option value="egreso">Egreso</option>
+                          <option value="ingreso">Ingreso</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                          CATEGORÍA
+                        </label>
+                        <select
+                          value={formGasto.categoria}
+                          onChange={(e) => setFormGasto((f) => ({ ...f, categoria: e.target.value }))}
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                        >
+                          {cajaChicaService.CATEGORIAS_CAJA.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                          CONCEPTO *
+                        </label>
+                        <input
+                          type="text"
+                          value={formGasto.concepto}
+                          onChange={(e) => setFormGasto((f) => ({ ...f, concepto: e.target.value }))}
+                          placeholder="Ej. Compra de suministros o pago de servicios"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                          MONTO (Bs.) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={formGasto.monto}
+                          onChange={(e) => setFormGasto((f) => ({ ...f, monto: e.target.value }))}
+                          placeholder="0.00"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                          FECHA *
+                        </label>
+                        <input
+                          type="date"
+                          value={formGasto.fecha}
+                          onChange={(e) => setFormGasto((f) => ({ ...f, fecha: e.target.value }))}
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                          required
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
+                          OBSERVACIONES
+                        </label>
+                        <input
+                          type="text"
+                          value={formGasto.observaciones}
+                          onChange={(e) => setFormGasto((f) => ({ ...f, observaciones: e.target.value }))}
+                          placeholder="Detalles adicionales del egreso"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 pt-2">
+                        <button
+                          type="submit"
+                          disabled={guardandoGasto}
+                          className="inline-flex items-center gap-2 rounded-xl px-6 py-2.5 font-display font-bold text-sm text-white bg-[#48B3AF] hover:bg-[#3ba09c] shadow-sm disabled:opacity-50"
+                        >
+                          <Save className="w-4 h-4" />
+                          {guardandoGasto ? 'Registrando…' : 'Registrar Movimiento de Tesorería'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* TABLA DE MULTAS (ANEXO I) */}
                   {modo === 'multas' && (
-                    <div className="rounded-2xl border-2 border-amber-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-amber-400/40 dark:shadow-xl">
+                    <div className="rounded-2xl border-2 border-amber-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-amber-400/40">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
                           2
                         </span>
                         <p className="font-display text-[11px] font-semibold tracking-widest text-amber-700 dark:text-amber-300">
-                          2. ELEGIR DE LA TABLA
+                          2. ELEGIR SANCIONES Y SUMAR AL CARRITO
                         </p>
                         <span className="font-mono text-[10px] text-slate-600 dark:text-slate-400">
-                          Cuadro N.º 2 · Infracciones Específicas
+                          Cuadro N.º 2 · Anexo I
                         </span>
                       </div>
                       <p className="mb-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
-                        Busque la infracción, revise la sanción y presione «＋ Agregar».
+                        Haga clic en «＋ Agregar» para sumar una o más multas a la lista del socio.
                       </p>
 
-                      <div className="flex flex-wrap gap-1.5">
-                        {FILTROS_MULTAS.map((filtro) => (
-                          <button
-                            key={filtro.id}
-                            type="button"
-                            onClick={() => setFiltroCategoria(filtro.id)}
-                            aria-pressed={filtroCategoria === filtro.id}
-                            className={`rounded-full border px-3 py-1.5 font-display text-[11px] font-bold transition-colors ${
-                              filtroCategoria === filtro.id
-                                ? 'border-amber-300 bg-amber-400 text-slate-900'
-                                : 'border-slate-300 bg-white text-slate-700 hover:border-amber-400/60 hover:text-amber-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-amber-200'
-                            }`}
-                          >
-                            {filtro.etiqueta}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
-                        <div className="relative">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative min-w-[240px] flex-1">
                           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                           <input
                             type="text"
                             value={filtroInfraccion}
                             onChange={(e) => setFiltroInfraccion(e.target.value)}
-                            placeholder="Buscar por infracción, artículo o medida (ej. EPP, Art. 41)…"
-                            className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                            placeholder="Buscar infracción, artículo o medida…"
+                            className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
                           />
-                          {filtroInfraccion !== '' && (
-                            <button
-                              type="button"
-                              onClick={() => setFiltroInfraccion('')}
-                              aria-label="Limpiar búsqueda de multas"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          )}
                         </div>
-                        <div>
-                          <label htmlFor="tesoreria-fecha-infraccion" className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                            Fecha de la infracción
-                          </label>
-                          <input
-                            id="tesoreria-fecha-infraccion"
-                            type="date"
-                            value={fechaInfraccion}
-                            onChange={(e) => setFechaInfraccion(e.target.value)}
-                            className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:border-amber-400 focus:outline-none sm:w-44"
-                          />
+
+                        <div className="flex flex-wrap gap-1">
+                          {FILTROS_MULTAS.map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setFiltroCategoria(cat.id)}
+                              className={`rounded-lg px-2.5 py-1 font-mono text-xs transition-colors ${
+                                filtroCategoria === cat.id
+                                  ? 'bg-amber-600 font-bold text-white shadow-sm'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                              }`}
+                            >
+                              {cat.etiqueta}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
                       <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                        <table className="w-full min-w-[980px] border-collapse text-left text-xs bg-white dark:bg-slate-900">
+                        <table className="w-full min-w-[760px] border-collapse text-left text-xs bg-white dark:bg-slate-900">
                           <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                             <tr className="font-display text-[10px] uppercase tracking-wider text-slate-900 dark:text-white">
-                              <th className="p-3">Infracción tipificada</th>
                               <th className="p-3">Artículo</th>
-                              <th className="p-3 text-right">Multa (Bs.)</th>
+                              <th className="p-3">Infracción tipificada</th>
                               <th className="p-3">Categoría</th>
-                              <th className="p-3">Medida complementaria</th>
+                              <th className="p-3 text-right">Monto (Bs.)</th>
                               <th className="p-3 text-right">Acción</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                             {filasMultas.length === 0 ? (
                               <tr>
-                                <td colSpan={6} className="p-6 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                                  Ninguna infracción coincide con los filtros aplicados.
+                                <td colSpan={5} className="p-6 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400">
+                                  Ninguna infracción coincide con los filtros.
                                 </td>
                               </tr>
                             ) : (
                               filasMultas.map((fila) => {
-                                const cobrable = fila.monto > 0
+                                const cobrable = Number.isFinite(fila.monto) && fila.monto > 0
                                 return (
                                   <tr key={fila.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70">
-                                    <td className="max-w-[360px] p-3 text-slate-900 dark:text-white">
-                                      <p className="font-display text-sm font-semibold leading-snug">
-                                        {fila.infraccion}
-                                      </p>
-                                    </td>
-                                    <td className="whitespace-nowrap p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                                    <td className="whitespace-nowrap p-3 font-mono font-bold text-amber-700 dark:text-amber-300">
                                       {fila.articulo}
                                     </td>
-                                    <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-amber-700 dark:text-amber-300">
-                                      {cobrable ? `Bs. ${formatearMonto(fila.monto)}` : '—'}
+                                    <td className="max-w-[420px] p-3 text-slate-900 dark:text-white">
+                                      <p className="font-display text-sm font-semibold leading-snug">
+                                        {fila.item.tituloCorto || fila.infraccion}
+                                      </p>
+                                      {fila.item.tituloCorto && (
+                                        <p className="mt-0.5 font-mono text-[10px] leading-snug text-slate-600 dark:text-slate-400">
+                                          {fila.infraccion}
+                                        </p>
+                                      )}
                                     </td>
                                     <td className="p-3">
-                                      <span
-                                        className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${claseCategoria(fila.categoriaVisible)}`}
-                                      >
+                                      <span className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${claseCategoria(fila.categoriaVisible)}`}>
                                         {fila.categoriaVisible}
                                       </span>
                                     </td>
-                                    <td className="max-w-[280px] p-3 font-mono text-[11px] leading-snug text-slate-600 dark:text-slate-300">
-                                      {fila.medida || '—'}
+                                    <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-slate-900 dark:text-white">
+                                      {cobrable ? `Bs. ${formatearMonto(fila.monto)}` : 'Sin multa'}
                                     </td>
                                     <td className="p-3 text-right">
                                       <button
                                         type="button"
                                         onClick={() => agregarMulta(fila)}
                                         disabled={!cobrable}
-                                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 font-display text-sm font-bold shadow-sm transition-colors ${
+                                        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-1.5 font-display text-xs font-bold shadow-sm transition-colors ${
                                           cobrable
-                                            ? 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-500'
-                                            : 'cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500'
+                                            ? 'bg-amber-600 text-white shadow-amber-600/20 hover:bg-amber-500'
+                                            : 'cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800'
                                         }`}
                                       >
-                                        <Plus className="h-4 w-4" />
-                                        {cobrable ? 'Agregar' : 'Sin multa'}
+                                        <Plus className="h-3.5 w-3.5" /> Agregar
                                       </button>
                                     </td>
                                   </tr>
@@ -739,22 +947,22 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
                     </div>
                   )}
 
-                  {/* Paso 2: Tabla de Aportes (Anexo II) */}
+                  {/* TABLA DE APORTES (ANEXO II) */}
                   {modo === 'aportes' && (
-                    <div className="rounded-2xl border-2 border-emerald-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-emerald-400/40 dark:shadow-xl">
+                    <div className="rounded-2xl border-2 border-emerald-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-emerald-400/40">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400 font-mono text-[11px] font-bold text-slate-900">
                           2
                         </span>
                         <p className="font-display text-[11px] font-semibold tracking-widest text-emerald-700 dark:text-emerald-300">
-                          2. ELEGIR DE LA TABLA
+                          2. ELEGIR APORTES Y SUMAR AL CARRITO
                         </p>
                         <span className="font-mono text-[10px] text-slate-600 dark:text-slate-400">
                           Anexo II · Escala de Aportes
                         </span>
                       </div>
                       <p className="mb-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
-                        Busque el aporte, revise la frecuencia y presione «＋ Agregar».
+                        Haga clic en «＋ Agregar» para sumar aportes a la lista del socio.
                       </p>
 
                       <div className="relative">
@@ -763,19 +971,9 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
                           type="text"
                           value={filtroAporte}
                           onChange={(e) => setFiltroAporte(e.target.value)}
-                          placeholder="Buscar aporte (ej. ordinario, fondo de accidentes, mantenimiento)…"
-                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                          placeholder="Buscar aporte (ej. ordinario, fondo de accidentes)…"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
                         />
-                        {filtroAporte !== '' && (
-                          <button
-                            type="button"
-                            onClick={() => setFiltroAporte('')}
-                            aria-label="Limpiar búsqueda de aportes"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
                       </div>
 
                       <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -804,15 +1002,10 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
                                     </p>
                                     <p className="mt-0.5 font-mono text-[10px] leading-snug text-slate-600 dark:text-slate-400">
                                       {fila.detalle}
-                                      {fila.item.variable
-                                        ? ' · importe orientativo, ajuste según la Resolución de Asamblea'
-                                        : ''}
                                     </p>
                                   </td>
                                   <td className="p-3">
-                                    <span
-                                      className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${claseFrecuencia(fila.frecuencia)}`}
-                                    >
+                                    <span className={`inline-block rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${claseFrecuencia(fila.frecuencia)}`}>
                                       {fila.frecuencia}
                                     </span>
                                   </td>
@@ -823,9 +1016,9 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
                                     <button
                                       type="button"
                                       onClick={() => agregarAporte(fila)}
-                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 font-display text-sm font-bold text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-500"
+                                      className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3.5 py-1.5 font-display text-xs font-bold text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-500"
                                     >
-                                      <Plus className="h-4 w-4" /> Agregar
+                                      <Plus className="h-3.5 w-3.5" /> Agregar
                                     </button>
                                   </td>
                                 </tr>
@@ -841,28 +1034,30 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
             </motion.section>
           ) : (
             <p className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3 font-mono text-[11px] text-amber-600 dark:text-amber-400">
-              Su rol no cuenta con permisos suficientes para gestionar sanciones o aportes de Tesorería.
+              Su rol no cuenta con permisos para gestionar sanciones o aportes de Tesorería.
             </p>
           )}
 
-          {/* Modal de Cobro Reutilizable Compartido */}
+          {/* Modal Compartido de Cobro / Emisión en Lote */}
           <ModalCobroMulta
-            seleccion={seleccion}
+            items={carrito}
             socioElegido={socioElegido}
             estadoSeleccion={estadoSeleccion}
             metodoPago={metodoPago}
             comprobante={comprobante}
+            archivoComprobante={archivoComprobante}
             guardando={guardandoSeleccion}
             error={errorSeleccion}
-            onClose={() => setSeleccion(null)}
+            onClose={() => setModalCobroAbierto(false)}
             onEstadoChange={setEstadoSeleccion}
             onMetodoPagoChange={setMetodoPago}
             onComprobanteChange={setComprobante}
-            onConfirmar={confirmarSeleccion}
+            onArchivoChange={setArchivoComprobante}
+            onConfirmar={confirmarLote}
             modulo="Tesorería"
           />
 
-          {/* Bandeja de Deudas y Pagos Reportados con Edición Inline de Comprobantes */}
+          {/* Bandeja de Deudas y Pagos Reportados */}
           {puedeGestionar && (
             <GestionDeudas refresco={deudasVersion} />
           )}
@@ -873,4 +1068,3 @@ export default function TesoreriaView({ dark, onNavigate, onToggleTheme }) {
     </div>
   )
 }
-

@@ -137,7 +137,19 @@ function componerConceptoCobro(array $items, string $socio): string
 /* -------------------------------------------------------------------------- */
 
 $usuario = exigirUsuario();
-$body = leerBodyJson();
+
+// Soporta tanto JSON crudo como multipart/form-data (cuando se adjunta foto de comprobante)
+if (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false || !empty($_FILES)) {
+    $body = $_POST;
+    if (isset($body['items']) && is_string($body['items'])) {
+        $decoded = json_decode($body['items'], true);
+        if (is_array($decoded)) {
+            $body['items'] = $decoded;
+        }
+    }
+} else {
+    $body = leerBodyJson();
+}
 
 $socioId      = (int) ($body['socio_id'] ?? 0);
 $fechaCobro   = trim((string) ($body['fecha_cobro'] ?? ''));
@@ -146,6 +158,14 @@ $conceptoCliente = textoLimpio($body['concepto_cobro'] ?? '', 255);
 $itemsCrudos  = $body['items'] ?? null;
 $metodoPago   = strtolower(trim((string) ($body['metodo_pago'] ?? '')));
 $nroComprobante = textoLimpio($body['nro_comprobante'] ?? '', 100);
+
+// Subida de imagen/PDF de comprobante
+$comprobanteUrl = null;
+if (isset($_FILES['comprobante']) && is_array($_FILES['comprobante'])) {
+    $comprobanteUrl = guardarArchivoComprobante($_FILES['comprobante'], 'cobro_' . $socioId);
+} elseif (!empty($body['comprobante_url'])) {
+    $comprobanteUrl = textoLimpio($body['comprobante_url'], 255);
+}
 
 if ($socioId <= 0) {
     jsonError('Debe seleccionar el socio al que se imputa el cobro.', 400);
@@ -305,20 +325,29 @@ try {
     // 1. Deuda cancelada que respalda el cobro inmediato. Así el movimiento
     //    aparece también en «Todas las deudas» y permite editar el comprobante.
     $fechaPago = $fechaCobro !== '' ? $fechaCobro . ' 00:00:00' : date('Y-m-d H:i:s');
-    $pdo->prepare(
-        'INSERT INTO `deudas_multas`
+    $tieneSaldos = tablaTieneColumna('deudas_multas', 'monto_pagado');
+    $sqlInsertDeuda = $tieneSaldos
+        ? 'INSERT INTO `deudas_multas`
+            (`socio_id`, `concepto`, `monto`, `monto_pagado`, `saldo_pendiente`, `tipo`, `estado`, `metodo_pago`,
+             `nro_comprobante`, `comprobante_url`, `registrado_por`, `fecha_emision`, `fecha_pago`)
+          VALUES
+            (:socio_id, :concepto, :monto, :monto, 0.00, :tipo, \'cancelado\', :metodo,
+             :nro, :comprobante_url, :registrado_por, :fecha_emision, :fecha_pago)'
+        : 'INSERT INTO `deudas_multas`
             (`socio_id`, `concepto`, `monto`, `tipo`, `estado`, `metodo_pago`,
-             `nro_comprobante`, `registrado_por`, `fecha_emision`, `fecha_pago`)
-         VALUES
+             `nro_comprobante`, `comprobante_url`, `registrado_por`, `fecha_emision`, `fecha_pago`)
+          VALUES
             (:socio_id, :concepto, :monto, :tipo, \'cancelado\', :metodo,
-             :nro, :registrado_por, :fecha_emision, :fecha_pago)'
-    )->execute([
+             :nro, :comprobante_url, :registrado_por, :fecha_emision, :fecha_pago)';
+
+    $pdo->prepare($sqlInsertDeuda)->execute([
         ':socio_id' => $socioId,
         ':concepto' => $concepto,
         ':monto' => $total,
         ':tipo' => $hayMultas ? 'multa_anexo_1' : 'aporte_anexo_2',
         ':metodo' => $metodoPago !== '' ? $metodoPago : null,
         ':nro' => $nroComprobante !== '' ? $nroComprobante : null,
+        ':comprobante_url' => $comprobanteUrl,
         ':registrado_por' => (int) $usuario['id'],
         ':fecha_emision' => $fechaPago,
         ':fecha_pago' => $fechaPago,

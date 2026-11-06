@@ -80,12 +80,6 @@ export default function PerfilMenu({ dark, onNavigate, onIrAPerfil }) {
       accion: () => irAPerfil('password'),
     },
     {
-      clave: 'multas',
-      etiqueta: 'Revisar mis Multas',
-      icono: Gavel,
-      accion: () => irAPerfil('multas'),
-    },
-    {
       clave: 'deudas',
       etiqueta: 'Mis Deudas y Aportes',
       icono: Receipt,

@@ -77,20 +77,24 @@ export default function ProfileView({
   const { usuario, nombreRol, actualizarPerfil, logout } = useAuth();
   const [seccion, setSeccion] = useState(seccionInicial);
 
-  // Si el menú de perfil pide otra sección, se sincroniza.
+  // Si el menú de perfil pide otra sección, se sincroniza. Redirige 'multas' a la pestaña unificada 'deudas'.
   useEffect(() => {
-    setSeccion(seccionInicial);
+    if (seccionInicial === 'multas') {
+      setSeccion('deudas');
+    } else {
+      setSeccion(seccionInicial);
+    }
   }, [seccionInicial]);
 
   const cambiarSeccion = (nueva) => {
-    setSeccion(nueva);
-    if (onCambiarSeccion) onCambiarSeccion(nueva);
+    const destino = nueva === 'multas' ? 'deudas' : nueva;
+    setSeccion(destino);
+    if (onCambiarSeccion) onCambiarSeccion(destino);
   };
 
   const tabs = [
     { clave: 'perfil', etiqueta: 'Datos de Perfil', icono: UserCog },
     { clave: 'password', etiqueta: 'Cambiar Contraseña', icono: KeyRound },
-    { clave: 'multas', etiqueta: 'Revisar mis Multas', icono: Gavel },
     { clave: 'deudas', etiqueta: 'Mis Deudas y Aportes', icono: Receipt },
   ];
 
@@ -196,8 +200,7 @@ export default function ProfileView({
             />
           )}
           {seccion === 'password' && <SeccionPassword />}
-          {seccion === 'multas' && <RevisarMultas />}
-          {seccion === 'deudas' && <MisDeudas />}
+          {(seccion === 'deudas' || seccion === 'multas') && <MisDeudas />}
         </main>
 
         <Footer />

@@ -91,6 +91,51 @@ export async function emitirDeuda(datos) {
 }
 
 /**
+ * Emite un lote de deudas pendientes desde el carrito acumulable.
+ * @param {{socioId:number, items:Array<object>}} datos
+ */
+export async function emitirLoteDeudas(datos) {
+  return peticion('deudas', {
+    metodo: 'POST',
+    cuerpo: {
+      socio_id: datos.socioId,
+      items: datos.items,
+    },
+  });
+}
+
+/**
+ * Registra un abono o pago parcial a una deuda.
+ * @param {{deudaId:number, montoAbono:number, metodoPago?:string,
+ *          nroComprobante?:string, observaciones?:string, archivo?:File|null}} datos
+ */
+export async function registrarAbono(datos) {
+  if (datos.archivo) {
+    const formData = new FormData();
+    formData.append('accion', 'abonar');
+    formData.append('deuda_id', String(datos.deudaId));
+    formData.append('monto_abono', String(datos.montoAbono));
+    formData.append('metodo_pago', datos.metodoPago || 'efectivo');
+    if (datos.nroComprobante) formData.append('nro_comprobante', datos.nroComprobante);
+    if (datos.observaciones) formData.append('observaciones', datos.observaciones);
+    formData.append('comprobante', datos.archivo);
+    return peticion('deudas', { metodo: 'POST', formData });
+  }
+
+  return peticion('deudas', {
+    metodo: 'POST',
+    cuerpo: {
+      accion: 'abonar',
+      deuda_id: datos.deudaId,
+      monto_abono: datos.montoAbono,
+      metodo_pago: datos.metodoPago || 'efectivo',
+      nro_comprobante: datos.nroComprobante || undefined,
+      observaciones: datos.observaciones || undefined,
+    },
+  });
+}
+
+/**
  * Aprueba (cancela) o reabre una deuda.
  * @param {number} id
  * @param {'cancelado'|'pendiente'|'en_revision'} estado
@@ -106,9 +151,18 @@ export async function cambiarEstadoDeuda(id, estado) {
  * Actualiza el comprobante o el método de pago de una deuda sin cambiar su
  * estado ni duplicar el ingreso en Caja Chica.
  * @param {number} id
- * @param {{nroComprobante?:string, metodoPago?:string}} datos
+ * @param {{nroComprobante?:string, metodoPago?:string, archivo?:File|null}} datos
  */
 export async function actualizarComprobanteDeuda(id, datos) {
+  if (datos.archivo) {
+    const formData = new FormData();
+    formData.append('id', String(id));
+    if (datos.nroComprobante !== undefined) formData.append('nro_comprobante', datos.nroComprobante);
+    if (datos.metodoPago !== undefined) formData.append('metodo_pago', datos.metodoPago);
+    formData.append('comprobante', datos.archivo);
+    return peticion('deudas', { metodo: 'POST', formData });
+  }
+
   return peticion('deudas', {
     metodo: 'PUT',
     cuerpo: {
@@ -122,12 +176,15 @@ export async function actualizarComprobanteDeuda(id, datos) {
 /**
  * Reporta el pago de una deuda con comprobante opcional.
  * @param {{deudaId:number, metodoPago:string, nroComprobante?:string,
- *          archivo?:File|null}} datos
+ *          montoAbono?:number, archivo?:File|null}} datos
  */
 export async function reportarPago(datos) {
   const formData = new FormData();
   formData.append('deuda_id', String(datos.deudaId));
   formData.append('metodo_pago', datos.metodoPago);
+  if (datos.montoAbono) {
+    formData.append('monto_abono', String(datos.montoAbono));
+  }
   if (datos.nroComprobante) {
     formData.append('nro_comprobante', datos.nroComprobante);
   }

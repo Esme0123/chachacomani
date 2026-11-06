@@ -168,6 +168,7 @@ function ejecutarMigracion(array $argumentos): array
         'multas',
         'deudas_multas',
         'caja_chica_movimientos',
+        'abonos_deudas',
         'notificaciones',
         'configuraciones',
     ];
@@ -342,6 +343,72 @@ function ejecutarMigracion(array $argumentos): array
             'enlazar `caja_chica_movimientos`.`deuda_id` con `deudas_multas`.`id`',
             $log
         );
+    }
+
+    // 4.f Deudas y aportes: pagos parciales y abonos (`monto_pagado`, `saldo_pendiente`)
+    if (columnaExiste($pdo, 'deudas_multas', 'monto_pagado')) {
+        $log('Columna `deudas_multas`.`monto_pagado` ya existe.');
+    } else {
+        $dll(
+            $pdo,
+            'ALTER TABLE `deudas_multas` ADD COLUMN `monto_pagado` DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER `monto`',
+            'agregar la columna `monto_pagado` a `deudas_multas`',
+            $log
+        );
+    }
+
+    if (columnaExiste($pdo, 'deudas_multas', 'saldo_pendiente')) {
+        $log('Columna `deudas_multas`.`saldo_pendiente` ya existe.');
+    } else {
+        $dll(
+            $pdo,
+            'ALTER TABLE `deudas_multas` ADD COLUMN `saldo_pendiente` DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER `monto_pagado`',
+            'agregar la columna `saldo_pendiente` a `deudas_multas`',
+            $log
+        );
+    }
+
+    // Inicializar saldo_pendiente y monto_pagado en registros previos
+    try {
+        $pdo->exec(
+            "UPDATE `deudas_multas`
+                SET `saldo_pendiente` = IF(`estado` = 'cancelado', 0.00, `monto`),
+                    `monto_pagado` = IF(`estado` = 'cancelado', `monto`, 0.00)
+              WHERE `saldo_pendiente` = 0.00 AND `monto_pagado` = 0.00 AND `monto` > 0"
+        );
+        $log('Saldos y pagos parciales inicializados en `deudas_multas`.', 'ok');
+
+        // Sincronizar multas antiguas desde `multas` hacia `deudas_multas` para que el historial
+        // de pagos antiguos se muestre completo en «Mis Deudas y Aportes»
+        if (tablaExiste($pdo, 'multas')) {
+            $pdo->exec(
+                "INSERT INTO `deudas_multas`
+                    (`socio_id`, `concepto`, `monto`, `monto_pagado`, `saldo_pendiente`, `tipo`, `estado`,
+                     `registrado_por`, `fecha_emision`, `fecha_pago`)
+                 SELECT
+                    m.`socio_id`,
+                    CONCAT(m.`articulo_referencia`, ': ', m.`infraccion`),
+                    m.`monto`,
+                    IF(m.`estado` = 'pagada', m.`monto`, 0.00),
+                    IF(m.`estado` = 'pagada', 0.00, m.`monto`),
+                    'multa_anexo_1',
+                    IF(m.`estado` = 'pagada', 'cancelado', 'pendiente'),
+                    m.`registrado_por`,
+                    CONCAT(m.`fecha_infraccion`, ' 00:00:00'),
+                    IF(m.`estado` = 'pagada', m.`creado_en`, NULL)
+                 FROM `multas` m
+                 WHERE NOT EXISTS (
+                    SELECT 1 FROM `deudas_multas` d
+                    WHERE d.`socio_id` = m.`socio_id`
+                      AND d.`monto` = m.`monto`
+                      AND (d.`concepto` = CONCAT(m.`articulo_referencia`, ': ', m.`infraccion`)
+                           OR d.`concepto` LIKE CONCAT('%', m.`articulo_referencia`, '%'))
+                 )"
+            );
+            $log('Historial de sanciones sincronizado hacia `deudas_multas`.', 'ok');
+        }
+    } catch (Throwable $e) {
+        $log('No se pudo inicializar saldos o sincronizar multas: ' . $e->getMessage(), 'error');
     }
 
     // 5. Índices de apoyo ---------------------------------------------
