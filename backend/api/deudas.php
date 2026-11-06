@@ -111,22 +111,34 @@ if (!tablaTieneColumna('deudas_multas', 'id')) {
 if ($metodo === 'GET') {
     $usuario = exigirUsuario();
     $gestiona = usuarioGestionaDeudas($usuario);
-    // «Mis Deudas» fuerza las propias incluso para Tesorería/Caja Chica/Admin.
     $soloPropias = entradaBooleana($_GET['propias'] ?? false) === true;
-    $verTodas = $gestiona && !$soloPropias;
+    $socioIdQuery = isset($_GET['socio_id']) ? (int) $_GET['socio_id'] : 0;
 
     $where = [];
     $valores = [];
 
-    if ($verTodas) {
-        $socioId = isset($_GET['socio_id']) ? (int) $_GET['socio_id'] : 0;
-        if ($socioId > 0) {
-            $where[] = 'd.socio_id = :socio_id';
-            $valores[':socio_id'] = $socioId;
+    // Control de acceso y filtrado estricto por socio
+    if (!$gestiona) {
+        // Ningún usuario común tiene acceso a las deudas o multas de otros socios
+        if ($socioIdQuery > 0 && $socioIdQuery !== (int) $usuario['id']) {
+            jsonError('No tiene acceso a las deudas o multas asociadas a otros socios.', 403);
         }
-    } else {
         $where[] = 'd.socio_id = :socio_id';
         $valores[':socio_id'] = (int) $usuario['id'];
+        $verTodas = false;
+    } elseif ($soloPropias) {
+        // El usuario con rol staff consulta su vista personal
+        $where[] = 'd.socio_id = :socio_id';
+        $valores[':socio_id'] = (int) $usuario['id'];
+        $verTodas = false;
+    } elseif ($socioIdQuery > 0) {
+        // Personal staff filtrando por un socio concreto
+        $where[] = 'd.socio_id = :socio_id';
+        $valores[':socio_id'] = $socioIdQuery;
+        $verTodas = false;
+    } else {
+        // Bandeja de administración general (sin filtro de socio)
+        $verTodas = true;
     }
 
     $estado = strtolower(trim((string) ($_GET['estado'] ?? '')));
@@ -184,6 +196,9 @@ if ($metodo === 'GET') {
     foreach (['montoPendiente', 'montoEnRevision', 'montoCancelado'] as $clave) {
         $totales[$clave] = round($totales[$clave], 2);
     }
+    // Aliases para vistas de multas y aportes
+    $totales['pagadas'] = $totales['canceladas'];
+    $totales['montoPagado'] = $totales['montoCancelado'];
 
     $socios = [];
     if ($verTodas) {

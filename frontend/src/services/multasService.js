@@ -277,7 +277,13 @@ export function conceptoCobroMulta(item, nombreSocio) {
  *                    socios: {id:number,nombre:string,correo:string}[]}>}
  */
 export async function listarMultas(filtros = {}) {
-  return peticion('multas', { params: { estado: filtros.estado } });
+  return peticion('multas', {
+    params: {
+      estado: filtros.estado,
+      socio_id: filtros.socioId,
+      propias: filtros.propias ? 1 : undefined,
+    },
+  });
 }
 
 /**
@@ -285,8 +291,8 @@ export async function listarMultas(filtros = {}) {
  * «Revisar mis Multas» del perfil: fecha de infracción, monto en Bs. y estado.
  * @returns {Promise<{multas: object[], totales: object, puedeGestionar: boolean}>}
  */
-export async function misMultas() {
-  return listarMultas();
+export async function misMultas(filtros = {}) {
+  return listarMultas({ ...filtros, propias: true });
 }
 
 /* -------------------------------------------------------------------------- */

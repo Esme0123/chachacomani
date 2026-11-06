@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertTriangle, CheckCircle2, Clock3, FileUp, Receipt, X, ExternalLink,
 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext.jsx'
 import * as deudasService from '../services/deudasService.js'
 import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas.js'
 import qrCobro from '../assets/qr-cobro.svg'
@@ -46,20 +47,27 @@ function formatearMonto(monto) {
  * comprobante y adjunto. La aprobación la realiza el personal autorizado.
  */
 export default function MisDeudas() {
+  const { usuario } = useAuth()
   const [deudas, setDeudas] = useState([])
   const [totales, setTotales] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
   const [exito, setExito] = useState(null)
   const [deudaSeleccionada, setDeudaSeleccionada] = useState(null)
+  const [filtroEstado, setFiltroEstado] = useState('')
 
   const cargar = useCallback(async (silencioso = false) => {
+    if (!usuario?.id) return
     if (!silencioso) {
       setCargando(true)
       setError(null)
     }
     try {
-      const json = await deudasService.misDeudas()
+      const json = await deudasService.listarDeudas({
+        socioId: usuario.id,
+        estado: filtroEstado || undefined,
+        propias: true,
+      })
       setDeudas(Array.isArray(json?.deudas) ? json.deudas : [])
       setTotales(json?.totales || null)
     } catch (err) {
@@ -71,7 +79,7 @@ export default function MisDeudas() {
     } finally {
       if (!silencioso) setCargando(false)
     }
-  }, [])
+  }, [usuario?.id, filtroEstado])
 
   useEffect(() => {
     cargar()
@@ -136,6 +144,30 @@ export default function MisDeudas() {
           <p className="font-mono text-[11px] text-rose-600 dark:text-rose-400">{error}</p>
         </div>
       )}
+
+      {/* Filtro por estado */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 mr-1">Filtrar por estado:</span>
+        {[
+          { id: '', etiqueta: 'Todos' },
+          { id: 'pendiente', etiqueta: 'Pendientes' },
+          { id: 'en_revision', etiqueta: 'En revisión' },
+          { id: 'cancelado', etiqueta: 'Canceladas' },
+        ].map((opcion) => (
+          <button
+            key={opcion.id}
+            type="button"
+            onClick={() => setFiltroEstado(opcion.id)}
+            className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
+              filtroEstado === opcion.id
+                ? 'bg-[#48B3AF] text-white font-bold shadow-sm'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+            }`}
+          >
+            {opcion.etiqueta}
+          </button>
+        ))}
+      </div>
 
       {cargando ? (
         <div className="rounded-xl border border-[#294669]/15 dark:border-[#294669]/40 bg-white/80 dark:bg-[#0D0B61]/70 px-4 py-10 text-center">

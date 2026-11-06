@@ -171,19 +171,27 @@ if ($metodo === 'GET') {
     $puedeListarSocios = $puedeVerTodas
         || rolTienePermiso($usuario['rol'], PERMISO_GESTIONAR_CAJA_CHICA);
 
+    $soloPropias = entradaBooleana($_GET['propias'] ?? false) === true;
+    $socioIdQuery = isset($_GET['socio_id']) ? (int) $_GET['socio_id'] : 0;
+
     $where = [];
     $valores = [];
 
-    if ($puedeVerTodas) {
-        $socioId = isset($_GET['socio_id']) ? (int) $_GET['socio_id'] : 0;
-        if ($socioId > 0) {
-            $where[] = 'm.socio_id = :socio_id';
-            $valores[':socio_id'] = $socioId;
+    if (!$puedeVerTodas) {
+        // Ningún usuario común tiene acceso a las multas de otros socios
+        if ($socioIdQuery > 0 && $socioIdQuery !== (int) $usuario['id']) {
+            jsonError('No tiene acceso a las multas asociadas a otros socios.', 403);
         }
-    } else {
-        // Rol Lectura: sólo su propio historial, aunque solicite otro socio_id.
         $where[] = 'm.socio_id = :socio_id';
         $valores[':socio_id'] = (int) $usuario['id'];
+    } elseif ($soloPropias) {
+        // Personal staff consultando su propio historial de multas
+        $where[] = 'm.socio_id = :socio_id';
+        $valores[':socio_id'] = (int) $usuario['id'];
+    } elseif ($socioIdQuery > 0) {
+        // Personal staff filtrando por un socio concreto
+        $where[] = 'm.socio_id = :socio_id';
+        $valores[':socio_id'] = $socioIdQuery;
     }
 
     $estado = strtolower(trim((string) ($_GET['estado'] ?? '')));

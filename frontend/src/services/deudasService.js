@@ -63,8 +63,13 @@ export async function listarDeudas(filtros = {}) {
 }
 
 /** Deudas del socio autenticado (perfil «Mis Deudas»), aunque sea staff. */
-export async function misDeudas() {
-  return listarDeudas({ propias: true });
+export async function misDeudas(filtros = {}) {
+  return listarDeudas({ ...filtros, propias: true });
+}
+
+/** Multas (Anexo I) del socio autenticado para «Revisar mis Multas». */
+export async function misMultasDeudas(filtros = {}) {
+  return listarDeudas({ ...filtros, tipo: TIPO_DEUDA_MULTA, propias: true });
 }
 
 /**

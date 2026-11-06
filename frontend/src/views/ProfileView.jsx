@@ -7,9 +7,9 @@ import {
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
 import MisDeudas from '../components/MisDeudas.jsx'
+import RevisarMultas from '../components/RevisarMultas.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { validarContrasena } from '../services/authService.js'
-import * as multasService from '../services/multasService.js'
 
 /* -------------------------------------------------------------------------- */
 /* Presentación de datos                                                       */
@@ -196,7 +196,7 @@ export default function ProfileView({
             />
           )}
           {seccion === 'password' && <SeccionPassword />}
-          {seccion === 'multas' && <SeccionMultas />}
+          {seccion === 'multas' && <RevisarMultas />}
           {seccion === 'deudas' && <MisDeudas />}
         </main>
 
@@ -434,151 +434,6 @@ function SeccionPassword() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 3. Revisar mis Multas                                                       */
+/* 3. Revisar mis Multas: Gestionado por components/RevisarMultas.jsx          */
 /* -------------------------------------------------------------------------- */
 
-function SeccionMultas() {
-  const [multas, setMultas] = useState([]);
-  const [totales, setTotales] = useState(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
-
-  const cargar = useCallback(async () => {
-    setCargando(true);
-    setError(null);
-    try {
-      const json = await multasService.misMultas();
-      setMultas(json.multas || []);
-      setTotales(json.totales || null);
-    } catch (err) {
-      setError(err?.message || 'No se pudieron cargar sus multas.');
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
-
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      <div>
-        <h2 className="font-display font-bold text-lg text-[#0D0B61] dark:text-white mb-1">
-          Revisar mis Multas
-        </h2>
-        <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-          Historial de sanciones registradas en el Anexo I (Escala de Multas y Medidas
-          Disciplinarias) del Reglamento Interno.
-        </p>
-      </div>
-
-      {/* Resumen */}
-      {totales && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { etiqueta: 'Total multas', valor: String(totales.total ?? 0), color: 'text-[#0D0B61] dark:text-white' },
-            { etiqueta: 'Pendientes', valor: String(totales.pendientes ?? 0), color: 'text-amber-600 dark:text-amber-400' },
-            { etiqueta: 'Monto pendiente', valor: formatearMonto(totales.montoPendiente), color: 'text-rose-600 dark:text-rose-400' },
-            { etiqueta: 'Monto pagado', valor: formatearMonto(totales.montoPagado), color: 'text-emerald-600 dark:text-emerald-400' },
-          ].map((item) => (
-            <div key={item.etiqueta} className="rounded-xl border border-[#294669]/15 dark:border-[#294669]/40 bg-white/80 dark:bg-[#0D0B61]/70 px-4 py-3">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-[#294669]/60 dark:text-[#476EAE]/70">
-                {item.etiqueta}
-              </p>
-              <p className={`font-display font-bold text-base mt-0.5 ${item.color}`}>{item.valor}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {error && (
-        <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-          <p className="font-mono text-[11px] text-rose-600 dark:text-rose-400">{error}</p>
-        </div>
-      )}
-
-      {cargando ? (
-        <div className="rounded-xl border border-[#294669]/15 dark:border-[#294669]/40 bg-white/80 dark:bg-[#0D0B61]/70 px-4 py-10 text-center">
-          <p className="font-mono text-xs text-[#294669]/70 dark:text-[#476EAE]">
-            Cargando su historial de multas…
-          </p>
-        </div>
-      ) : multas.length === 0 ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-10 text-center space-y-2">
-          <ShieldAlert className="w-8 h-8 mx-auto text-emerald-500" />
-          <p className="font-display font-semibold text-sm text-[#0D0B61] dark:text-white">
-            No tiene multas registradas
-          </p>
-          <p className="font-mono text-[11px] text-[#294669]/70 dark:text-[#476EAE]">
-            Su cuenta no presenta sanciones pendientes ni históricas.
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-[#294669]/15 dark:border-[#294669]/40 bg-white/92 dark:bg-[#0D0B61]/85 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-[#294669]/8 dark:bg-[#294669]/35 text-[#294669] dark:text-[#48B3AF] uppercase font-semibold text-[10px] tracking-wider">
-                  <th className="p-3.5">Infracción</th>
-                  <th className="p-3.5">Artículo</th>
-                  <th className="p-3.5">Fecha</th>
-                  <th className="p-3.5">Categoría</th>
-                  <th className="p-3.5 text-right">Monto (Bs.)</th>
-                  <th className="p-3.5 text-center">Estado de pago</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#294669]/10 dark:divide-[#294669]/25">
-                {multas.map((multa) => {
-                  const estado = ETIQUETA_ESTADO[multa.estado] || ETIQUETA_ESTADO.pendiente;
-                  const categoria = ETIQUETA_CATEGORIA[multa.categoria] || ETIQUETA_CATEGORIA.Leve;
-                  return (
-                    <tr key={multa.id} className="hover:bg-[#294669]/5 dark:hover:bg-[#294669]/20 transition-colors">
-                      <td className="p-3.5 font-medium text-[#0D0B61] dark:text-slate-100">
-                        {multa.infraccion}
-                        {multa.medidaComplementaria && multa.medidaComplementaria !== '—' && (
-                          <span className="block mt-0.5 font-mono text-[10px] text-[#294669]/70 dark:text-slate-400">
-                            {multa.medidaComplementaria}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3.5 font-mono text-[#48B3AF] whitespace-nowrap">{multa.articulo}</td>
-                      <td className="p-3.5 font-mono text-[#294669] dark:text-slate-300 whitespace-nowrap">
-                        {formatearFecha(multa.fechaInfraccion)}
-                      </td>
-                      <td className="p-3.5">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${categoria}`}>
-                          {multa.categoria}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-right font-bold text-[#0D0B61] dark:text-white whitespace-nowrap">
-                        {formatearMonto(multa.monto)}
-                      </td>
-                      <td className="p-3.5 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${estado.clases}`}>
-                          {estado.texto}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {multas.some((m) => m.estado === 'pendiente') && (
-        <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]/70">
-          El plazo para el pago de toda multa es de quince (15) días calendario desde la
-          notificación, conforme al Art. 73 del Reglamento Interno.
-        </p>
-      )}
-    </motion.section>
-  );
-}
