@@ -414,3 +414,4 @@ function ModalReportarPagoMulta({ deuda, onCerrar, onEnviar }) {
     </div>
   )
 }
+
