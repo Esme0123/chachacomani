@@ -6,15 +6,15 @@ import { useAuth } from '../context/AuthContext.jsx'
 import {
   PERMISO_VER_CONTABILIDAD,
   PERMISO_GESTIONAR_CAJA_CHICA,
+  PERMISO_GESTIONAR_MULTAS,
   PERMISO_GESTIONAR_USUARIOS,
-  ROL_TESORERO,
 } from '../services/permisosService.js'
 
 export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil }) {
   const [bibliotecaAbierto, setBibliotecaAbierto] = useState(false)
   const [menuMovil, setMenuMovil] = useState(false)
   const [bibliotecaMovil, setBibliotecaMovil] = useState(false)
-  const { estaAutenticado, puede, usuario } = useAuth()
+  const { estaAutenticado, puede } = useAuth()
 
   const cerrarTodo = (dest) => {
     setMenuMovil(false)
@@ -40,11 +40,22 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
   const paneles = useMemo(() => {
     if (!estaAutenticado) return []
     const disponibles = []
-    if (puede(PERMISO_VER_CONTABILIDAD) || puede(PERMISO_GESTIONAR_CAJA_CHICA)) {
+    // Tesorero tiene su panel dedicado; Caja Chica y Admin usan el panel de Caja Chica.
+    if (puede(PERMISO_GESTIONAR_MULTAS) && !puede(PERMISO_GESTIONAR_CAJA_CHICA)) {
+      // Rol Tesorero puro: va a TesoreriaView
+      disponibles.push({
+        id: 'tesoreria',
+        etiqueta: 'Tesorería',
+        boton: 'Panel Tesorería',
+        descripcion: 'Multas, aportes y deudas',
+        icono: '🏦',
+      })
+    } else if (puede(PERMISO_VER_CONTABILIDAD) || puede(PERMISO_GESTIONAR_CAJA_CHICA)) {
+      // Caja Chica / Admin: van a CajaChicaView (que ya incluye multas y aportes)
       disponibles.push({
         id: 'caja-chica',
         etiqueta: 'Caja Chica',
-        boton: usuario?.rol === ROL_TESORERO ? 'Tesorería' : 'Panel Caja Chica',
+        boton: 'Panel Caja Chica',
         descripcion: 'Ingresos y egresos menores',
         icono: '💼',
       })
@@ -59,7 +70,7 @@ export default function Header({ dark, onNavigate, onToggleTheme, onIrAPerfil })
       })
     }
     return disponibles
-  }, [estaAutenticado, puede, usuario?.rol])
+  }, [estaAutenticado, puede])
 
   return (
     <header className={`sticky top-0 z-40 ${dark

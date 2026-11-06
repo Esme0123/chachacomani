@@ -312,13 +312,25 @@ if (!usuarioGestionaDeudas($usuario)) {
 
 $body = leerBodyJson();
 $deudaId = (int) ($body['id'] ?? 0);
+$tieneEstado = array_key_exists('estado', $body);
 $estado = strtolower(trim((string) ($body['estado'] ?? '')));
+$tieneComprobante = array_key_exists('nro_comprobante', $body);
+$tieneMetodo = array_key_exists('metodo_pago', $body);
+$nroComprobante = $tieneComprobante ? textoLimpio($body['nro_comprobante'] ?? '', 100) : '';
+$metodoPago = $tieneMetodo ? strtolower(trim((string) ($body['metodo_pago'] ?? ''))) : '';
 
 if ($deudaId <= 0) {
     jsonError('Debe indicar el `id` de la deuda.', 400);
 }
-if (!in_array($estado, ESTADOS_DEUDA, true)) {
+if (!$tieneEstado && !$tieneComprobante && !$tieneMetodo) {
+    jsonError('Indique el estado o los datos del comprobante a actualizar.', 400);
+}
+if ($tieneEstado && !in_array($estado, ESTADOS_DEUDA, true)) {
     jsonError('Estado no válido. Use: ' . implode(', ', ESTADOS_DEUDA) . '.', 400);
+}
+if ($tieneMetodo && $metodoPago !== ''
+    && !in_array($metodoPago, ['efectivo', 'qr', 'transferencia'], true)) {
+    jsonError('Método de pago no válido. Use: efectivo, qr o transferencia.', 400);
 }
 
 $stmt = db()->prepare(sqlDeuda() . ' WHERE d.id = :id');
@@ -328,110 +340,122 @@ if (!$actual) {
     jsonError('La deuda indicada no existe.', 404);
 }
 
-// Aprobar dos veces es idempotente: se devuelve el estado actual sin duplicar
-// el ingreso en Caja Chica.
-if ($estado === 'cancelado' && $actual['estado'] === 'cancelado') {
-    jsonResponse([
-        'ok' => true,
-        'deuda' => deudaPublica($actual),
-        'mensaje' => 'La deuda ya estaba cancelada.',
-    ]);
-}
+$mismoEstado = $tieneEstado && $estado === $actual['estado'];
 
 $pdo = db();
 try {
     $pdo->beginTransaction();
 
-    if ($estado === 'cancelado') {
-        $pdo->prepare(
-            'UPDATE `deudas_multas`
-                SET `estado` = \'cancelado\', `fecha_pago` = COALESCE(`fecha_pago`, NOW())
-              WHERE `id` = :id'
-        )->execute([':id' => $deudaId]);
-
-        $tieneDeudaId = tablaTieneColumna('caja_chica_movimientos', 'deuda_id');
-        $yaAsentado = false;
-        if ($tieneDeudaId) {
-            $stmt = $pdo->prepare('SELECT `id` FROM `caja_chica_movimientos` WHERE `deuda_id` = :id');
-            $stmt->execute([':id' => $deudaId]);
-            $yaAsentado = $stmt->fetchColumn() !== false;
+    // El comprobante y el método de pago pueden editarse en cualquier estado,
+    // sin tocar el asiento de Caja Chica ni volver a notificar al socio.
+    if ($tieneComprobante || $tieneMetodo) {
+        $sets = [];
+        $valores = [':id' => $deudaId];
+        if ($tieneComprobante) {
+            $sets[] = '`nro_comprobante` = :nro';
+            $valores[':nro'] = $nroComprobante !== '' ? $nroComprobante : null;
         }
+        if ($tieneMetodo) {
+            $sets[] = '`metodo_pago` = :metodo';
+            $valores[':metodo'] = $metodoPago !== '' ? $metodoPago : null;
+        }
+        $pdo->prepare(
+            'UPDATE `deudas_multas` SET ' . implode(', ', $sets) . ' WHERE `id` = :id'
+        )->execute($valores);
+    }
 
-        if (!$yaAsentado) {
-            $categoria = $actual['tipo'] === 'aporte_anexo_2'
-                ? CATEGORIA_CAJA_DEUDA_APORTE
-                : CATEGORIA_CAJA_DEUDA_MULTA;
-            $concepto = textoLimpio(
-                'Cobro de deuda #' . $deudaId . ': ' . $actual['concepto']
-                . ' - Socio: ' . $actual['socio_nombre'],
-                255
-            );
-            $observaciones = 'Ingreso automático por la aprobación de la deuda #' . $deudaId . '.';
+    if ($tieneEstado && !$mismoEstado) {
+        if ($estado === 'cancelado') {
+            $pdo->prepare(
+                'UPDATE `deudas_multas`
+                    SET `estado` = \'cancelado\', `fecha_pago` = COALESCE(`fecha_pago`, NOW())
+                  WHERE `id` = :id'
+            )->execute([':id' => $deudaId]);
 
+            $tieneDeudaId = tablaTieneColumna('caja_chica_movimientos', 'deuda_id');
+            $yaAsentado = false;
             if ($tieneDeudaId) {
-                $pdo->prepare(
-                    'INSERT INTO `caja_chica_movimientos`
-                        (`tipo`, `concepto`, `categoria`, `monto`, `fecha`, `observaciones`,
-                         `registrado_por`, `deuda_id`)
-                     VALUES
-                        (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones,
-                         :registrado_por, :deuda_id)'
-                )->execute([
-                    ':concepto' => $concepto,
-                    ':categoria' => $categoria,
-                    ':monto' => (float) $actual['monto'],
-                    ':fecha' => date('Y-m-d'),
-                    ':observaciones' => $observaciones,
-                    ':registrado_por' => (int) $usuario['id'],
-                    ':deuda_id' => $deudaId,
-                ]);
-            } else {
-                $pdo->prepare(
-                    'INSERT INTO `caja_chica_movimientos`
-                        (`tipo`, `concepto`, `categoria`, `monto`, `fecha`, `observaciones`,
-                         `registrado_por`)
-                     VALUES
-                        (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones,
-                         :registrado_por)'
-                )->execute([
-                    ':concepto' => $concepto,
-                    ':categoria' => $categoria,
-                    ':monto' => (float) $actual['monto'],
-                    ':fecha' => date('Y-m-d'),
-                    ':observaciones' => $observaciones,
-                    ':registrado_por' => (int) $usuario['id'],
-                ]);
+                $stmt = $pdo->prepare('SELECT `id` FROM `caja_chica_movimientos` WHERE `deuda_id` = :id');
+                $stmt->execute([':id' => $deudaId]);
+                $yaAsentado = $stmt->fetchColumn() !== false;
             }
-        }
 
-        notificarUsuario(
-            $pdo,
-            (int) $actual['socio_id'],
-            'Pago confirmado',
-            'Su pago de Bs. ' . montoDeudaTexto((float) $actual['monto'])
-            . ' por «' . $actual['concepto'] . '» fue aprobado. La deuda quedó cancelada.'
-        );
-    } else {
-        $pdo->prepare(
-            'UPDATE `deudas_multas`
-                SET `estado` = :estado, `fecha_pago` = NULL
-              WHERE `id` = :id'
-        )->execute([':estado' => $estado, ':id' => $deudaId]);
+            if (!$yaAsentado) {
+                $categoria = $actual['tipo'] === 'aporte_anexo_2'
+                    ? CATEGORIA_CAJA_DEUDA_APORTE
+                    : CATEGORIA_CAJA_DEUDA_MULTA;
+                $concepto = textoLimpio(
+                    'Cobro de deuda #' . $deudaId . ': ' . $actual['concepto']
+                    . ' - Socio: ' . $actual['socio_nombre'],
+                    255
+                );
+                $observaciones = 'Ingreso automático por la aprobación de la deuda #' . $deudaId . '.';
 
-        if (tablaTieneColumna('caja_chica_movimientos', 'deuda_id')) {
-            $pdo->prepare('DELETE FROM `caja_chica_movimientos` WHERE `deuda_id` = :id')
-                ->execute([':id' => $deudaId]);
-        }
+                if ($tieneDeudaId) {
+                    $pdo->prepare(
+                        'INSERT INTO `caja_chica_movimientos`
+                            (`tipo`, `concepto`, `categoria`, `monto`, `fecha`, `observaciones`,
+                             `registrado_por`, `deuda_id`)
+                         VALUES
+                            (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones,
+                             :registrado_por, :deuda_id)'
+                    )->execute([
+                        ':concepto' => $concepto,
+                        ':categoria' => $categoria,
+                        ':monto' => (float) $actual['monto'],
+                        ':fecha' => date('Y-m-d'),
+                        ':observaciones' => $observaciones,
+                        ':registrado_por' => (int) $usuario['id'],
+                        ':deuda_id' => $deudaId,
+                    ]);
+                } else {
+                    $pdo->prepare(
+                        'INSERT INTO `caja_chica_movimientos`
+                            (`tipo`, `concepto`, `categoria`, `monto`, `fecha`, `observaciones`,
+                             `registrado_por`)
+                         VALUES
+                            (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones,
+                             :registrado_por)'
+                    )->execute([
+                        ':concepto' => $concepto,
+                        ':categoria' => $categoria,
+                        ':monto' => (float) $actual['monto'],
+                        ':fecha' => date('Y-m-d'),
+                        ':observaciones' => $observaciones,
+                        ':registrado_por' => (int) $usuario['id'],
+                    ]);
+                }
+            }
 
-        if ($estado === 'pendiente' && $actual['estado'] === 'en_revision') {
             notificarUsuario(
                 $pdo,
                 (int) $actual['socio_id'],
-                'Pago observado',
-                'El pago reportado para «' . $actual['concepto'] . '» (Bs. '
-                . montoDeudaTexto((float) $actual['monto'])
-                . ') fue observado. Revise su comprobante y vuelva a reportarlo desde «Mis Deudas».'
+                'Pago confirmado',
+                'Su pago de Bs. ' . montoDeudaTexto((float) $actual['monto'])
+                . ' por «' . $actual['concepto'] . '» fue aprobado. La deuda quedó cancelada.'
             );
+        } else {
+            $pdo->prepare(
+                'UPDATE `deudas_multas`
+                    SET `estado` = :estado, `fecha_pago` = NULL
+                  WHERE `id` = :id'
+            )->execute([':estado' => $estado, ':id' => $deudaId]);
+
+            if (tablaTieneColumna('caja_chica_movimientos', 'deuda_id')) {
+                $pdo->prepare('DELETE FROM `caja_chica_movimientos` WHERE `deuda_id` = :id')
+                    ->execute([':id' => $deudaId]);
+            }
+
+            if ($estado === 'pendiente' && $actual['estado'] === 'en_revision') {
+                notificarUsuario(
+                    $pdo,
+                    (int) $actual['socio_id'],
+                    'Pago observado',
+                    'El pago reportado para «' . $actual['concepto'] . '» (Bs. '
+                    . montoDeudaTexto((float) $actual['monto'])
+                    . ') fue observado. Revise su comprobante y vuelva a reportarlo desde «Mis Deudas».'
+                );
+            }
         }
     }
 
@@ -454,8 +478,18 @@ $mensajes = [
     'en_revision' => 'Deuda marcada en revisión.',
 ];
 
+if (!$tieneEstado) {
+    $mensaje = 'Comprobante actualizado.';
+} elseif ($mismoEstado) {
+    $mensaje = $estado === 'cancelado'
+        ? 'La deuda ya estaba cancelada.'
+        : 'La deuda ya estaba en ese estado.';
+} else {
+    $mensaje = $mensajes[$estado] ?? 'Deuda actualizada.';
+}
+
 jsonResponse([
     'ok' => true,
     'deuda' => $deuda,
-    'mensaje' => $mensajes[$estado] ?? 'Deuda actualizada.',
+    'mensaje' => $mensaje,
 ]);

@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Sparkles, Coins, Plus, Trash2, QrCode, Receipt } from 'lucide-react'
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Save, AlertTriangle, LogOut, Scale, Search, X, Check, Coins, Plus, QrCode, Receipt } from 'lucide-react'
 import Header from '../components/Header.jsx'
 import Footer from '../components/Footer.jsx'
 import GestionDeudas from '../components/GestionDeudas.jsx'
+import ModalCobroMulta from '../components/ModalCobroMulta.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { PERMISO_GESTIONAR_CAJA_CHICA, PERMISO_GESTIONAR_MULTAS } from '../services/permisosService.js'
 import * as cajaChicaService from '../services/cajaChicaService.js'
 import * as multasService from '../services/multasService.js'
 import * as aportesService from '../services/aportesService.js'
 import * as cobrosService from '../services/cobrosService.js'
+import * as deudasService from '../services/deudasService.js'
 import { ANEXOS_DATA } from '../data/reglamentoData'
-import qrCobro from '../assets/qr-cobro.svg'
 
 function formatearMonto(monto) {
   const numero = Number(monto);
@@ -27,11 +28,6 @@ function mesActual() {
 /** Fecha de hoy en formato `YYYY-MM-DD`. */
 function hoy() {
   return new Date().toISOString().slice(0, 10);
-}
-
-/** Identificador efímero para las filas del carrito (sólo en el cliente). */
-function uidItem() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 /** Frecuencia legible de un aporte del Anexo II. */
@@ -63,25 +59,25 @@ function categoriaVisible(item) {
 function claseCategoria(categoria) {
   const texto = String(categoria || '').toLowerCase();
   if (texto.includes('consejero')) {
-    return 'border-violet-400/40 bg-violet-500/15 text-violet-300';
+    return 'border-violet-400/40 bg-violet-500/15 text-violet-700 dark:text-violet-300';
   }
   if (texto.includes('muy grave')) {
-    return 'border-orange-400/40 bg-orange-500/15 text-orange-300';
+    return 'border-orange-400/40 bg-orange-500/15 text-orange-700 dark:text-orange-300';
   }
   if (texto.includes('gravísima') || texto.includes('gravisima')) {
-    return 'border-rose-400/40 bg-rose-500/15 text-rose-300';
+    return 'border-rose-400/40 bg-rose-500/15 text-rose-700 dark:text-rose-300';
   }
   if (texto.includes('grave')) {
-    return 'border-amber-400/40 bg-amber-500/15 text-amber-300';
+    return 'border-amber-400/40 bg-amber-500/15 text-amber-700 dark:text-amber-300';
   }
-  return 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300';
+  return 'border-emerald-400/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
 }
 
 /** Clases del badge de frecuencia de aportes. */
 function claseFrecuencia(frecuencia) {
-  if (frecuencia === 'Mensual') return 'border-sky-400/40 bg-sky-500/15 text-sky-300';
-  if (frecuencia === 'Anual') return 'border-amber-400/40 bg-amber-500/15 text-amber-300';
-  return 'border-fuchsia-400/40 bg-fuchsia-500/15 text-fuchsia-300';
+  if (frecuencia === 'Mensual') return 'border-sky-400/40 bg-sky-500/15 text-sky-700 dark:text-sky-300';
+  if (frecuencia === 'Anual') return 'border-amber-400/40 bg-amber-500/15 text-amber-700 dark:text-amber-300';
+  return 'border-fuchsia-400/40 bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300';
 }
 
 /** Anexo I del documento: contiene los Cuadros N.º 1 y N.º 2 de multas. */
@@ -100,7 +96,7 @@ const ANEXO_II = ANEXOS_DATA.find((anexo) => anexo?.tablas?.some((t) => t.id ===
  *  · Registrar movimientos exige `caja_chica:gestionar` (Caja Chica y Admin).
  *  · El Tesorero tiene `contabilidad:ver`, por lo que puede consultar el panel.
  *    Tanto el Tesorero como el rol Caja Chica pueden cobrar multas del Anexo I
- *    y aportes del Anexo II desde el carrito, sin pestañas bloqueadas.
+ *    y aportes del Anexo II con emisión pendiente o cobro inmediato.
  *
  *  FLUJO GUIADO DE REGISTRO (tres pestañas)
  *  ----------------------------------------
@@ -154,31 +150,31 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     observaciones: '',
   });
 
-  // Cobro guiado: socio + carrito de multas (Anexo I) y aportes (Anexo II).
-  const [carrito, setCarrito] = useState([]);
+  // Flujo unificado: socio + selección de multa/aporte que se emite pendiente
+  // o se cobra de inmediato desde la misma tabla.
   const [socioId, setSocioId] = useState('');
   const [filtroSocio, setFiltroSocio] = useState('');
   const [socios, setSocios] = useState([]);
   const [cargandoSocios, setCargandoSocios] = useState(false);
 
-  // Añadir una multa del Anexo I al carrito.
+  // Filtros de las tablas del Anexo I y del Anexo II.
   const [filtroInfraccion, setFiltroInfraccion] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
   const [fechaInfraccion, setFechaInfraccion] = useState(hoy());
-
-  // Añadir un aporte del Anexo II al carrito.
   const [filtroAporte, setFiltroAporte] = useState('');
 
   // Buscador de socios con lista desplegable.
   const [sociosAbierto, setSociosAbierto] = useState(false);
   const [alertaSocio, setAlertaSocio] = useState(false);
 
-  // Método de pago y comprobante de la transferencia / QR.
+  // Selección pendiente de confirmar y datos del cobro inmediato.
+  const [seleccion, setSeleccion] = useState(null);
+  const [estadoSeleccion, setEstadoSeleccion] = useState('pendiente');
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [comprobante, setComprobante] = useState('');
-
-  // Confirmación visual al agregar un rubro al carrito.
-  const [avisoAgregado, setAvisoAgregado] = useState(null);
+  const [guardandoSeleccion, setGuardandoSeleccion] = useState(false);
+  const [errorSeleccion, setErrorSeleccion] = useState(null);
+  const [deudasVersion, setDeudasVersion] = useState(0);
 
   const [guardando, setGuardando] = useState(false);
 
@@ -225,15 +221,8 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     cargar(mes);
   }, [cargar, mes]);
 
-  // La confirmación de «agregado» desaparece sola para no llenar la pantalla.
-  useEffect(() => {
-    if (!avisoAgregado) return undefined;
-    const temporizador = setTimeout(() => setAvisoAgregado(null), 3500);
-    return () => clearTimeout(temporizador);
-  }, [avisoAgregado]);
-
   /* ---------------------------------------------------------------------- */
-  /* Catálogos del carrito                                                  */
+  /* Catálogos de multas y aportes                                          */
   /* ---------------------------------------------------------------------- */
 
   const filasMultas = useMemo(() => {
@@ -305,15 +294,8 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     [socios, socioId]
   );
 
-  const totalCarrito = useMemo(() => cobrosService.totalCarrito(carrito), [carrito]);
-  const conceptoCarrito = useMemo(
-    () => cobrosService.conceptoCobroGrupal(carrito, socioElegido?.nombre || ''),
-    [carrito, socioElegido]
-  );
-  const categoriaCarrito = useMemo(() => cobrosService.categoriaSegunItems(carrito), [carrito]);
-
   /* ---------------------------------------------------------------------- */
-  /* Construcción del carrito                                               */
+  /* Selección de multas y aportes                                          */
   /* ---------------------------------------------------------------------- */
 
   const elegirSocio = (valor) => {
@@ -328,16 +310,34 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     }
   };
 
-  /** Exige un socio antes de agregar rubros y guía la vista hacia el paso 1. */
+  /** Exige un socio antes de abrir la selección de un rubro. */
   const verificarSocio = () => {
     if (socioId) return true;
     setAlertaSocio(true);
-    setError('Seleccione un socio primero para agregar rubros al carrito.');
+    setError('Seleccione un socio primero para registrar una multa o un aporte.');
     document.getElementById('paso-socio')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return false;
   };
 
-  /** Agrega una multa del Anexo I directamente al carrito. */
+  const abrirSeleccion = (nueva) => {
+    setSeleccion(nueva);
+    setEstadoSeleccion('pendiente');
+    setMetodoPago('efectivo');
+    setComprobante('');
+    setErrorSeleccion(null);
+    setError(null);
+    setExito(null);
+  };
+
+  const conceptoDeuda = (sel) => {
+    if (!sel) return '';
+    const texto = sel.tipo === 'multa'
+      ? `${sel.item.articulo} · ${sel.item.infraccion}`
+      : `${sel.item.concepto}${sel.item.detalle ? ` · ${sel.item.detalle}` : ''}`;
+    return texto.slice(0, 255);
+  };
+
+  /** Abre la elección «pendiente / cobro inmediato» para una multa del Anexo I. */
   const agregarMulta = (fila) => {
     if (!verificarSocio()) return;
     const monto = Number(fila.monto);
@@ -345,27 +345,25 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       setError('Esta multa no tiene monto cobrable.');
       return;
     }
-    const nombre = fila.item.tituloCorto || fila.item.infraccion;
-    setCarrito((c) => [
-      ...c,
-      {
-        uid: uidItem(),
+    abrirSeleccion({
+      tipo: 'multa',
+      nombre: fila.item.tituloCorto || fila.item.infraccion,
+      detalle: `${fila.item.articulo} · ${fila.item.categoria}`,
+      monto,
+      item: {
         tipo: 'multa',
-        clave: fila.item.clave,
-        articulo: fila.item.articulo,
         infraccion: fila.item.infraccion,
-        tituloCorto: fila.item.tituloCorto,
+        articulo: fila.item.articulo,
         categoria: fila.item.categoria,
-        medida: fila.item.medida,
+        medida: fila.item.medida || '',
         monto,
-        fechaInfraccion: fechaInfraccion || form.fecha,
+        fechaInfraccion: fechaInfraccion || hoy(),
       },
-    ]);
-    setAvisoAgregado({ nombre, monto, tipo: 'multa' });
+    });
     setError(null);
   };
 
-  /** Agrega un aporte del Anexo II directamente al carrito. */
+  /** Abre la elección «pendiente / cobro inmediato» para un aporte del Anexo II. */
   const agregarAporte = (fila) => {
     if (!verificarSocio()) return;
     const monto = Number(fila.monto);
@@ -373,23 +371,77 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       setError('El monto del aporte debe ser mayor que cero.');
       return;
     }
-    setCarrito((c) => [
-      ...c,
-      {
-        uid: uidItem(),
+    abrirSeleccion({
+      tipo: 'aporte',
+      nombre: fila.item.concepto,
+      detalle: fila.item.detalle,
+      monto,
+      item: {
         tipo: 'aporte',
-        clave: fila.item.clave,
         concepto: fila.item.concepto,
         detalle: fila.item.detalle,
         monto,
       },
-    ]);
-    setAvisoAgregado({ nombre: fila.item.concepto, monto, tipo: 'aporte' });
+    });
     setError(null);
   };
 
-  const quitarDelCarrito = (uid) => {
-    setCarrito((c) => c.filter((item) => item.uid !== uid));
+  const confirmarSeleccion = async () => {
+    if (!seleccion || guardandoSeleccion) return;
+    if (!socioId) {
+      setErrorSeleccion('Seleccione un socio antes de continuar.');
+      return;
+    }
+
+    setGuardandoSeleccion(true);
+    setErrorSeleccion(null);
+    setError(null);
+    setExito(null);
+    try {
+      if (estadoSeleccion === 'pendiente') {
+        const json = await deudasService.emitirDeuda({
+          socioId: Number(socioId),
+          tipo: seleccion.tipo === 'multa'
+            ? deudasService.TIPO_DEUDA_MULTA
+            : deudasService.TIPO_DEUDA_APORTE,
+          concepto: conceptoDeuda(seleccion),
+          monto: seleccion.monto,
+          fechaEmision: hoy(),
+        });
+        setExito(json?.mensaje || 'Deuda emitida y notificada al socio.');
+      } else {
+        const referencia = [
+          metodoPago === 'qr'
+            ? 'Método de pago: Transferencia / QR'
+            : 'Método de pago: Efectivo',
+          comprobante.trim() ? `Comprobante: ${comprobante.trim()}` : '',
+        ].filter(Boolean).join(' · ');
+
+        const json = await cobrosService.registrarCobroGrupal({
+          socioId: Number(socioId),
+          items: [seleccion.item],
+          fechaCobro: hoy(),
+          observaciones: referencia,
+          conceptoCobro: cobrosService.conceptoCobroGrupal(
+            [seleccion.item],
+            socioElegido?.nombre || ''
+          ),
+          metodoPago,
+          nroComprobante: comprobante.trim(),
+        });
+        setExito(json?.mensaje || 'Cobro registrado en Caja Chica.');
+        cargar(mes);
+      }
+
+      setDeudasVersion((v) => v + 1);
+      setSeleccion(null);
+      setComprobante('');
+      setMetodoPago('efectivo');
+    } catch (err) {
+      setErrorSeleccion(err?.message || 'No se pudo registrar la deuda o el cobro.');
+    } finally {
+      setGuardandoSeleccion(false);
+    }
   };
 
   /* ---------------------------------------------------------------------- */
@@ -419,28 +471,35 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
   /**
    * Llegada desde el Anexo I «Cobrar en Caja Chica»: abre la pestaña de multas,
-   * selecciona al socio y agrega la sanción al carrito lista para cobrar.
+   * selecciona al socio y deja lista la sanción para elegir pendiente o cobro.
    */
   useEffect(() => {
     if (!cobroInicial) return;
     setModo('multas');
     setFormAbierto(true);
     if (cobroInicial.socioId != null) setSocioId(String(cobroInicial.socioId));
-    setCarrito((c) => [
-      ...c,
-      {
-        uid: uidItem(),
+    const monto = Number(cobroInicial.monto) || 0;
+    setSeleccion({
+      tipo: 'multa',
+      nombre: cobroInicial.infraccion,
+      detalle: `${cobroInicial.articulo || ''} · ${cobroInicial.categoria || 'Grave'}`,
+      monto,
+      item: {
         tipo: 'multa',
-        clave: `pre:${cobroInicial.infraccion}`,
-        articulo: cobroInicial.articulo,
         infraccion: cobroInicial.infraccion,
-        tituloCorto: cobroInicial.infraccion,
+        articulo: cobroInicial.articulo,
         categoria: cobroInicial.categoria || 'Grave',
         medida: '',
-        monto: Number(cobroInicial.monto) || 0,
+        monto,
         fechaInfraccion: hoy(),
       },
-    ]);
+    });
+    setEstadoSeleccion('inmediato');
+    setMetodoPago('efectivo');
+    setComprobante('');
+    setErrorSeleccion(null);
+    setError(null);
+    setExito(null);
     onCobroConsumido?.();
     // Sólo se aplica cuando llega un cobro nuevo desde el Anexo I.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -486,50 +545,6 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
       } finally {
         setGuardando(false);
       }
-      return;
-    }
-
-    // --- Carrito (multas del Anexo I y/o aportes del Anexo II) -----------
-    if (!socioId) {
-      setAlertaSocio(true);
-      setError('Seleccione un socio primero para agregar rubros al carrito.');
-      document.getElementById('paso-socio')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    if (carrito.length === 0) {
-      setError('El carrito está vacío: agregue al menos una multa o un aporte.');
-      return;
-    }
-    if (!form.fecha) {
-      setError('Indique la fecha de cobro.');
-      return;
-    }
-
-    const referenciaPago =
-      metodoPago === 'qr'
-        ? `Método de pago: Transferencia / QR${comprobante.trim() ? ` · Comprobante: ${comprobante.trim()}` : ''}`
-        : 'Método de pago: Efectivo';
-    const observaciones = [form.observaciones.trim(), referenciaPago].filter(Boolean).join(' · ');
-
-    setGuardando(true);
-    try {
-      const json = await cobrosService.registrarCobroGrupal({
-        socioId: Number(socioId),
-        items: carrito,
-        fechaCobro: form.fecha,
-        observaciones,
-        conceptoCobro: conceptoCarrito,
-      });
-      setExito(json?.mensaje || 'Cobro registrado en Caja Chica.');
-      setCarrito([]);
-      setComprobante('');
-      setMetodoPago('efectivo');
-      setForm((f) => ({ ...f, observaciones: '' }));
-      cargar(mes);
-    } catch (err) {
-      setError(err?.message || 'No se pudo registrar el cobro en Caja Chica.');
-    } finally {
-      setGuardando(false);
     }
   };
 
@@ -543,7 +558,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
     .reduce((suma, m) => suma + Number(m.monto || 0), 0);
 
   const input =
-    'w-full rounded-lg px-3 py-2.5 font-mono text-sm text-[#0D0B61] dark:text-white bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55 focus:outline-none focus:border-[#48B3AF]';
+    'w-full rounded-lg px-3 py-2.5 font-mono text-sm text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#48B3AF]';
   const label =
     'font-display font-semibold text-[#294669] dark:text-[#48B3AF] text-[11px] tracking-widest block mb-1.5';
 
@@ -833,24 +848,24 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
               )}
 
               {formAbierto && modo !== 'gastos' && (
-                <form onSubmit={registrar} noValidate className="mt-5 space-y-4">
-                  {/* Caja 1 — Socio (obligatorio, compartido por el carrito) */}
+                <div className="mt-5 space-y-4">
+                  {/* Caja 1 — Socio (obligatorio para multas y aportes) */}
                   <div
                     id="paso-socio"
-                    className={`rounded-2xl border-2 bg-slate-900/95 p-4 shadow-xl ring-1 ring-amber-400/20 ${
+                    className={`rounded-2xl border-2 bg-white dark:bg-slate-900 p-4 shadow-sm ring-1 ring-amber-400/20 ${
                       alertaSocio
                         ? 'border-rose-400/70 ring-2 ring-rose-400/40'
-                        : 'border-amber-400/40'
+                        : 'border-amber-400/50 dark:border-amber-400/40'
                     }`}
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
                         1
                       </span>
-                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
+                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-700 dark:text-amber-300">
                         1. SELECCIONAR SOCIO
                       </p>
-                      <span className="font-mono text-[10px] text-amber-200/70">
+                      <span className="font-mono text-[10px] text-amber-700/70 dark:text-amber-200/70">
                         obligatorio
                       </span>
                     </div>
@@ -868,23 +883,23 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     )}
 
                     {cargandoSocios ? (
-                      <p className="font-mono text-[11px] text-slate-300">Cargando socios…</p>
+                      <p className="font-mono text-[11px] text-slate-600 dark:text-slate-300">Cargando socios…</p>
                     ) : socios.length === 0 ? (
-                      <p className="font-mono text-[11px] text-amber-300">
+                      <p className="font-mono text-[11px] text-amber-700 dark:text-amber-300">
                         No se pudo cargar el padrón de socios. Verifique su sesión e intente de nuevo.
                       </p>
                     ) : socioElegido ? (
-                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2.5">
-                        <p className="font-mono text-[11px] text-emerald-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
+                        <p className="font-mono text-[11px] text-emerald-700 dark:text-emerald-200">
                           <Check className="mr-1 inline h-3.5 w-3.5" />
-                          <strong className="text-white">{socioElegido.nombre}</strong>
+                          <strong className="text-slate-900 dark:text-white">{socioElegido.nombre}</strong>
                           {socioElegido.correo ? ` · ${socioElegido.correo}` : ''}
                           {socioElegido.rol ? ` · ${socioElegido.rol}` : ''}
                         </p>
                         <button
                           type="button"
                           onClick={() => elegirSocio('')}
-                          className="font-mono text-[10px] font-bold text-amber-300 underline hover:text-amber-200"
+                          className="font-mono text-[10px] font-bold text-amber-700 underline hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200"
                         >
                           Cambiar socio
                         </button>
@@ -906,7 +921,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                           autoComplete="off"
                           aria-expanded={sociosAbierto}
                           aria-controls="lista-socios"
-                          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
                         />
                         {filtroSocio !== '' && (
                           <button
@@ -914,7 +929,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => setFiltroSocio('')}
                             aria-label="Limpiar búsqueda de socios"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-700"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -923,26 +938,26 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                         {sociosAbierto && (
                           <div
                             id="lista-socios"
-                            className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-900 shadow-2xl"
+                            className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900"
                           >
                             {sociosFiltrados.length === 0 ? (
-                              <p className="px-3 py-3 font-mono text-[11px] text-slate-400">
+                              <p className="px-3 py-3 font-mono text-[11px] text-slate-600 dark:text-slate-400">
                                 Ningún socio coincide con «{filtroSocio.trim()}».
                               </p>
                             ) : (
-                              <ul className="divide-y divide-slate-700/70">
+                              <ul className="divide-y divide-slate-200 dark:divide-slate-700/70">
                                 {sociosFiltrados.map((s) => (
                                   <li key={s.id}>
                                     <button
                                       type="button"
                                       onMouseDown={(e) => e.preventDefault()}
                                       onClick={() => elegirSocio(String(s.id))}
-                                      className="flex w-full items-baseline justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-800"
+                                      className="flex w-full items-baseline justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
-                                      <span className="font-display text-xs font-semibold text-white">
+                                      <span className="font-display text-xs font-semibold text-slate-900 dark:text-white">
                                         {s.nombre}
                                       </span>
-                                      <span className="truncate font-mono text-[10px] text-slate-400">
+                                      <span className="truncate font-mono text-[10px] text-slate-500 dark:text-slate-400">
                                         {s.correo}
                                         {s.rol ? ` · ${s.rol}` : ''}
                                       </span>
@@ -959,19 +974,19 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
 
                   {/* Caja 2 — Tabla de multas (Anexo I) o aportes (Anexo II) */}
                   {modo === 'multas' && (
-                    <div className="rounded-2xl border-2 border-amber-400/40 bg-slate-900/95 p-4 shadow-xl">
+                    <div className="rounded-2xl border-2 border-amber-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-amber-400/40 dark:shadow-xl">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 font-mono text-[11px] font-bold text-slate-900">
                           2
                         </span>
-                        <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
+                        <p className="font-display text-[11px] font-semibold tracking-widest text-amber-700 dark:text-amber-300">
                           2. ELEGIR DE LA TABLA
                         </p>
-                        <span className="font-mono text-[10px] text-slate-400">
+                        <span className="font-mono text-[10px] text-slate-600 dark:text-slate-400">
                           Cuadro N.º 2 · Infracciones Específicas
                         </span>
                       </div>
-                      <p className="mb-3 font-mono text-[11px] text-slate-300">
+                      <p className="mb-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
                         Busque la infracción, revise la multa y presione «＋ Agregar».
                       </p>
 
@@ -997,7 +1012,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             className={`rounded-full border px-3 py-1.5 font-display text-[11px] font-bold transition-colors ${
                               filtroCategoria === filtro.id
                                 ? 'border-amber-300 bg-amber-400 text-slate-900'
-                                : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-400/60 hover:text-amber-200'
+                                : 'border-slate-300 bg-white text-slate-700 hover:border-amber-400/60 hover:text-amber-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-amber-200'
                             }`}
                           >
                             {filtro.etiqueta}
@@ -1014,21 +1029,21 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             value={filtroInfraccion}
                             onChange={(e) => setFiltroInfraccion(e.target.value)}
                             placeholder="Buscar por infracción, artículo o medida (ej. EPP, Art. 41)…"
-                            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
                           />
                           {filtroInfraccion !== '' && (
                             <button
                               type="button"
                               onClick={() => setFiltroInfraccion('')}
                               aria-label="Limpiar búsqueda de multas"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-700"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
                         </div>
                         <div>
-                          <label htmlFor="caja-fecha-infraccion" className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                          <label htmlFor="caja-fecha-infraccion" className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
                             Fecha de la infracción
                           </label>
                           <input
@@ -1036,15 +1051,15 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                             type="date"
                             value={fechaInfraccion}
                             onChange={(e) => setFechaInfraccion(e.target.value)}
-                            className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 font-mono text-sm text-white focus:border-amber-400 focus:outline-none sm:w-44"
+                            className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 focus:border-amber-400 focus:outline-none sm:w-44"
                           />
                         </div>
                       </div>
 
-                      <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-700">
+                      <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700">
                         <table className="w-full min-w-[980px] border-collapse text-left text-xs">
-                          <thead className="sticky top-0 z-10 bg-slate-800">
-                            <tr className="font-display text-[10px] uppercase tracking-wider text-amber-300">
+                          <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800">
+                            <tr className="font-display text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-300">
                               <th className="p-3">Infracción tipificada</th>
                               <th className="p-3">Artículo</th>
                               <th className="p-3 text-right">Multa (Bs.)</th>
@@ -1053,10 +1068,10 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                               <th className="p-3 text-right">Acción</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-700/80 bg-slate-900">
+                          <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700/80 dark:bg-slate-900">
                             {filasMultas.length === 0 ? (
                               <tr>
-                                <td colSpan={6} className="p-6 text-center font-mono text-[11px] text-slate-400">
+                                <td colSpan={6} className="p-6 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400">
                                   Ninguna infracción coincide con los filtros aplicados.
                                 </td>
                               </tr>
@@ -1064,16 +1079,16 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                               filasMultas.map((fila) => {
                                 const cobrable = fila.monto > 0;
                                 return (
-                                  <tr key={fila.id} className="transition-colors hover:bg-slate-800/70">
+                                  <tr key={fila.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70">
                                     <td className="max-w-[360px] p-3">
-                                      <p className="font-display text-sm font-semibold leading-snug text-white">
+                                      <p className="font-display text-sm font-semibold leading-snug text-slate-900 dark:text-white">
                                         {fila.infraccion}
                                       </p>
                                     </td>
-                                    <td className="whitespace-nowrap p-3 font-mono text-[11px] text-slate-300">
+                                    <td className="whitespace-nowrap p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
                                       {fila.articulo}
                                     </td>
-                                    <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-amber-200">
+                                    <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-amber-700 dark:text-amber-200">
                                       {cobrable ? `Bs. ${formatearMonto(fila.monto)}` : '—'}
                                     </td>
                                     <td className="p-3">
@@ -1083,7 +1098,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                                         {fila.categoriaVisible}
                                       </span>
                                     </td>
-                                    <td className="max-w-[280px] p-3 font-mono text-[11px] leading-snug text-slate-300">
+                                    <td className="max-w-[280px] p-3 font-mono text-[11px] leading-snug text-slate-600 dark:text-slate-300">
                                       {fila.medida || '—'}
                                     </td>
                                     <td className="p-3 text-right">
@@ -1094,7 +1109,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                                         className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2.5 font-display text-sm font-bold shadow-sm transition-colors ${
                                           cobrable
                                             ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-400'
-                                            : 'cursor-not-allowed bg-slate-700 text-slate-400'
+                                            : 'cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                                         }`}
                                       >
                                         <Plus className="h-4 w-4" />
@@ -1112,19 +1127,19 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                   )}
 
                   {modo === 'aportes' && (
-                    <div className="rounded-2xl border-2 border-emerald-400/40 bg-slate-900/95 p-4 shadow-xl">
+                    <div className="rounded-2xl border-2 border-emerald-400/50 bg-white dark:bg-slate-900 p-4 shadow-sm dark:border-emerald-400/40 dark:shadow-xl">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400 font-mono text-[11px] font-bold text-slate-900">
                           2
                         </span>
-                        <p className="font-display text-[11px] font-semibold tracking-widest text-emerald-300">
+                        <p className="font-display text-[11px] font-semibold tracking-widest text-emerald-700 dark:text-emerald-300">
                           2. ELEGIR DE LA TABLA
                         </p>
-                        <span className="font-mono text-[10px] text-slate-400">
+                        <span className="font-mono text-[10px] text-slate-600 dark:text-slate-400">
                           Anexo II · Escala de Aportes
                         </span>
                       </div>
-                      <p className="mb-3 font-mono text-[11px] text-slate-300">
+                      <p className="mb-3 font-mono text-[11px] text-slate-600 dark:text-slate-300">
                         Busque el aporte, revise la frecuencia y presione «＋ Agregar».
                       </p>
 
@@ -1148,45 +1163,45 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                           value={filtroAporte}
                           onChange={(e) => setFiltroAporte(e.target.value)}
                           placeholder="Buscar aporte (ej. ordinario, fondo de accidentes, mantenimiento)…"
-                          className="w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                          className="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2.5 pl-9 pr-9 font-mono text-sm text-slate-900 dark:text-white border-slate-300 dark:border-slate-700 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
                         />
                         {filtroAporte !== '' && (
                           <button
                             type="button"
                             onClick={() => setFiltroAporte('')}
                             aria-label="Limpiar búsqueda de aportes"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-700"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
 
-                      <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-700">
+                      <div className="mt-3 max-h-[28rem] overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700">
                         <table className="w-full min-w-[760px] border-collapse text-left text-xs">
-                          <thead className="sticky top-0 z-10 bg-slate-800">
-                            <tr className="font-display text-[10px] uppercase tracking-wider text-emerald-300">
+                          <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800">
+                            <tr className="font-display text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
                               <th className="p-3">Concepto de aporte</th>
                               <th className="p-3">Frecuencia</th>
                               <th className="p-3 text-right">Monto (Bs.)</th>
                               <th className="p-3 text-right">Acción</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-700/80 bg-slate-900">
+                          <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700/80 dark:bg-slate-900">
                             {filasAportes.length === 0 ? (
                               <tr>
-                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-slate-400">
+                                <td colSpan={4} className="p-6 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400">
                                   Ningún aporte coincide con «{filtroAporte.trim()}».
                                 </td>
                               </tr>
                             ) : (
                               filasAportes.map((fila) => (
-                                <tr key={fila.id} className="transition-colors hover:bg-slate-800/70">
+                                <tr key={fila.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70">
                                   <td className="max-w-[420px] p-3">
-                                    <p className="font-display text-sm font-semibold leading-snug text-white">
+                                    <p className="font-display text-sm font-semibold leading-snug text-slate-900 dark:text-white">
                                       {fila.nombre}
                                     </p>
-                                    <p className="mt-0.5 font-mono text-[10px] leading-snug text-slate-400">
+                                    <p className="mt-0.5 font-mono text-[10px] leading-snug text-slate-600 dark:text-slate-400">
                                       {fila.detalle}
                                       {fila.item.variable
                                         ? ' · importe orientativo, ajuste según la Resolución de Asamblea'
@@ -1200,7 +1215,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                                       {fila.frecuencia}
                                     </span>
                                   </td>
-                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-emerald-200">
+                                  <td className="whitespace-nowrap p-3 text-right font-display text-sm font-bold text-emerald-700 dark:text-emerald-200">
                                     Bs. {formatearMonto(fila.monto)}
                                   </td>
                                   <td className="p-3 text-right">
@@ -1221,236 +1236,7 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
                     </div>
                   )}
 
-                  {/* Caja 3 — Carrito */}
-                  <div id="carrito-cobro" className="rounded-2xl border border-slate-700 bg-slate-900/95 p-4 shadow-xl">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
-                        3. CONFIRMAR COBRO
-                      </p>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        {carrito.length} ítem(s) · categoría {categoriaCarrito}
-                      </span>
-                    </div>
-
-                    {avisoAgregado && (
-                      <motion.div
-                        role="status"
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3 py-2.5"
-                      >
-                        <Check className="h-4 w-4 shrink-0 text-emerald-300" />
-                        <p className="font-display text-sm font-semibold text-emerald-200">
-                          ¡Agregado al carrito! {avisoAgregado.nombre} · Bs. {formatearMonto(avisoAgregado.monto)}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => document.getElementById('carrito-cobro')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                          className="ml-auto font-mono text-[10px] font-bold text-amber-300 underline hover:text-amber-200"
-                        >
-                          Ver carrito
-                        </button>
-                      </motion.div>
-                    )}
-
-                    {carrito.length === 0 ? (
-                      <p className="py-4 text-center font-mono text-[11px] text-slate-400">
-                        El carrito está vacío. Use los botones «＋ Agregar» de la tabla de arriba.
-                      </p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[560px] border-collapse text-left text-xs">
-                          <thead>
-                            <tr className="font-display text-[10px] font-semibold uppercase tracking-wider text-amber-300">
-                              <th className="p-2">Anexo</th>
-                              <th className="p-2">Detalle</th>
-                              <th className="p-2 text-right">Monto (Bs.)</th>
-                              <th className="p-2" />
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-700/80">
-                            {carrito.map((item) => (
-                              <tr key={item.uid} className="transition-colors hover:bg-slate-800/60">
-                                <td className="p-2">
-                                  <span
-                                    className={`inline-block rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase ${
-                                      item.tipo === 'aporte'
-                                        ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
-                                        : 'border-amber-400/40 bg-amber-500/15 text-amber-300'
-                                    }`}
-                                  >
-                                    {item.tipo === 'aporte' ? 'Anexo II' : 'Anexo I'}
-                                  </span>
-                                </td>
-                                <td className="p-2 text-slate-100">
-                                  {item.tipo === 'aporte' ? item.concepto : item.infraccion}
-                                  <span className="block font-mono text-[10px] text-slate-400">
-                                    {item.tipo === 'aporte' ? item.detalle : `${item.articulo} · ${item.categoria}`}
-                                  </span>
-                                </td>
-                                <td className="whitespace-nowrap p-2 text-right font-mono text-slate-100">
-                                  {formatearMonto(item.monto)}
-                                </td>
-                                <td className="p-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => quitarDelCarrito(item.uid)}
-                                    aria-label="Quitar del carrito"
-                                    className="rounded p-1 text-rose-300 hover:bg-rose-500/15"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot>
-                            <tr>
-                              <td colSpan={2} className="p-2 text-right font-display text-xs font-bold text-white">
-                                TOTAL
-                              </td>
-                              <td className="whitespace-nowrap p-2 text-right font-display text-sm font-bold text-amber-200">
-                                {formatearMonto(totalCarrito)}
-                              </td>
-                              <td />
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    )}
-
-                    {carrito.length > 0 && (
-                      <p className="mt-2 font-mono text-[10px] text-slate-400">
-                        Concepto: {conceptoCarrito}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Método de pago: efectivo o transferencia / QR estático */}
-                  <div className="rounded-2xl border border-amber-400/30 bg-slate-900/95 p-4 shadow-xl">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <QrCode className="h-4 w-4 text-amber-300" />
-                      <p className="font-display text-[11px] font-semibold tracking-widest text-amber-300">
-                        MÉTODO DE PAGO
-                      </p>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        seleccione cómo recibió el dinero
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => setMetodoPago('efectivo')}
-                        aria-pressed={metodoPago === 'efectivo'}
-                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-display text-sm font-bold transition-colors ${
-                          metodoPago === 'efectivo'
-                            ? 'border-emerald-400 bg-emerald-500/15 text-emerald-200'
-                            : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-emerald-400/60'
-                        }`}
-                      >
-                        <span className="text-lg">💵</span> Efectivo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMetodoPago('qr')}
-                        aria-pressed={metodoPago === 'qr'}
-                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-display text-sm font-bold transition-colors ${
-                          metodoPago === 'qr'
-                            ? 'border-amber-400 bg-amber-400/15 text-amber-200'
-                            : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-amber-400/60'
-                        }`}
-                      >
-                        <span className="text-lg">📱</span> Transferencia / QR
-                      </button>
-                    </div>
-
-                    {metodoPago === 'qr' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-3 flex flex-col items-center gap-3 rounded-2xl border border-amber-400/40 bg-slate-800 p-4"
-                      >
-                        <img
-                          src={qrCobro}
-                          alt="QR estático de cobro de la Cooperativa Minera Nevado Chachacomani R.L."
-                          className="w-44 rounded-xl bg-white p-2 shadow-lg"
-                        />
-                        <div className="w-full max-w-md text-center">
-                          <p className="font-mono text-[10px] uppercase tracking-widest text-amber-300">
-                            Monto exacto a cobrar
-                          </p>
-                          <p className="font-display text-4xl font-bold text-white">
-                            Bs. {formatearMonto(totalCarrito)}
-                          </p>
-                          <p className="mt-1 font-mono text-[11px] leading-relaxed text-slate-300">
-                            Escanee el QR desde su aplicación bancaria.
-                          </p>
-
-                          <label
-                            htmlFor="caja-comprobante"
-                            className="mt-3 block text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-300"
-                          >
-                            Número de comprobante / transacción{' '}
-                            <span className="font-normal normal-case text-slate-400">(opcional)</span>
-                          </label>
-                          <div className="relative mt-1">
-                            <Receipt className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <input
-                              id="caja-comprobante"
-                              type="text"
-                              value={comprobante}
-                              onChange={(e) => setComprobante(e.target.value)}
-                              placeholder="Ej. 123456789"
-                              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-3 py-2.5 pl-9 font-mono text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-
-                  {/* Caja 4 — Fecha de cobro y observaciones */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="caja-fecha-cobro" className={label}>FECHA DE COBRO</label>
-                      <input
-                        id="caja-fecha-cobro"
-                        type="date"
-                        value={form.fecha}
-                        onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))}
-                        className={input}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="caja-obs-cobro" className={label}>OBSERVACIONES</label>
-                      <input
-                        id="caja-obs-cobro"
-                        type="text"
-                        value={form.observaciones}
-                        onChange={(e) => setForm((f) => ({ ...f, observaciones: e.target.value }))}
-                        className={input}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={guardando}
-                      className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-display text-base font-bold text-white shadow-sm disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
-                    >
-                      <Save className="w-5 h-5" />
-                      {guardando ? 'Registrando…' : 'Confirmar Cobro'}
-                    </button>
-                    <p className="inline-flex items-center gap-1.5 font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE]">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Un solo envío: un único ingreso en Caja Chica por el total del carrito.
-                    </p>
-                  </div>
-                </form>
+                </div>
               )}
             </motion.section>
           ) : (
@@ -1460,9 +1246,25 @@ export default function CajaChicaView({ dark, onNavigate, onToggleTheme, cobroIn
             </p>
           )}
 
+          <ModalCobroMulta
+            seleccion={seleccion}
+            socioElegido={socioElegido}
+            estadoSeleccion={estadoSeleccion}
+            metodoPago={metodoPago}
+            comprobante={comprobante}
+            guardando={guardandoSeleccion}
+            error={errorSeleccion}
+            onClose={() => setSeleccion(null)}
+            onEstadoChange={setEstadoSeleccion}
+            onMetodoPagoChange={setMetodoPago}
+            onComprobanteChange={setComprobante}
+            onConfirmar={confirmarSeleccion}
+            modulo="Caja Chica"
+          />
+
           {/* Bandeja de pagos reportados y emisión de deudas */}
           {carritoDisponible && (
-            <GestionDeudas onDeudaAprobada={() => cargar(mes)} />
+            <GestionDeudas refresco={deudasVersion} onDeudaAprobada={() => cargar(mes)} />
           )}
 
           {/* Movimientos */}

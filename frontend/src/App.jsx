@@ -7,12 +7,18 @@ import EstatutoOrganicoView from './views/EstatutoOrganicoView.jsx'
 import EnDesarrolloView from './views/EnDesarrolloView.jsx'
 import ProfileView from './views/ProfileView.jsx'
 import CajaChicaView from './views/CajaChicaView.jsx'
+import TesoreriaView from './views/TesoreriaView.jsx'
 import UsuariosView from './views/UsuariosView.jsx'
 import { CursorRippleOverlay } from './components/Effects.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { NotificacionesProvider } from './context/NotificacionesContext.jsx'
 import { DRMProvider } from './context/DRMContext.jsx'
-import { PERMISO_GESTIONAR_CAJA_CHICA, PERMISO_VER_CONTABILIDAD, PERMISO_GESTIONAR_USUARIOS } from './services/permisosService.js'
+import {
+  PERMISO_GESTIONAR_CAJA_CHICA,
+  PERMISO_VER_CONTABILIDAD,
+  PERMISO_GESTIONAR_USUARIOS,
+  PERMISO_GESTIONAR_MULTAS,
+} from './services/permisosService.js'
 
 /**
  * Envoltura de la aplicación: monta los proveedores de sesión y DRM y decide
@@ -57,6 +63,7 @@ function AppShell() {
    */
   const ACCESO_VISTA = {
     'caja-chica': [PERMISO_VER_CONTABILIDAD, PERMISO_GESTIONAR_CAJA_CHICA],
+    tesoreria: [PERMISO_GESTIONAR_MULTAS],
     usuarios: [PERMISO_GESTIONAR_USUARIOS],
   }
   const accesoPermitido = !ACCESO_VISTA[vista]
@@ -142,6 +149,14 @@ function AppShell() {
           onToggleTheme={toggleTheme}
           cobroInicial={cobroPendiente}
           onCobroConsumido={cerrarCobroPendiente}
+        />
+      )}
+
+      {vista === 'tesoreria' && usuario && accesoPermitido && (
+        <TesoreriaView
+          dark={dark}
+          onNavigate={setVista}
+          onToggleTheme={toggleTheme}
         />
       )}
 

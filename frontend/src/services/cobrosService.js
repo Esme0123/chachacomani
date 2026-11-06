@@ -93,7 +93,8 @@ export function totalCarrito(items) {
 /**
  * Envía el carrito al backend.
  * @param {{socioId:number, items:object[], fechaCobro?:string,
- *          observaciones?:string, conceptoCobro?:string}} datos
+ *          observaciones?:string, conceptoCobro?:string, metodoPago?:string,
+ *          nroComprobante?:string}} datos
  * @returns {Promise<{cobro: object, mensaje: string}>}
  */
 export async function registrarCobroGrupal(datos) {
@@ -119,6 +120,8 @@ export async function registrarCobroGrupal(datos) {
       fecha_cobro: datos.fechaCobro || undefined,
       observaciones: datos.observaciones || undefined,
       concepto_cobro: datos.conceptoCobro || undefined,
+      metodo_pago: datos.metodoPago || undefined,
+      nro_comprobante: datos.nroComprobante || undefined,
       items,
     },
   });

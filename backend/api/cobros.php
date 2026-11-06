@@ -144,6 +144,8 @@ $fechaCobro   = trim((string) ($body['fecha_cobro'] ?? ''));
 $observaciones = textoLimpio($body['observaciones'] ?? '', 2000);
 $conceptoCliente = textoLimpio($body['concepto_cobro'] ?? '', 255);
 $itemsCrudos  = $body['items'] ?? null;
+$metodoPago   = strtolower(trim((string) ($body['metodo_pago'] ?? '')));
+$nroComprobante = textoLimpio($body['nro_comprobante'] ?? '', 100);
 
 if ($socioId <= 0) {
     jsonError('Debe seleccionar el socio al que se imputa el cobro.', 400);
@@ -156,6 +158,9 @@ if (count($itemsCrudos) > MAX_ITEMS_COBRO) {
 }
 if ($fechaCobro !== '' && !validarFechaIso($fechaCobro)) {
     jsonError('La fecha de cobro debe tener el formato AAAA-MM-DD.', 400);
+}
+if ($metodoPago !== '' && !in_array($metodoPago, ['efectivo', 'qr', 'transferencia'], true)) {
+    jsonError('El método de pago no es válido. Use: efectivo, qr o transferencia.', 400);
 }
 
 $items = [];
@@ -255,7 +260,9 @@ if ($hayAportes && !$puedeCobrarAnexos) {
 // El cobro grupal necesita las columnas de vínculo; sin migrar, se avisa con
 // claridad en vez de fallar a mitad de la transacción.
 if (!tablaTieneColumna('multas', 'caja_chica_movimiento_id')
-    || !tablaTieneColumna('caja_chica_movimientos', 'detalle')) {
+    || !tablaTieneColumna('caja_chica_movimientos', 'detalle')
+    || !tablaTieneColumna('caja_chica_movimientos', 'deuda_id')
+    || !tablaTieneColumna('deudas_multas', 'id')) {
     jsonError(
         'El cobro grupal aún no está habilitado: ejecute backend/migrar.php en el servidor.',
         409
@@ -282,6 +289,7 @@ if ($hayMultas && $hayAportes) {
 }
 
 $movimientoId = 0;
+$deudaId = 0;
 $multasCreadas = [];
 $detalle = [
     'version' => 1,
@@ -294,7 +302,31 @@ $pdo = db();
 try {
     $pdo->beginTransaction();
 
-    // 1. Multas: nacen YA PAGADAS (el carrito es un cobro, no una imputación).
+    // 1. Deuda cancelada que respalda el cobro inmediato. Así el movimiento
+    //    aparece también en «Todas las deudas» y permite editar el comprobante.
+    $fechaPago = $fechaCobro !== '' ? $fechaCobro . ' 00:00:00' : date('Y-m-d H:i:s');
+    $pdo->prepare(
+        'INSERT INTO `deudas_multas`
+            (`socio_id`, `concepto`, `monto`, `tipo`, `estado`, `metodo_pago`,
+             `nro_comprobante`, `registrado_por`, `fecha_emision`, `fecha_pago`)
+         VALUES
+            (:socio_id, :concepto, :monto, :tipo, \'cancelado\', :metodo,
+             :nro, :registrado_por, :fecha_emision, :fecha_pago)'
+    )->execute([
+        ':socio_id' => $socioId,
+        ':concepto' => $concepto,
+        ':monto' => $total,
+        ':tipo' => $hayMultas ? 'multa_anexo_1' : 'aporte_anexo_2',
+        ':metodo' => $metodoPago !== '' ? $metodoPago : null,
+        ':nro' => $nroComprobante !== '' ? $nroComprobante : null,
+        ':registrado_por' => (int) $usuario['id'],
+        ':fecha_emision' => $fechaPago,
+        ':fecha_pago' => $fechaPago,
+    ]);
+    $deudaId = (int) $pdo->lastInsertId();
+    $detalle['deudaId'] = $deudaId;
+
+    // 2. Multas: nacen YA PAGADAS (el carrito es un cobro, no una imputación).
     $insertarMulta = $pdo->prepare(
         'INSERT INTO `multas`
             (`socio_id`, `infraccion`, `articulo_referencia`, `categoria`, `monto`,
@@ -332,7 +364,7 @@ try {
         ];
     }
 
-    // 2. Aportes: no tienen tabla propia; viven en el desglose del movimiento.
+    // 3. Aportes: no tienen tabla propia; viven en el desglose del movimiento.
     foreach ($items as $item) {
         if ($item['tipo'] !== 'aporte') {
             continue;
@@ -344,14 +376,14 @@ try {
         ];
     }
 
-    // 3. Un solo movimiento de ingreso por el importe total del carrito.
+    // 4. Un solo movimiento de ingreso por el importe total del carrito.
     $pdo->prepare(
         'INSERT INTO `caja_chica_movimientos`
             (`tipo`, `concepto`, `categoria`, `monto`, `fecha`, `observaciones`,
-             `registrado_por`, `detalle`)
+             `registrado_por`, `detalle`, `deuda_id`)
          VALUES
             (\'ingreso\', :concepto, :categoria, :monto, :fecha, :observaciones,
-             :registrado_por, :detalle)'
+             :registrado_por, :detalle, :deuda_id)'
     )->execute([
         ':concepto' => $concepto,
         ':categoria' => $categoriaCaja,
@@ -362,10 +394,11 @@ try {
             : 'Cobro grupal desde el panel de Caja Chica (Anexo I/II).',
         ':registrado_por' => (int) $usuario['id'],
         ':detalle' => json_encode($detalle, JSON_UNESCAPED_UNICODE),
+        ':deuda_id' => $deudaId,
     ]);
     $movimientoId = (int) $pdo->lastInsertId();
 
-    // 4. Enlazar cada multa con el movimiento que la saldó.
+    // 5. Enlazar cada multa con el movimiento que la saldó.
     if ($multasCreadas !== []) {
         $enlazar = $pdo->prepare(
             'UPDATE `multas` SET `caja_chica_movimiento_id` = :movimiento WHERE `id` = :id'
@@ -388,6 +421,7 @@ jsonResponse([
     'ok' => true,
     'cobro' => [
         'movimientoId' => $movimientoId,
+        'deudaId' => $deudaId,
         'categoria' => $categoriaCaja,
         'concepto' => $concepto,
         'monto' => $total,

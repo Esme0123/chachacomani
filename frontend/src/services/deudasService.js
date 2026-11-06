@@ -98,6 +98,23 @@ export async function cambiarEstadoDeuda(id, estado) {
 }
 
 /**
+ * Actualiza el comprobante o el método de pago de una deuda sin cambiar su
+ * estado ni duplicar el ingreso en Caja Chica.
+ * @param {number} id
+ * @param {{nroComprobante?:string, metodoPago?:string}} datos
+ */
+export async function actualizarComprobanteDeuda(id, datos) {
+  return peticion('deudas', {
+    metodo: 'PUT',
+    cuerpo: {
+      id,
+      nro_comprobante: datos.nroComprobante ?? undefined,
+      metodo_pago: datos.metodoPago ?? undefined,
+    },
+  });
+}
+
+/**
  * Reporta el pago de una deuda con comprobante opcional.
  * @param {{deudaId:number, metodoPago:string, nroComprobante?:string,
  *          archivo?:File|null}} datos

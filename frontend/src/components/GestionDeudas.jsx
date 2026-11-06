@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
-  AlertTriangle, CheckCircle2, Clock3, ExternalLink, Plus, Receipt, RotateCcw, Send,
+  AlertTriangle, CheckCircle2, Clock3, ExternalLink, Pencil, Receipt, RotateCcw,
+  Save, X,
 } from 'lucide-react'
 import * as deudasService from '../services/deudasService.js'
 import { useRefrescoEstadisticas } from '../hooks/useRefrescoEstadisticas.js'
@@ -20,11 +21,6 @@ const ESTADO_DEUDA = {
     clases: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
   },
 }
-
-const INPUT =
-  'w-full rounded-lg px-3 py-2.5 font-mono text-sm text-[#0D0B61] dark:text-white placeholder-[#294669]/40 dark:placeholder-[#476EAE] bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55 focus:outline-none focus:border-[#48B3AF]'
-const LABEL =
-  'font-display font-semibold text-[#294669] dark:text-[#48B3AF] text-[11px] tracking-widest block mb-1.5'
 
 function formatearFecha(fecha) {
   if (!fecha) return '—'
@@ -48,14 +44,14 @@ function formatearMonto(monto) {
  * Dos bandejas:
  *   · Pagos reportados: deudas en `en_revision` con comprobante del socio.
  *   · Todas las deudas: historial filtrable por estado/tipo.
- * Más un formulario para emitir una nueva multa (Anexo I) o aporte (Anexo II).
+ * La emisión de nuevas deudas y el cobro inmediato viven ahora en el flujo
+ * unificado de Caja Chica (tablas de multas y aportes).
  *
- * @param {{onDeudaAprobada?: Function}} props
+ * @param {{onDeudaAprobada?: Function, refresco?: number}} props
  */
-export default function GestionDeudas({ onDeudaAprobada }) {
+export default function GestionDeudas({ onDeudaAprobada, refresco = 0 }) {
   const [panel, setPanel] = useState('reportados')
   const [deudas, setDeudas] = useState([])
-  const [socios, setSocios] = useState([])
   const [totales, setTotales] = useState(null)
   const [puedeGestionar, setPuedeGestionar] = useState(true)
   const [cargando, setCargando] = useState(true)
@@ -66,15 +62,11 @@ export default function GestionDeudas({ onDeudaAprobada }) {
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
 
-  const [form, setForm] = useState({
-    socioId: '',
-    tipo: deudasService.TIPO_DEUDA_MULTA,
-    concepto: '',
-    monto: '',
-    fechaEmision: new Date().toISOString().slice(0, 10),
-  })
-  const [guardando, setGuardando] = useState(false)
-  const [errorForm, setErrorForm] = useState(null)
+  const [editandoComprobante, setEditandoComprobante] = useState(null)
+  const [nroComprobanteEdit, setNroComprobanteEdit] = useState('')
+  const [metodoPagoEdit, setMetodoPagoEdit] = useState('')
+  const [guardandoComprobante, setGuardandoComprobante] = useState(false)
+  const [errorComprobante, setErrorComprobante] = useState(null)
 
   const cargar = useCallback(async (silencioso = false) => {
     if (!silencioso) {
@@ -87,7 +79,6 @@ export default function GestionDeudas({ onDeudaAprobada }) {
         tipo: filtroTipo || undefined,
       })
       setDeudas(Array.isArray(json?.deudas) ? json.deudas : [])
-      setSocios(Array.isArray(json?.socios) ? json.socios : [])
       setTotales(json?.totales || null)
       setPuedeGestionar(json?.puedeGestionar !== false)
     } catch (err) {
@@ -109,6 +100,14 @@ export default function GestionDeudas({ onDeudaAprobada }) {
   // volver a la ventana. El pago reportado por el socio aparece sin recargar.
   useRefrescoEstadisticas(() => cargar(true), { intervaloMs: 7000 })
 
+  // Refresco inmediato cuando Caja Chica emite o cobra una deuda desde la tabla.
+  const refrescoAnterior = useRef(refresco)
+  useEffect(() => {
+    if (refrescoAnterior.current === refresco) return
+    refrescoAnterior.current = refresco
+    cargar(true)
+  }, [refresco, cargar])
+
   const reportados = deudas.filter((d) => d.estado === 'en_revision')
 
   const cambiarEstado = async (deuda, estado) => {
@@ -120,7 +119,9 @@ export default function GestionDeudas({ onDeudaAprobada }) {
       await deudasService.cambiarEstadoDeuda(deuda.id, estado)
       setExito(
         estado === 'cancelado'
-          ? `Pago aprobado. La deuda #${deuda.id} quedó cancelada y el ingreso fue registrado en Caja Chica.`
+          ? deuda.estado === 'en_revision'
+            ? `Pago aprobado. La deuda #${deuda.id} quedó cancelada y el ingreso fue registrado en Caja Chica.`
+            : `La deuda #${deuda.id} quedó marcada como ya cancelada y el ingreso fue registrado en Caja Chica.`
           : `La deuda #${deuda.id} volvió a estado pendiente.`
       )
       await cargar(true)
@@ -132,43 +133,37 @@ export default function GestionDeudas({ onDeudaAprobada }) {
     }
   }
 
-  const emitir = async (e) => {
-    e.preventDefault()
-    if (guardando) return
-    setErrorForm(null)
+  const abrirComprobante = (deuda) => {
+    setEditandoComprobante(deuda.id)
+    setNroComprobanteEdit(deuda.nroComprobante || '')
+    setMetodoPagoEdit(deuda.metodoPago || '')
+    setErrorComprobante(null)
     setExito(null)
+  }
 
-    const socioId = Number(form.socioId)
-    const monto = Number(String(form.monto).replace(',', '.'))
-    if (!socioId) {
-      setErrorForm('Seleccione el socio al que se imputa la deuda.')
-      return
-    }
-    if (!form.concepto.trim()) {
-      setErrorForm('Indique el concepto de la multa o aporte.')
-      return
-    }
-    if (!Number.isFinite(monto) || monto <= 0) {
-      setErrorForm('El monto debe ser mayor a 0.')
-      return
-    }
+  const cerrarComprobante = () => {
+    setEditandoComprobante(null)
+    setNroComprobanteEdit('')
+    setMetodoPagoEdit('')
+    setErrorComprobante(null)
+  }
 
-    setGuardando(true)
+  const guardarComprobante = async (deuda) => {
+    if (guardandoComprobante) return
+    setGuardandoComprobante(true)
+    setErrorComprobante(null)
     try {
-      await deudasService.emitirDeuda({
-        socioId,
-        tipo: form.tipo,
-        concepto: form.concepto.trim(),
-        monto,
-        fechaEmision: form.fechaEmision || undefined,
+      await deudasService.actualizarComprobanteDeuda(deuda.id, {
+        nroComprobante: nroComprobanteEdit.trim(),
+        metodoPago: metodoPagoEdit,
       })
-      setExito('Deuda emitida. El socio recibió una notificación con el detalle.')
-      setForm((f) => ({ ...f, socioId: '', concepto: '', monto: '' }))
+      setExito(`Comprobante de la deuda #${deuda.id} actualizado.`)
+      cerrarComprobante()
       await cargar(true)
     } catch (err) {
-      setErrorForm(err?.message || 'No se pudo emitir la deuda.')
+      setErrorComprobante(err?.message || 'No se pudo actualizar el comprobante.')
     } finally {
-      setGuardando(false)
+      setGuardandoComprobante(false)
     }
   }
 
@@ -177,7 +172,6 @@ export default function GestionDeudas({ onDeudaAprobada }) {
   const tabs = [
     { id: 'reportados', etiqueta: 'Pagos reportados', contador: reportados.length },
     { id: 'todas', etiqueta: 'Todas las deudas', contador: deudas.length },
-    { id: 'emitir', etiqueta: 'Emitir deuda', contador: null },
   ]
 
   return (
@@ -194,7 +188,7 @@ export default function GestionDeudas({ onDeudaAprobada }) {
             Deudas y pagos reportados
           </h2>
           <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE] mt-0.5">
-            Apruebe comprobantes de multas (Anexo I) y aportes (Anexo II), o emita una nueva deuda.
+            Apruebe comprobantes, marque deudas pendientes como ya canceladas y edite su comprobante.
           </p>
         </div>
         {totales && (
@@ -212,7 +206,7 @@ export default function GestionDeudas({ onDeudaAprobada }) {
         )}
       </div>
 
-      <div role="tablist" aria-label="Gestión de deudas" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div role="tablist" aria-label="Gestión de deudas" className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -221,12 +215,11 @@ export default function GestionDeudas({ onDeudaAprobada }) {
             aria-selected={panel === tab.id}
             onClick={() => {
               setPanel(tab.id)
-              if (tab.id !== 'emitir') {
-                setFiltroEstado('')
-                setFiltroTipo('')
-              }
+              setFiltroEstado('')
+              setFiltroTipo('')
               setExito(null)
               setError(null)
+              cerrarComprobante()
             }}
             className={`text-left rounded-xl border-2 px-3 py-2.5 transition-colors ${
               panel === tab.id
@@ -237,10 +230,8 @@ export default function GestionDeudas({ onDeudaAprobada }) {
             <span className="flex items-center gap-2 font-display font-bold text-xs text-[#0D0B61] dark:text-white">
               {tab.id === 'reportados' ? (
                 <Clock3 className="w-4 h-4 text-sky-500" />
-              ) : tab.id === 'todas' ? (
-                <Receipt className="w-4 h-4 text-[#48B3AF]" />
               ) : (
-                <Plus className="w-4 h-4 text-emerald-500" />
+                <Receipt className="w-4 h-4 text-[#48B3AF]" />
               )}
               {tab.etiqueta}
               {tab.contador !== null && (
@@ -267,103 +258,14 @@ export default function GestionDeudas({ onDeudaAprobada }) {
         </div>
       )}
 
-      {panel === 'emitir' ? (
-        <form onSubmit={emitir} className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="sm:col-span-2">
-            <label htmlFor="deuda-socio" className={LABEL}>SOCIO</label>
-            <select
-              id="deuda-socio"
-              value={form.socioId}
-              onChange={(e) => setForm((f) => ({ ...f, socioId: e.target.value }))}
-              className={INPUT}
-            >
-              <option value="">Seleccione un socio…</option>
-              {socios.map((socio) => (
-                <option key={socio.id} value={socio.id}>
-                  {socio.nombre} — {socio.correo}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="deuda-tipo" className={LABEL}>TIPO</label>
-            <select
-              id="deuda-tipo"
-              value={form.tipo}
-              onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}
-              className={INPUT}
-            >
-              {deudasService.TIPOS_DEUDA.map((tipo) => (
-                <option key={tipo.id} value={tipo.id}>{tipo.etiqueta}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="deuda-fecha" className={LABEL}>FECHA DE EMISIÓN</label>
-            <input
-              id="deuda-fecha"
-              type="date"
-              value={form.fechaEmision}
-              onChange={(e) => setForm((f) => ({ ...f, fechaEmision: e.target.value }))}
-              className={INPUT}
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <label htmlFor="deuda-concepto" className={LABEL}>CONCEPTO</label>
-            <input
-              id="deuda-concepto"
-              type="text"
-              maxLength={255}
-              value={form.concepto}
-              onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))}
-              placeholder="Ej. Multa por inasistencia a asamblea"
-              className={INPUT}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="deuda-monto" className={LABEL}>MONTO (Bs.)</label>
-            <input
-              id="deuda-monto"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={form.monto}
-              onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
-              placeholder="0,00"
-              className={INPUT}
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            {errorForm && (
-              <p role="alert" className="mb-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 font-mono text-[11px] text-rose-600 dark:text-rose-400">
-                {errorForm}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={guardando}
-              className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-display font-semibold text-sm text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-              style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
-            >
-              <Send className="w-4 h-4" />
-              {guardando ? 'Emitiendo…' : 'Emitir deuda y notificar'}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-3">
           {panel === 'todas' && (
             <div className="flex flex-wrap gap-2">
               <select
                 aria-label="Filtrar por estado"
                 value={filtroEstado}
                 onChange={(e) => setFiltroEstado(e.target.value)}
-                className="rounded-lg px-3 py-1.5 font-mono text-[11px] bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55"
+                className="rounded-lg px-3 py-1.5 font-mono text-[11px] text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
               >
                 <option value="">Todos los estados</option>
                 {deudasService.ESTADOS_DEUDA.map((estado) => (
@@ -376,7 +278,7 @@ export default function GestionDeudas({ onDeudaAprobada }) {
                 aria-label="Filtrar por tipo"
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value)}
-                className="rounded-lg px-3 py-1.5 font-mono text-[11px] bg-slate-50 dark:bg-[#294669]/40 border border-[#294669]/25 dark:border-[#476EAE]/55"
+                className="rounded-lg px-3 py-1.5 font-mono text-[11px] text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
               >
                 <option value="">Todos los tipos</option>
                 {deudasService.TIPOS_DEUDA.map((tipo) => (
@@ -426,9 +328,12 @@ export default function GestionDeudas({ onDeudaAprobada }) {
                       <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE] mt-1">
                         {deuda.socioNombre} · emitida el {formatearFecha(deuda.fechaEmision)}
                       </p>
-                      {(deuda.nroComprobante || deuda.comprobanteUrl) && (
+                      {(deuda.nroComprobante || deuda.comprobanteUrl || deuda.metodoPago) && (
                         <p className="font-mono text-[10px] text-[#294669]/70 dark:text-[#476EAE] mt-0.5">
-                          {deuda.nroComprobante ? `Comprobante: ${deuda.nroComprobante}` : 'Comprobante adjunto'}
+                          {deuda.metodoPago ? `Método: ${deuda.metodoPago}` : ''}
+                          {deuda.metodoPago && (deuda.nroComprobante || deuda.comprobanteUrl) ? ' · ' : ''}
+                          {deuda.nroComprobante ? `Comprobante: ${deuda.nroComprobante}` : ''}
+                          {!deuda.nroComprobante && deuda.comprobanteUrl ? 'Comprobante adjunto' : ''}
                           {deuda.comprobanteUrl && (
                             <a
                               href={deuda.comprobanteUrl}
@@ -441,12 +346,84 @@ export default function GestionDeudas({ onDeudaAprobada }) {
                           )}
                         </p>
                       )}
+
+                      {editandoComprobante === deuda.id ? (
+                        <div className="mt-2 max-w-md rounded-lg border border-[#294669]/15 dark:border-[#476EAE]/35 bg-white dark:bg-[#0D0B61]/60 p-2.5 space-y-2">
+                          {errorComprobante && (
+                            <p role="alert" className="font-mono text-[10px] text-rose-600 dark:text-rose-400">
+                              {errorComprobante}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              value={nroComprobanteEdit}
+                              onChange={(e) => setNroComprobanteEdit(e.target.value)}
+                              maxLength={100}
+                              placeholder="N° de comprobante"
+                              aria-label={`Número de comprobante de la deuda ${deuda.id}`}
+                              className="w-full rounded-lg px-2.5 py-1.5 font-mono text-xs text-slate-900 dark:text-white placeholder:text-slate-500 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#48B3AF]"
+                            />
+                            <select
+                              value={metodoPagoEdit}
+                              onChange={(e) => setMetodoPagoEdit(e.target.value)}
+                              aria-label={`Método de pago de la deuda ${deuda.id}`}
+                              className="w-full rounded-lg px-2.5 py-1.5 font-mono text-xs text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#48B3AF]"
+                            >
+                              <option value="">Sin método</option>
+                              {deudasService.METODOS_PAGO.map((metodo) => (
+                                <option key={metodo.id} value={metodo.id}>{metodo.etiqueta}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              disabled={guardandoComprobante}
+                              onClick={() => guardarComprobante(deuda)}
+                              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-display font-semibold text-[10px] text-white disabled:opacity-50"
+                              style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
+                            >
+                              <Save className="w-3 h-3" /> Guardar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cerrarComprobante}
+                              className="inline-flex items-center gap-1 rounded-md border border-[#294669]/25 dark:border-[#476EAE]/55 px-2.5 py-1 font-display font-semibold text-[10px] text-[#294669] dark:text-slate-300 hover:bg-[#294669]/8"
+                            >
+                              <X className="w-3 h-3" /> Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => abrirComprobante(deuda)}
+                          className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] font-bold text-[#48B3AF] hover:underline"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          {deuda.nroComprobante ? 'Editar comprobante' : 'Añadir comprobante'}
+                        </button>
+                      )}
                     </div>
 
                     <div className="text-right shrink-0">
                       <p className="font-display font-bold text-base text-[#0D0B61] dark:text-white">
                         {formatearMonto(deuda.monto)}
                       </p>
+                      {deuda.estado === 'pendiente' && (
+                        <div className="mt-2 flex flex-wrap justify-end gap-1.5">
+                          <button
+                            type="button"
+                            disabled={procesando === deuda.id}
+                            onClick={() => cambiarEstado(deuda, 'cancelado')}
+                            className="inline-flex items-center gap-1 font-display font-semibold text-[11px] px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
+                            style={{ background: 'linear-gradient(135deg,#48B3AF,#A7E399)' }}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Ya cancelado
+                          </button>
+                        </div>
+                      )}
                       {deuda.estado === 'en_revision' && (
                         <div className="mt-2 flex flex-wrap justify-end gap-1.5">
                           <button
@@ -474,8 +451,7 @@ export default function GestionDeudas({ onDeudaAprobada }) {
               )
             })
           )}
-        </div>
-      )}
+      </div>
     </motion.section>
   )
 }
